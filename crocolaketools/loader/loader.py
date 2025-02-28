@@ -84,9 +84,9 @@ class Loader:
         # first created with crocolaketools.converter.Converter
         admitted_vars = [ field.name for field in self.global_schema ]
         # if qc_only:
-        #     check_vars = params.params["TRITON_"+self.db_type+"_QC"]
+        #     check_vars = params.params["CROCOLAKE_"+self.db_type+"_QC"]
         # else:
-        #     check_vars = params.params["TRITON_"+self.db_type+"_ALL"]
+        #     check_vars = params.params["CROCOLAKE_"+self.db_type+"_ALL"]
         # admitted_vars = list(
         #     set(
         #         admitted_vars + check_vars
