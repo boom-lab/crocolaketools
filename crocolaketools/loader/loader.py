@@ -87,6 +87,12 @@ class Loader:
         #     check_vars = params.params["TRITON_"+self.db_type+"_QC"]
         # else:
         #     check_vars = params.params["TRITON_"+self.db_type+"_ALL"]
+        # admitted_vars = list(
+        #     set(
+        #         admitted_vars + check_vars
+        #     )
+        # )
+
         # if not all(name in admitted_vars for name in check_vars):
         #     raise ValueError(f"Not all variables in check_vars are present in admitted_vars: {check_vars} vs {admitted_vars}.")
 
@@ -99,7 +105,8 @@ class Loader:
             if all(name in admitted_vars for name in selected_variables):
                 self.selected_variables = selected_variables
             else:
-                raise ValueError(f"Selected variables must be a list of variables contained in the database: {admitted_vars}. Found {selected_variables} instead.")
+                vars_not_in_admitted_vars = [item for item in selected_variables if item not in admitted_vars]
+                raise ValueError(f"Selected variables must be a list of variables contained in the database: {admitted_vars}. Found {selected_variables} instead. Variables not in admitted_vars: {vars_not_in_admitted_vars}")
         else:
             raise ValueError(f"Selected variables must be a list of variables contained in the database: {admitted_vars}. Found {selected_variables} instead.")
 
@@ -343,32 +350,30 @@ class Loader:
             df[col] = db_name
             return df
 
-        def assign_NA(df,col):
-            df[col] = pd.NA
+        def assign_NA(df,cols_to_add):
+            empty_df = pd.DataFrame(
+                {col: pd.NA for col in cols_to_add},
+                index=df.index
+            )
+            df = pd.concat([df,empty_df],axis=1)
             return df
 
+        # Add database name column if missing
+        if "DB_NAME" in cols_to_add:
+            print(f"Adding {col} to db {db_name}")
+            ddf = ddf.map_partitions(
+                assign_DB_NAME, col
+            )
+            ddf[col] = ddf[col].astype("string[pyarrow]")
+
         # Add empty columns for required variables not in parquet database
-        for col in cols_to_add:
-            if col == "DB_NAME":
-                print(f"Adding {col} to db {db_name}")
-                ddf = ddf.map_partitions(
-                    assign_DB_NAME, col
-                )
-                ddf[col] = ddf[col].astype("string[pyarrow]")
-            else:
-                print(f"Adding empty column {col} to db {db_name}")
-                if target_schema is not None:
-                    field_idx = target_schema.get_field_index(col)
-                    pa_dtype = target_schema.types[field_idx]
-                    pd_dtype = self.dtype_mapping[pa_dtype]
-                    ddf = ddf.map_partitions(
-                        assign_NA, col
-                    )
-                    ddf[col] = ddf[col].astype(pd_dtype)
-                else:
-                    ddf = ddf.map_partitions( lambda df: df.assign(col=pd.NA) )
+        print(f"Adding empty columns {cols_to_add} to db {db_name}")
+        ddf = ddf.map_partitions(
+            assign_NA, cols_to_add
+        )
 
         # Enforce column correct dtype
+        print(f"Enforcing columns dtype in db {db_name}")
         for col in ddf.columns:
             if target_schema is not None:
                 field_idx = target_schema.get_field_index(col)
@@ -378,7 +383,12 @@ class Loader:
                     ddf[col] = ddf[col].astype(pd_dtype)
 
         # Enforce column ordering
-        ddf = ddf[self.selected_variables]
+        print(f"Enforcing columns ordering in db {db_name}")
+        def sort_columns(df,sorted_cols):
+            return df[sorted_cols]
+        ddf = ddf.map_partitions(
+            sort_columns, self.selected_variables
+        )
 
         return ddf
 
