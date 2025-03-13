@@ -18,7 +18,7 @@ import zipfile
 urls = {}
 urls["0002_PHY_CROCOLAKE-QC-DEV"] = "https://whoi-my.sharepoint.com/:u:/g/personal/enrico_milanese_whoi_edu/EYd-6370NqtNskScY-6hytIByrMA5LEIUVONBgzop9IVog?e=MfHCX4&download=1"
 urls["0002_BGC_CROCOLAKE-QC-DEV"] = "https://whoi-my.sharepoint.com/:u:/g/personal/enrico_milanese_whoi_edu/EbjTk9CJgCZJlkvPmwI38NsBQQvUL6MXkTLBAPV5jZutVg?e=ALIZvI&download=1"
-urls["0006_PHY_CROCOLAKE-QC-MERGED-DEV"] = ""
+urls["0006_PHY_CROCOLAKE-QC-MERGED-DEV"] = "https://whoi-my.sharepoint.com/:u:/g/personal/enrico_milanese_whoi_edu/ETVsmC-RKnlIpH_cWf1fSHcBCfeAPGT9QOCv7Qxxrbt4Mg?e=3ihaW7&download=1"
 urls["0006_BGC_CROCOLAKE-QC-MERGED-DEV"] = "https://whoi-my.sharepoint.com/:u:/g/personal/enrico_milanese_whoi_edu/EYu01zZNqjJLi9ep8eM3SNwBAG98weAgQWqlmNbYeuncRg?e=ie04C4&download=1"
 urls["1002_PHY_ARGO-QC-DEV"] = "https://whoi-my.sharepoint.com/:u:/g/personal/enrico_milanese_whoi_edu/Ebme_Sr3np9CtEpcTZAnLPUBGY1rI9WvabYRtv9IAeFprg?e=Pb81Cd&download=1"
 urls["1002_BGC_ARGO-QC-DEV"] = "https://whoi-my.sharepoint.com/:u:/g/personal/enrico_milanese_whoi_edu/EYs1amvXcH9Ml_qTXzdQNNYBYWPMonx8mcA6Hd2sXqNItw?e=FNEiaq&download=1"
