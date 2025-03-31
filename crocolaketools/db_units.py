@@ -578,9 +578,9 @@ params['CPR'] = [
 ]
 
 #
-# dict for renaming parameters to triton names
+# dict for renaming parameters to crocolake names
 #
-params["CPR2TRITON"] = {
+params["CPR2CROCOLAKE"] = {
     'SampleId' : 'PLATFORM_NUMBER',
     'Latitude' : 'LATITUDE',
     'Longitude' : 'LONGITUDE',
