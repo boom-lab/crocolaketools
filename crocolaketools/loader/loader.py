@@ -83,18 +83,6 @@ class Loader:
         # admitted_vars are already checked for in params when the database is
         # first created with crocolaketools.converter.Converter
         admitted_vars = [ field.name for field in self.global_schema ]
-        # if qc_only:
-        #     check_vars = params.params["CROCOLAKE_"+self.db_type+"_QC"]
-        # else:
-        #     check_vars = params.params["CROCOLAKE_"+self.db_type+"_ALL"]
-        # admitted_vars = list(
-        #     set(
-        #         admitted_vars + check_vars
-        #     )
-        # )
-
-        # if not all(name in admitted_vars for name in check_vars):
-        #     raise ValueError(f"Not all variables in check_vars are present in admitted_vars: {check_vars} vs {admitted_vars}.")
 
         # check that selected variables are present in the database
         if isinstance(selected_variables,str):
