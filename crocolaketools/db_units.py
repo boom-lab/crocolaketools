@@ -533,19 +533,17 @@ params["GLODAP2CROCOLAKE"] = {
 # original names of parameters to keep
 
 params['SprayGliders'] = [
-    'profile',
     'depth',
     'lat',
     'lon',
     'time',
-    'acoustic_backscatter_at_1MHz',
-    'acoustic_backscatter_at_750kHz',
-    'mission',
     'mission_name',
-    'mission_profile',
     'salinity',
+    'sal',
     'temperature',
-    'trajectory_index'
+    'temp',
+    'chlorophyll_a',
+    'doxy'
 ]
 
 #
@@ -558,6 +556,8 @@ params["SprayGliders2CROCOLAKE"] = {
     'temperature' : 'TEMP',
     'salinity' : 'PSAL',
     'time': 'JULD',
+    'chlorophyll_a' : 'CHLA',
+    'doxy' : 'DOXY',
 }
 
 
