@@ -243,7 +243,7 @@ class Loader:
             if db not in self.db_paths:
                 warnings.warn(f"No database {db} found in {self.db_paths}. Removing it from db_list. It is possible that the database is present in another type (e.g. Spray Glider data exist in PHY but not in BGC type).")
                 continue
-            search_pattern = os.path.join(self.db_paths[db]+"/_common_metadata")
+            search_pattern = os.path.join(self.db_paths[db]+"/_common_metadata") # this is unique for each dataset
             paths = glob.glob(search_pattern)
             # discarding databases that are not present (e.g. Spray Gliders in BGC path)
             if len(paths) > 1:
