@@ -40,10 +40,12 @@ params = {}
 params["CROCOLAKE_PHY_QC"] = [
     'DB_NAME',
     'PLATFORM_NUMBER',
+    'N_PROF',
     'DATA_MODE',
     'LATITUDE',
     'LONGITUDE',
     'JULD',
+    'DEPTH',
     'PRES',
     'PRES_QC',
     'PRES_ERROR',
@@ -58,10 +60,12 @@ params["CROCOLAKE_PHY_QC"] = [
 params["CROCOLAKE_PHY_ALL"] = [
     'DB_NAME',
     'PLATFORM_NUMBER',
+    'N_PROF',
     'DATA_MODE',
     'LATITUDE',
     'LONGITUDE',
     'JULD',
+    'DEPTH',
     'PRES',
     'PRES_QC',
     'PRES_ADJUSTED',
@@ -82,9 +86,11 @@ params["CROCOLAKE_PHY_ALL"] = [
 params["CROCOLAKE_BGC_QC"] = [
     'DB_NAME',
     'PLATFORM_NUMBER',
+    'N_PROF',
     'LATITUDE',
     'LONGITUDE',
     'JULD',
+    'DEPTH',
     'PRES',
     'PRES_QC',
     'PRES_ERROR',
@@ -242,9 +248,11 @@ params["CROCOLAKE_BGC_QC"] = [
 params["CROCOLAKE_BGC_ALL"] = [
     'DB_NAME',
     'PLATFORM_NUMBER',
+    'N_PROF',
     'LATITUDE',
     'LONGITUDE',
     'JULD',
+    'DEPTH',
     'PRES',
     'PRES_QC',
     'PRES_ADJUSTED',
@@ -534,6 +542,7 @@ params["GLODAP2CROCOLAKE"] = {
 
 params['SprayGliders'] = [
     'depth',
+    'profile',
     'lat',
     'lon',
     'time',
@@ -551,6 +560,8 @@ params['SprayGliders'] = [
 #
 params["SprayGliders2CROCOLAKE"] = {
     'mission_name' : 'PLATFORM_NUMBER',
+    'profile': 'N_PROF',
+    'depth': 'DEPTH',
     'lat' : 'LATITUDE',
     'lon' : 'LONGITUDE',
     'temperature' : 'TEMP',
