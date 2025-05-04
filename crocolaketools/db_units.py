@@ -15,17 +15,19 @@
 #------------------------------------------------------------------------------#
 #
 # List of databases and their folder names
-databases = ["ARGO", "GLODAP", "SprayGliders"]
+databases = ["ARGO", "GLODAP", "SprayGliders", "CPR", "Saildrones"]
 
 databases_codenames = {}
 databases_codenames["ARGO"] = "ARGO" #"ARGO-CLOUD"
 databases_codenames["GLODAP"] = "GLODAP"#"GLODAP-DEV"
 databases_codenames["SprayGliders"] = "SPRAY"#"SPRAY-DEV"
+databases_codenames["CPR"] = "CPR"#"SPRAY-DEV"
+databases_codenames["Saildrones"] = "SAILDRONES"#"SAILDRONES-DEV"
 
 params = {}
 
 #------------------------------------------------------------------------------#
-# TRITON
+# CROCOLAKE
 #
 # standardized names for merged database
 #
@@ -36,7 +38,7 @@ params = {}
 # version; ideally, this is needed only for Argo data (and maybe not at all, see
 # Argo dictionaries later in file)
 #
-params["TRITON_PHY_QC"] = [
+params["CROCOLAKE_PHY_QC"] = [
     'DB_NAME',
     'PLATFORM_NUMBER',
     'DATA_MODE',
@@ -54,7 +56,7 @@ params["TRITON_PHY_QC"] = [
     'PSAL_ERROR'
 ]
 
-params["TRITON_PHY_ALL"] = [
+params["CROCOLAKE_PHY_ALL"] = [
     'DB_NAME',
     'PLATFORM_NUMBER',
     'DATA_MODE',
@@ -78,7 +80,7 @@ params["TRITON_PHY_ALL"] = [
     'PSAL_ADJUSTED_ERROR'
 ]
 
-params["TRITON_BGC_QC"] = [
+params["CROCOLAKE_BGC_QC"] = [
     'DB_NAME',
     'PLATFORM_NUMBER',
     'LATITUDE',
@@ -238,7 +240,7 @@ params["TRITON_BGC_QC"] = [
     'SF6_DATA_MODE',
 ]
 
-params["TRITON_BGC_ALL"] = [
+params["CROCOLAKE_BGC_ALL"] = [
     'DB_NAME',
     'PLATFORM_NUMBER',
     'LATITUDE',
@@ -488,9 +490,9 @@ params["GLODAP"] = [
 ]
 
 #
-# dict for renaming parameters to triton names
+# dict for renaming parameters to crocolake names
 #
-params["GLODAP2TRITON"] = {
+params["GLODAP2CROCOLAKE"] = {
     'G2expocode' : 'PLATFORM_NUMBER',
     'G2latitude' : 'LATITUDE',
     'G2longitude' : 'LONGITUDE',
@@ -548,9 +550,9 @@ params['SprayGliders'] = [
 ]
 
 #
-# dict for renaming parameters to triton names
+# dict for renaming parameters to crocolake names
 #
-params["SprayGliders2TRITON"] = {
+params["SprayGliders2CROCOLAKE"] = {
     'mission_name' : 'PLATFORM_NUMBER',
     'lat' : 'LATITUDE',
     'lon' : 'LONGITUDE',
@@ -560,12 +562,145 @@ params["SprayGliders2TRITON"] = {
 }
 
 
+#------------------------------------------------------------------------------#
+# CPR (Continuous Plankton Recorder)
+#
+# original names of parameters to keep
+
+params['CPR'] = [
+    'SampleId',
+    'Latitude',
+    'Longitude',
+    'MidPoint_Date_UTC',
+    'Year',
+    'Month',
+    'Day',
+    'Hour'
+]
+
+#
+# dict for renaming parameters to crocolake names
+#
+params["CPR2CROCOLAKE"] = {
+    'SampleId' : 'PLATFORM_NUMBER',
+    'Latitude' : 'LATITUDE',
+    'Longitude' : 'LONGITUDE',
+    'MidPoint_Date_UTC' : 'JULD'
+}
+
+
+#------------------------------------------------------------------------------#
+# Saildrones
+#
+# original names of parameters to keep
+#
+params["Saildrones"] = [
+    'trajectory',
+    'time',
+    'latitude',
+    'longitude',
+    'SOG',
+    'SOG_FILTERED_MEAN',
+    'SOG_FILTERED_STDDEV',
+    'SOG_FILTERED_MAX',
+    'SOG_FILTERED_MIN',
+    'COG',
+    'COG_FILTERED_MEAN',
+    'COG_FILTERED_STDDEV',
+    'HDG',
+    'HDG_FILTERED_MEAN',
+    'HDG_FILTERED_STDDEV',
+    'ROLL_FILTERED_MEAN',
+    'ROLL_FILTERED_STDDEV',
+    'ROLL_FILTERED_PEAK',
+    'PITCH_FILTERED_MEAN',
+    'PITCH_FILTERED_STDDEV',
+    'PITCH_FILTERED_PEAK',
+    'HDG_WING',
+    'WING_HDG_FILTERED_MEAN',
+    'WING_HDG_FILTERED_STDDEV',
+    'WING_ROLL_FILTERED_MEAN',
+    'WING_ROLL_FILTERED_STDDEV',
+    'WING_ROLL_FILTERED_PEAK',
+    'WING_PITCH_FILTERED_MEAN',
+    'WING_PITCH_FILTERED_STDDEV',
+    'WING_PITCH_FILTERED_PEAK',
+    'WING_ANGLE',
+    'WIND_FROM_MEAN',
+    'WIND_FROM_STDDEV',
+    'WIND_SPEED_MEAN',
+    'WIND_SPEED_STDDEV',
+    'UWND_MEAN',
+    'UWND_STDDEV',
+    'VWND_MEAN',
+    'VWND_STDDEV',
+    'WWND_MEAN',
+    'WWND_STDDEV',
+    'GUST_WND_MEAN',
+    'GUST_WND_STDDEV',
+    'WIND_MEASUREMENT_HEIGHT_MEAN',
+    'WIND_MEASUREMENT_HEIGHT_STDDEV',
+    'TEMP_AIR_MEAN',
+    'TEMP_AIR_STDDEV',
+    'RH_MEAN',
+    'RH_STDDEV',
+    'BARO_PRES_MEAN',
+    'BARO_PRES_STDDEV',
+    'PAR_AIR_MEAN',
+    'PAR_AIR_STDDEV',
+    'SW_IRRAD_TOTAL_MEAN',
+    'SW_IRRAD_TOTAL_STDDEV',
+    'SW_IRRAD_DIFFUSE_MEAN',
+    'SW_IRRAD_DIFFUSE_STDDEV',
+    'TEMP_IR_SEA_WING_UNCOMP_MEAN',
+    'TEMP_IR_SEA_WING_UNCOMP_STDDEV',
+    'WAVE_DOMINANT_PERIOD',
+    'WAVE_SIGNIFICANT_HEIGHT',
+    'TEMP_DEPTH_HALFMETER_MEAN',
+    'TEMP_DEPTH_HALFMETER_STDDEV',
+    'TEMP_SBE37_MEAN',
+    'TEMP_SBE37_STDDEV',
+    'SAL_SBE37_MEAN',
+    'SAL_SBE37_STDDEV',
+    'COND_SBE37_MEAN',
+    'COND_SBE37_STDDEV',
+    'O2_CONC_SBE37_MEAN',
+    'O2_CONC_SBE37_STDDEV',
+    'O2_SAT_SBE37_MEAN',
+    'O2_SAT_SBE37_STDDEV',
+    'CHLOR_WETLABS_MEAN',
+    'CHLOR_WETLABS_STDDEV',
+    'CDOM_MEAN',
+    'CDOM_STDDEV',
+    'BKSCT_RED_MEAN',
+    'BKSCT_RED_STDDEV',
+    'WATER_CURRENT_SPEED_MEAN',
+    'WATER_CURRENT_DIRECTION_MEAN'
+]
+
+#
+# dict for renaming parameters to crocolake names
+#
+params["Saildrones2CROCOLAKE"] = {
+    'trajectory': 'PLATFORM_NUMBER',
+    'latitude': 'LATITUDE',
+    'longitude': 'LONGITUDE',
+    'time': 'JULD',
+    'TEMP_SBE37_MEAN': 'TEMP',
+    'SAL_SBE37_MEAN': 'PSAL',
+    'O2_CONC_SBE37_MEAN': 'DOXY',
+    'CHLOR_WETLABS_MEAN': 'CHLA',
+    'CDOM_MEAN': 'CDOM',
+    'BKSCT_RED_MEAN': 'BBP700'
+}
+
 
 #------------------------------------------------------------------------------#
 # Argo
 #
 # standardized names for Argo only databases, when converting from GDAC
 #
+
 params["ArgoPHY"] = [
     'PLATFORM_NUMBER',
     'N_PROF',
