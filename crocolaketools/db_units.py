@@ -547,6 +547,7 @@ params['SprayGliders'] = [
     'lon',
     'time',
     'mission_name',
+    'mission',
     'salinity',
     'sal',
     'temperature',
@@ -559,18 +560,22 @@ params['SprayGliders'] = [
 # dict for renaming parameters to crocolake names
 #
 params["SprayGliders2CROCOLAKE"] = {
-    'mission_name' : 'PLATFORM_NUMBER',
+    'mission' : 'PLATFORM_NUMBER',
     'profile': 'N_PROF',
     'depth': 'DEPTH',
     'lat' : 'LATITUDE',
     'lon' : 'LONGITUDE',
     'temperature' : 'TEMP',
+    'temp' : 'TEMP',
     'salinity' : 'PSAL',
+    'sal' : 'PSAL',
     'time': 'JULD',
     'chlorophyll_a' : 'CHLA',
     'doxy' : 'DOXY',
 }
 
+params["CROCOLAKE2SprayGliders"] = {v: k for k, v in
+                                    params["SprayGliders2CROCOLAKE"].items()}
 
 #------------------------------------------------------------------------------#
 # CPR (Continuous Plankton Recorder)
