@@ -8,6 +8,7 @@
 ## @date Fri 04 Oct 2024
 
 ##########################################################################
+import copy
 #
 # Module containing dict of parameters list and database names used across
 # methods and classes
@@ -859,3 +860,10 @@ params["ArgoBGC"] = [
     'DOWNWELLING_PAR_ADJUSTED_ERROR',
     'DOWNWELLING_PAR_DATA_MODE',
 ]
+
+#
+# dict for renaming parameters to crocolake names
+#
+params["Argo2CROCOLAKE"] = {k : k for k in params["ArgoPHY"]} # copy of the list
+
+params["CROCOLAKE2Argo"] = copy.deepcopy(params["Argo2CROCOLAKE"])
