@@ -8,6 +8,7 @@
 ## @date Fri 04 Oct 2024
 
 ##########################################################################
+import copy
 #
 # Module containing dict of parameters list and database names used across
 # methods and classes
@@ -41,10 +42,12 @@ params = {}
 params["CROCOLAKE_PHY_QC"] = [
     'DB_NAME',
     'PLATFORM_NUMBER',
+    'N_PROF',
     'DATA_MODE',
     'LATITUDE',
     'LONGITUDE',
     'JULD',
+    'DEPTH',
     'PRES',
     'PRES_QC',
     'PRES_ERROR',
@@ -59,10 +62,12 @@ params["CROCOLAKE_PHY_QC"] = [
 params["CROCOLAKE_PHY_ALL"] = [
     'DB_NAME',
     'PLATFORM_NUMBER',
+    'N_PROF',
     'DATA_MODE',
     'LATITUDE',
     'LONGITUDE',
     'JULD',
+    'DEPTH',
     'PRES',
     'PRES_QC',
     'PRES_ADJUSTED',
@@ -83,9 +88,11 @@ params["CROCOLAKE_PHY_ALL"] = [
 params["CROCOLAKE_BGC_QC"] = [
     'DB_NAME',
     'PLATFORM_NUMBER',
+    'N_PROF',
     'LATITUDE',
     'LONGITUDE',
     'JULD',
+    'DEPTH',
     'PRES',
     'PRES_QC',
     'PRES_ERROR',
@@ -243,9 +250,11 @@ params["CROCOLAKE_BGC_QC"] = [
 params["CROCOLAKE_BGC_ALL"] = [
     'DB_NAME',
     'PLATFORM_NUMBER',
+    'N_PROF',
     'LATITUDE',
     'LONGITUDE',
     'JULD',
+    'DEPTH',
     'PRES',
     'PRES_QC',
     'PRES_ADJUSTED',
@@ -534,33 +543,67 @@ params["GLODAP2CROCOLAKE"] = {
 # original names of parameters to keep
 
 params['SprayGliders'] = [
-    'profile',
     'depth',
+    'profile',
     'lat',
     'lon',
     'time',
-    'acoustic_backscatter_at_1MHz',
-    'acoustic_backscatter_at_750kHz',
-    'mission',
     'mission_name',
-    'mission_profile',
+    'mission',
     'salinity',
+    'sal',
     'temperature',
-    'trajectory_index'
+    'temp',
+    'chlorophyll_a',
+    'doxy'
 ]
 
 #
 # dict for renaming parameters to crocolake names
 #
 params["SprayGliders2CROCOLAKE"] = {
-    'mission_name' : 'PLATFORM_NUMBER',
+    'mission' : 'PLATFORM_NUMBER',
+    'profile': 'N_PROF',
+    'depth': 'DEPTH',
     'lat' : 'LATITUDE',
     'lon' : 'LONGITUDE',
     'temperature' : 'TEMP',
+    'temp' : 'TEMP',
     'salinity' : 'PSAL',
+    'sal' : 'PSAL',
     'time': 'JULD',
+    'chlorophyll_a' : 'CHLA',
+    'doxy' : 'DOXY',
 }
 
+params["CROCOLAKE2SprayGliders"] = {v: k for k, v in
+                                    params["SprayGliders2CROCOLAKE"].items()}
+
+#------------------------------------------------------------------------------#
+# CPR (Continuous Plankton Recorder)
+#
+# original names of parameters to keep
+
+params['CPR'] = [
+    'SampleId',
+    'Latitude',
+    'Longitude',
+    'MidPoint_Date_UTC',
+    'Year',
+    'Month',
+    'Day',
+    'Hour'
+]
+
+#
+# dict for renaming parameters to crocolake names
+#
+params["CPR2CROCOLAKE"] = {
+    'SampleId' : 'PLATFORM_NUMBER',
+    'Latitude' : 'LATITUDE',
+    'Longitude' : 'LONGITUDE',
+    'MidPoint_Date_UTC' : 'JULD'
+}
 
 #------------------------------------------------------------------------------#
 # CPR (Continuous Plankton Recorder)
@@ -879,3 +922,10 @@ params["ArgoBGC"] = [
     'DOWNWELLING_PAR_ADJUSTED_ERROR',
     'DOWNWELLING_PAR_DATA_MODE',
 ]
+
+#
+# dict for renaming parameters to crocolake names
+#
+params["Argo2CROCOLAKE"] = {k : k for k in params["ArgoPHY"]} # copy of the list
+
+params["CROCOLAKE2Argo"] = copy.deepcopy(params["Argo2CROCOLAKE"])

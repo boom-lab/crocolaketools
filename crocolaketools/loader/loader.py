@@ -43,6 +43,7 @@ class Loader:
                               (default is True)
         """
 
+        # set list of databases to read
         if db_list is None:
             self.db_list = params.databases
         elif isinstance(db_list,list):
@@ -55,6 +56,7 @@ class Loader:
             raise ValueError("Database list db_list can only take values in: " + str(params.databases))
         print(f"Reading data from {self.db_list} .")
 
+        # set database type
         if db_type is None:
             self.db_type = "PHY"
         elif isinstance(db_type,str):
@@ -64,16 +66,25 @@ class Loader:
                 raise ValueError("Database type db_type must be one of " + str(["PHY","BGC"]))
         print("Reading " + self.db_type + " parameters.")
 
+        # set root path for databases
         if db_rootpath is None:
             self.db_rootpath = "./"
         else:
             self.db_rootpath = db_rootpath
         print("Looking for data in " + self.db_rootpath)
 
-        if qc_only:
-            admitted_vars = params.params["TRITON_"+self.db_type+"_QC"]
-        else:
-            admitted_vars = params.params["TRITON_"+self.db_type+"_ALL"]
+        # initialize paths and filters, update db_list
+        self.__set_db_rootpaths()
+        self.filters = None
+        self.__update_db_list()
+
+        # build global schema for the data load
+        self.global_schema = self.__build_global_schema()
+        # admitted_vars are already checked for in params when the database is
+        # first created with crocolaketools.converter.Converter
+        admitted_vars = [ field.name for field in self.global_schema ]
+
+        # check that selected variables are present in the database
         if isinstance(selected_variables,str):
             selected_variables = [selected_variables]
         if selected_variables is None:
@@ -82,15 +93,12 @@ class Loader:
             if all(name in admitted_vars for name in selected_variables):
                 self.selected_variables = selected_variables
             else:
-                raise ValueError(f"Selected variables must be a list of variables contained in the database: {admitted_vars}")
+                vars_not_in_admitted_vars = [item for item in selected_variables if item not in admitted_vars]
+                raise ValueError(f"Selected variables must be a list of variables contained in the database: {admitted_vars}. Found {selected_variables} instead. Variables not in admitted_vars: {vars_not_in_admitted_vars}")
         else:
-            raise ValueError(f"Selected variables must be a list of variables contained in the database: {admitted_vars}")
+            raise ValueError(f"Selected variables must be a list of variables contained in the database: {admitted_vars}. Found {selected_variables} instead.")
 
-        # Initialize paths and filters, update db_list
-        self.__set_db_rootpaths()
-        self.filters = None
-        self.__update_db_list()
-
+        # initialize dtype mapping
         self.dtype_mapping = {
             pa.int8(): "int8[pyarrow]",
             pa.int16(): "int16[pyarrow]",
@@ -235,7 +243,7 @@ class Loader:
             if db not in self.db_paths:
                 warnings.warn(f"No database {db} found in {self.db_paths}. Removing it from db_list. It is possible that the database is present in another type (e.g. Spray Glider data exist in PHY but not in BGC type).")
                 continue
-            search_pattern = os.path.join(self.db_paths[db]+"/_common_metadata")
+            search_pattern = os.path.join(self.db_paths[db]+"/_common_metadata") # this is unique for each dataset
             paths = glob.glob(search_pattern)
             # discarding databases that are not present (e.g. Spray Gliders in BGC path)
             if len(paths) > 1:
@@ -303,10 +311,9 @@ class Loader:
         db_path = self.db_paths[db_name]
 
         db_schema = pq.read_schema(self.db_paths[db_name]+"/_common_metadata")
-        #local_schema = pq.read_schema(db_path+"/_common_metadata")
 
         cols_to_read = [name for name in self.selected_variables if name in db_schema.names]
-        # cols_to_read = [name for name in self.selected_variables if name in local_schema.names]
+
         print(f"Reading columns {cols_to_read} from db {db_name}.")
 
         def read_db(local_path):
@@ -331,31 +338,46 @@ class Loader:
             df[col] = db_name
             return df
 
-        def assign_NA(df,col):
-            df[col] = pd.NA
+        def assign_NA(df,cols_to_add):
+            empty_df = pd.DataFrame(
+                {col: pd.NA for col in cols_to_add},
+                index=df.index
+            )
+            df = pd.concat([df,empty_df],axis=1)
             return df
 
-        for col in cols_to_add:
-            if col == "DB_NAME":
-                print(f"Adding {col} to db {db_name}")
-                ddf = ddf.map_partitions(
-                    assign_DB_NAME, col
-                )
-                ddf[col] = ddf[col].astype("string[pyarrow]")
-            else:
-                print(f"Adding empty column {col} to db {db_name}")
-                if target_schema is not None:
-                    field_idx = target_schema.get_field_index(col)
-                    pa_dtype = target_schema.types[field_idx]
-                    pd_dtype = self.dtype_mapping[pa_dtype]
-                    ddf = ddf.map_partitions(
-                        assign_NA, col
-                    )
-                    ddf[col] = ddf[col].astype(pd_dtype)
-                else:
-                    ddf = ddf.map_partitions( lambda df: df.assign(col=pd.NA) )
+        # Add database name column if missing
+        if "DB_NAME" in cols_to_add:
+            print(f"Adding {col} to db {db_name}")
+            ddf = ddf.map_partitions(
+                assign_DB_NAME, col
+            )
+            ddf[col] = ddf[col].astype("string[pyarrow]")
 
-        ddf = ddf[list(self.selected_variables)]
+        # Add empty columns for required variables not in parquet database
+        print(f"Adding empty columns {cols_to_add} to db {db_name}")
+        ddf = ddf.map_partitions(
+            assign_NA, cols_to_add
+        )
+
+        # Enforce column correct dtype
+        print(f"Enforcing columns dtype in db {db_name}")
+        for col in ddf.columns:
+            if target_schema is not None:
+                field_idx = target_schema.get_field_index(col)
+                pa_dtype = target_schema.types[field_idx]
+                pd_dtype = self.dtype_mapping[pa_dtype]
+                if ddf.dtypes[col] != pd_dtype:
+                    ddf[col] = ddf[col].astype(pd_dtype)
+
+        # Enforce column ordering
+        print(f"Enforcing columns ordering in db {db_name}")
+        def sort_columns(df,sorted_cols):
+            return df[sorted_cols]
+        ddf = ddf.map_partitions(
+            sort_columns, self.selected_variables
+        )
+
         return ddf
 
 #------------------------------------------------------------------------------#
@@ -424,9 +446,6 @@ class Loader:
                memory_check is performed and succesfull
         """
 
-        # get global schema for the data load
-        self.global_schema = self.__build_global_schema()
-
         ddf = []
         for db_name in self.db_list:
             ddf.append(
@@ -436,7 +455,6 @@ class Loader:
                     )
             )
         ddf = dd.concat(ddf)
-        #ddf = ddf.repartition(partition_size="300MB")
 
         if memory_check:
             memory_usage = ddf.memory_usage(deep=True).compute()
