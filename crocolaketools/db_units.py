@@ -16,13 +16,14 @@ import copy
 #------------------------------------------------------------------------------#
 #
 # List of databases and their folder names
-databases = ["ARGO", "GLODAP", "SprayGliders", "CPR"]
+databases = ["ARGO", "GLODAP", "SprayGliders", "CPR", "Saildrones"]
 
 databases_codenames = {}
 databases_codenames["ARGO"] = "ARGO" #"ARGO-CLOUD"
 databases_codenames["GLODAP"] = "GLODAP"#"GLODAP-DEV"
 databases_codenames["SprayGliders"] = "SPRAY"#"SPRAY-DEV"
 databases_codenames["CPR"] = "CPR"#"SPRAY-DEV"
+databases_codenames["Saildrones"] = "SAILDRONES"#"SAILDRONES-DEV"
 
 params = {}
 
@@ -604,12 +605,73 @@ params["CPR2CROCOLAKE"] = {
     'MidPoint_Date_UTC' : 'JULD'
 }
 
+#------------------------------------------------------------------------------#
+# CPR (Continuous Plankton Recorder)
+#
+# original names of parameters to keep
+
+params['CPR'] = [
+    'SampleId',
+    'Latitude',
+    'Longitude',
+    'MidPoint_Date_UTC',
+    'Year',
+    'Month',
+    'Day',
+    'Hour'
+]
+
+#
+# dict for renaming parameters to crocolake names
+#
+params["CPR2CROCOLAKE"] = {
+    'SampleId' : 'PLATFORM_NUMBER',
+    'Latitude' : 'LATITUDE',
+    'Longitude' : 'LONGITUDE',
+    'MidPoint_Date_UTC' : 'JULD'
+}
+
+
+#------------------------------------------------------------------------------#
+# Saildrones
+#
+# original names of parameters to keep
+#
+params["Saildrones"] = [
+    'trajectory',
+    'latitude',
+    'longitude',
+    'time',
+    'TEMP_SBE37_MEAN',
+    'SAL_SBE37_MEAN',
+    'O2_CONC_SBE37_MEAN',
+    'CHLOR_WETLABS_MEAN',
+    'CDOM_MEAN',
+    'BKSCT_RED_MEAN'
+]
+#
+# dict for renaming parameters to crocolake names
+#
+params["Saildrones2CROCOLAKE"] = {
+    'trajectory': 'PLATFORM_NUMBER',
+    'latitude': 'LATITUDE',
+    'longitude': 'LONGITUDE',
+    'time': 'JULD',
+    'TEMP_SBE37_MEAN': 'TEMP',
+    'SAL_SBE37_MEAN': 'PSAL',
+    'O2_CONC_SBE37_MEAN': 'DOXY',
+    'CHLOR_WETLABS_MEAN': 'CHLA',
+    'CDOM_MEAN': 'CDOM',
+    'BKSCT_RED_MEAN': 'BBP700'
+}
+
 
 #------------------------------------------------------------------------------#
 # Argo
 #
 # standardized names for Argo only databases, when converting from GDAC
 #
+
 params["ArgoPHY"] = [
     'PLATFORM_NUMBER',
     'N_PROF',
