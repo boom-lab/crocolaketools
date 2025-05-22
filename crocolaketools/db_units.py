@@ -647,7 +647,13 @@ params["Saildrones"] = [
     'O2_CONC_SBE37_MEAN',
     'CHLOR_WETLABS_MEAN',
     'CDOM_MEAN',
-    'BKSCT_RED_MEAN'
+    'BKSCT_RED_MEAN',
+    'TEMP_SBE37_STDDEV',
+    'SAL_SBE37_STDDEV',
+    'O2_CONC_SBE37_STDDEV',
+    'CHLOR_WETLABS_STDDEV',
+    'CDOM_STDDEV',
+    'BKSCT_RED_STDDEV'
 ]
 #
 # dict for renaming parameters to crocolake names
@@ -662,7 +668,13 @@ params["Saildrones2CROCOLAKE"] = {
     'O2_CONC_SBE37_MEAN': 'DOXY',
     'CHLOR_WETLABS_MEAN': 'CHLA',
     'CDOM_MEAN': 'CDOM',
-    'BKSCT_RED_MEAN': 'BBP700'
+    'BKSCT_RED_MEAN': 'BBP700',
+    'TEMP_SBE37_STDDEV': 'TEMP_ERROR',
+    'SAL_SBE37_STDDEV': 'PSAL_ERROR',
+    'O2_CONC_SBE37_STDDEV': 'DOXY_ERROR',
+    'CHLOR_WETLABS_STDDEV': 'CHLA_ERROR',
+    'CDOM_STDDEV': 'CDOM_ERROR',
+    'BKSCT_RED_STDDEV': 'BBP700_ERROR'
 }
 
 
