@@ -42,7 +42,7 @@ params = {}
 params["CROCOLAKE_PHY_QC"] = [
     'DB_NAME',
     'PLATFORM_NUMBER',
-    'N_PROF',
+    'CYCLE_NUMBER',
     'DATA_MODE',
     'LATITUDE',
     'LONGITUDE',
@@ -62,7 +62,7 @@ params["CROCOLAKE_PHY_QC"] = [
 params["CROCOLAKE_PHY_ALL"] = [
     'DB_NAME',
     'PLATFORM_NUMBER',
-    'N_PROF',
+    'CYCLE_NUMBER',
     'DATA_MODE',
     'LATITUDE',
     'LONGITUDE',
@@ -88,7 +88,7 @@ params["CROCOLAKE_PHY_ALL"] = [
 params["CROCOLAKE_BGC_QC"] = [
     'DB_NAME',
     'PLATFORM_NUMBER',
-    'N_PROF',
+    'CYCLE_NUMBER',
     'LATITUDE',
     'LONGITUDE',
     'JULD',
@@ -250,7 +250,7 @@ params["CROCOLAKE_BGC_QC"] = [
 params["CROCOLAKE_BGC_ALL"] = [
     'DB_NAME',
     'PLATFORM_NUMBER',
-    'N_PROF',
+    'CYCLE_NUMBER',
     'LATITUDE',
     'LONGITUDE',
     'JULD',
@@ -535,6 +535,9 @@ params["GLODAP2CROCOLAKE"] = {
     'G2ccl4f' : 'CCL4_QC',
     'G2sf6f' : 'SF6_QC',
     'G2chlaf' : 'CHLA_QC',
+    'profile_nb' : 'CYCLE_NUMBER', # temporary name for profile ID, this is
+                                   # created in the converter, it is not in the
+                                   # original csv file
 }
 
 #------------------------------------------------------------------------------#
@@ -563,7 +566,7 @@ params['SprayGliders'] = [
 #
 params["SprayGliders2CROCOLAKE"] = {
     'mission' : 'PLATFORM_NUMBER',
-    'profile': 'N_PROF',
+    'profile': 'CYCLE_NUMBER',
     'depth': 'DEPTH',
     'lat' : 'LATITUDE',
     'lon' : 'LONGITUDE',
