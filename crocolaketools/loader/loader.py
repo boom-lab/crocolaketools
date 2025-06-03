@@ -465,6 +465,60 @@ class Loader:
 
         return ddf
 
+#------------------------------------------------------------------------------#
+## Add units for each field in the schema
+    def add_units_to_schema(self):
+
+        if self.global_schema is None:
+            raise ValueError("Global schema is not defined. Please call __build_global_schema() first.")
+
+        schema = self.global_schema
+
+        reference_units = params.units["CROCOLAKE_UNITS"]
+
+        fields_with_units = []
+
+        for field in schema:
+
+            units = None
+            if "QC" in field.name:
+                units = reference_units["QC"]
+            elif "DATA_MODE" in field.name:
+                units = reference_units["DATA_MODE"]
+            else:
+                # get reference name (some units correspond to multiple fields, i.e.
+                # BBP has BBP_470, BBP 532, etc.)
+                if field.name in reference_units.keys():
+                    ref_name = field.name
+                else:
+                    for key in reference_units.keys():
+                        if key in field.name:
+                            ref_name = key
+                            break
+
+                # get units
+                if ref_name in reference_units.keys():
+                    units = reference_units[ref_name]
+                else:
+                    raise ValueError(f"Units for field {field.name} not found in reference units dictionary.")
+
+            # assign units to metadata
+            if units is None:
+                warnings.warn(f"No units found for field {field.name}. Assigning 'unknown' as unit.")
+                units = "unknown"
+
+            f = pa.field(
+                field.name,
+                field.type,
+                metadata={"units": units}
+            )
+
+            fields_with_units.append(f)
+
+        self.global_schema = pa.schema(fields_with_units)
+
+        return
+
 ##########################################################################
 if __name__ == '__main__':
     Loader()
