@@ -690,6 +690,7 @@ params["Saildrones"] = [
     'longitude',
     'time',
     'TEMP_SBE37_MEAN',
+    'TEMP_DEPTH_HALFMETER_MEAN',
     'SAL_SBE37_MEAN',
     'O2_CONC_SBE37_MEAN',
     'CHLOR_WETLABS_MEAN',
