@@ -711,7 +711,6 @@ params["Saildrones2CROCOLAKE"] = {
     'latitude': 'LATITUDE',
     'longitude': 'LONGITUDE',
     'time': 'JULD',
-    'TEMP_SBE37_MEAN': 'TEMP',
     'SAL_SBE37_MEAN': 'PSAL',
     'O2_CONC_SBE37_MEAN': 'DOXY',
     'CHLOR_WETLABS_MEAN': 'CHLA',
