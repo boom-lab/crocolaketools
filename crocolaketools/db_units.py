@@ -685,7 +685,7 @@ params["CPR2CROCOLAKE"] = {
 # original names of parameters to keep
 #
 params["Saildrones"] = [
-    'trajectory',
+    'wmo_id',
     'latitude',
     'longitude',
     'time',
@@ -707,7 +707,7 @@ params["Saildrones"] = [
 # dict for renaming parameters to crocolake names
 #
 params["Saildrones2CROCOLAKE"] = {
-    'trajectory': 'PLATFORM_NUMBER',
+    'wmo_id': 'PLATFORM_NUMBER',
     'latitude': 'LATITUDE',
     'longitude': 'LONGITUDE',
     'time': 'JULD',
