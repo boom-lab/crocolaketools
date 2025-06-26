@@ -586,6 +586,7 @@ params["GLODAP2CROCOLAKE"] = {
     'profile_nb' : 'CYCLE_NUMBER', # temporary name for profile ID, this is
                                    # created in the converter, it is not in the
                                    # original csv file
+    'date_update' : 'DATE_UPDATE', # temporary name for date update
 }
 
 #------------------------------------------------------------------------------#
