@@ -626,6 +626,7 @@ params["SprayGliders2CROCOLAKE"] = {
     'time': 'JULD',
     'chlorophyll_a' : 'CHLA',
     'doxy' : 'DOXY',
+    'date_update' : 'DATE_UPDATE', # temporary name for date update
 }
 
 params["CROCOLAKE2SprayGliders"] = {v: k for k, v in
