@@ -37,6 +37,11 @@ for var in "${crocolake_variants[@]}"; do
       exit 1
     fi
     crocolake_ln=$(echo "$crocolake_ln" | sed 's/^"//;s/"$//')
+    crocolake_path_ln="${SCRIPT_DIR}/${crocolake_ln}"
+    if [ ! -d "$crocolake_path_ln" ]; then
+      echo "Directory $crocolake_path_ln does not exist. Creating it..."
+      mkdir -p $crocolake_path_ln
+    fi
     if [[ "${crocolake_ln}" != /* ]]; then
         crocolake_ln=$(realpath "${SCRIPT_DIR}/${crocolake_ln}")
     else
@@ -72,9 +77,14 @@ for var in "${crocolake_variants[@]}"; do
         else
           outdir_pq=$(realpath "${outdir_pq}")
         fi
+
+        if [ "${outdir_pq: -1}" != "/" ]; then
+          outdir_pq="${outdir_pq}/"
+        fi
+
         # Create a symbolic link in the CROCOLAKE directory
         if [ -d "$outdir_pq" ]; then
-          db_name=$(basename "$(dirname "$outdir_pq")")
+          db_name=$(basename "$outdir_pq")
           echo "Creating symlink for $db_name in $crocolake_ln (points to: $outdir_pq)"
           ln -s "$outdir_pq" "$crocolake_ln/$db_name"
         else
