@@ -348,6 +348,7 @@ class Loader:
 
         # Add database name column if missing
         if "DB_NAME" in cols_to_add:
+            col = "DB_NAME"
             print(f"Adding {col} to db {db_name}")
             ddf = ddf.map_partitions(
                 assign_DB_NAME, col
@@ -366,9 +367,10 @@ class Loader:
             if target_schema is not None:
                 field_idx = target_schema.get_field_index(col)
                 pa_dtype = target_schema.types[field_idx]
+                print(f"Column {col} has dtype {pa_dtype} in target schema.")
                 pd_dtype = self.dtype_mapping[pa_dtype]
-                if ddf.dtypes[col] != pd_dtype:
-                    ddf[col] = ddf[col].astype(pd_dtype)
+                print(f"Enforcing dtype {pd_dtype} for column {col} in db {db_name}")
+                ddf[col] = ddf[col].astype(pd_dtype)
 
         # Enforce column ordering
         print(f"Enforcing columns ordering in db {db_name}")
@@ -426,10 +428,6 @@ class Loader:
             ]
 
         self.filters = filters
-        # self.filters = self.__validate_filters(
-        #     filters,
-        #     self.selected_variables
-        # )
 
 #------------------------------------------------------------------------------#
 ## Get dataframes
