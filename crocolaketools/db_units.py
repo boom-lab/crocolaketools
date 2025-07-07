@@ -45,6 +45,7 @@ params["CROCOLAKE_PHY_QC"] = [
     'PLATFORM_NUMBER',
     'CYCLE_NUMBER',
     'DATA_MODE',
+    'DATE_UPDATE',
     'LATITUDE',
     'LONGITUDE',
     'JULD',
@@ -65,6 +66,7 @@ params["CROCOLAKE_PHY_ALL"] = [
     'PLATFORM_NUMBER',
     'CYCLE_NUMBER',
     'DATA_MODE',
+    'DATE_UPDATE',
     'LATITUDE',
     'LONGITUDE',
     'JULD',
@@ -90,6 +92,7 @@ params["CROCOLAKE_BGC_QC"] = [
     'DB_NAME',
     'PLATFORM_NUMBER',
     'CYCLE_NUMBER',
+    'DATE_UPDATE',
     'LATITUDE',
     'LONGITUDE',
     'JULD',
@@ -252,6 +255,7 @@ params["CROCOLAKE_BGC_ALL"] = [
     'DB_NAME',
     'PLATFORM_NUMBER',
     'CYCLE_NUMBER',
+    'DATE_UPDATE',
     'LATITUDE',
     'LONGITUDE',
     'JULD',
@@ -582,6 +586,7 @@ params["GLODAP2CROCOLAKE"] = {
     'profile_nb' : 'CYCLE_NUMBER', # temporary name for profile ID, this is
                                    # created in the converter, it is not in the
                                    # original csv file
+    'date_update' : 'DATE_UPDATE', # temporary name for date update
 }
 
 #------------------------------------------------------------------------------#
@@ -621,6 +626,7 @@ params["SprayGliders2CROCOLAKE"] = {
     'time': 'JULD',
     'chlorophyll_a' : 'CHLA',
     'doxy' : 'DOXY',
+    'date_update' : 'DATE_UPDATE', # temporary name for date update
 }
 
 params["CROCOLAKE2SprayGliders"] = {v: k for k, v in
@@ -685,43 +691,94 @@ params["CPR2CROCOLAKE"] = {
 # original names of parameters to keep
 #
 params["Saildrones"] = [
-    'trajectory',
+    'wmo_id',
     'latitude',
     'longitude',
     'time',
     'TEMP_SBE37_MEAN',
+    'TEMP_CTD_MEAN',
+    'TEMP_CTD_RBR_MEAN',
+    'TEMP_DEPTH_HALFMETER_MEAN',
     'SAL_SBE37_MEAN',
+    'SAL_RBR_MEAN',
+    'SAL_MEAN',
     'O2_CONC_SBE37_MEAN',
+    'O2_CONC_MEAN',
+    'O2_CONC_UNCOR_MEAN',
+    'O2_RBR_CONC_MEAN',
+    'O2_CONC_RBR_MEAN',
+    'O2_AANDERAA_CONC_UNCOR_MEAN',
+    'O2_CONC_AANDERAA_MEAN',
     'CHLOR_WETLABS_MEAN',
+    'CHLOR_RBR_MEAN',
+    'CHLOR_MEAN',
     'CDOM_MEAN',
     'BKSCT_RED_MEAN',
     'TEMP_SBE37_STDDEV',
+    'TEMP_CTD_STDDEV',
+    'TEMP_DEPTH_HALFMETER_STDDEV',
     'SAL_SBE37_STDDEV',
+    'SAL_RBR_STDDEV',
+    'SAL_STDDEV',
     'O2_CONC_SBE37_STDDEV',
+    'O2_CONC_STDDEV',
+    'O2_CONC_UNCOR_STDDEV',
+    'O2_RBR_CONC_STDDEV',
+    'O2_CONC_RBR_STDDEV',
+    'O2_AANDERAA_CONC_UNCOR_STDDEV',
+    'O2_CONC_AANDERAA_STDDEV',
     'CHLOR_WETLABS_STDDEV',
+    'CHLOR_RBR_STDDEV',
+    'CHLOR_STDDEV',
     'CDOM_STDDEV',
-    'BKSCT_RED_STDDEV'
+    'BKSCT_RED_STDDEV',
 ]
 #
 # dict for renaming parameters to crocolake names
 #
 params["Saildrones2CROCOLAKE"] = {
-    'trajectory': 'PLATFORM_NUMBER',
+    'wmo_id': 'PLATFORM_NUMBER',
     'latitude': 'LATITUDE',
     'longitude': 'LONGITUDE',
     'time': 'JULD',
+    'TEMP_CTD_MEAN': 'TEMP',
+    'TEMP_CTD_RBR_MEAN': 'TEMP',
     'TEMP_SBE37_MEAN': 'TEMP',
+    'TEMP_DEPTH_HALFMETER_MEAN': 'TEMP',
     'SAL_SBE37_MEAN': 'PSAL',
+    'SAL_RBR_MEAN': 'PSAL',
+    'SAL_MEAN': 'PSAL',
     'O2_CONC_SBE37_MEAN': 'DOXY',
+    'O2_CONC_MEAN': 'DOXY',
+    'O2_CONC_UNCOR_MEAN': 'DOXY',
+    'O2_RBR_CONC_MEAN': 'DOXY',
+    'O2_CONC_RBR_MEAN': 'DOXY',
+    'O2_AANDERAA_CONC_UNCOR_MEAN': 'DOXY',
+    'O2_CONC_AANDERAA_MEAN': 'DOXY',
     'CHLOR_WETLABS_MEAN': 'CHLA',
+    'CHLOR_RBR_MEAN': 'CHLA',
+    'CHLOR_MEAN': 'CHLA',
     'CDOM_MEAN': 'CDOM',
     'BKSCT_RED_MEAN': 'BBP700',
     'TEMP_SBE37_STDDEV': 'TEMP_ERROR',
+    'TEMP_DEPTH_HALFMETER_STDDEV': 'TEMP_ERROR',
+    'TEMP_CTD_STDDEV': 'TEMP_ERROR',
+    'TEMP_CTD_RBR_STDDEV': 'TEMP_ERROR',
     'SAL_SBE37_STDDEV': 'PSAL_ERROR',
+    'SAL_RBR_STDDEV': 'PSAL_ERROR',
+    'SAL_STDDEV': 'PSAL_ERROR',
     'O2_CONC_SBE37_STDDEV': 'DOXY_ERROR',
+    'O2_CONC_STDDEV': 'DOXY_ERROR',
+    'O2_CONC_UNCOR_STDDEV': 'DOXY_ERROR',
+    'O2_RBR_CONC_STDDEV': 'DOXY_ERROR',
+    'O2_CONC_RBR_STDDEV': 'DOXY_ERROR',
+    'O2_AANDERAA_CONC_UNCOR_STDDEV': 'DOXY_ERROR',
+    'O2_CONC_AANDERAA_STDDEV': 'DOXY_ERROR',
     'CHLOR_WETLABS_STDDEV': 'CHLA_ERROR',
+    'CHLOR_RBR_STDDEV': 'CHLA_ERROR',
+    'CHLOR_STDDEV': 'CHLA_ERROR',
     'CDOM_STDDEV': 'CDOM_ERROR',
-    'BKSCT_RED_STDDEV': 'BBP700_ERROR'
+    'BKSCT_RED_STDDEV': 'BBP700_ERROR',
 }
 
 
@@ -738,6 +795,7 @@ params["ArgoPHY"] = [
     'CYCLE_NUMBER',
     'DIRECTION',
     'DATA_MODE',
+    'DATE_UPDATE',
     'LATITUDE',
     'LONGITUDE',
     'POSITION_QC',
@@ -766,6 +824,7 @@ params["ArgoBGC"] = [
     'N_LEVELS',
     'CYCLE_NUMBER',
     'DIRECTION',
+    'DATE_UPDATE',
     'LATITUDE',
     'LONGITUDE',
     'POSITION_QC',
