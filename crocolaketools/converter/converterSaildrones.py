@@ -30,6 +30,10 @@ class ConverterSaildrones(Converter):
     """class ConverterSaildrones: methods to generate parquet schemas for
     Saildrones NetCDF files"""
 
+    # ------------------------------------------------------------------ #
+    # Constructors/Destructors                                           #
+    # ------------------------------------------------------------------ #
+
     def __init__(self, config=None, db_type=None):
         if config is not None and config.get("db") != "Saildrones":
             raise ValueError("Database must be 'Saildrones'.")
@@ -67,13 +71,14 @@ class ConverterSaildrones(Converter):
             if not fname.endswith(".nc"):
                 raise ValueError(f"{fname} does not end with '.nc'.")
             read_result = self.read_to_df(fname, lock)
-            proc_result = self.process_df(read_result[0], read_result[1])
+            proc_result = self.process_df_chunked(read_result[0], read_result[1])
             results.append(proc_result)
 
         # combine all results into a single dask dataframe
         ddf = dd.from_delayed(results)
 
-        # Stores the intermediate result in memory. This prevents the task graph from becoming too large
+        # Stores the intermediate result in memory
+        # This prevents the task graph from becoming too large
         ddf = ddf.persist()
 
         self.call_guess_schema = True
@@ -101,8 +106,8 @@ class ConverterSaildrones(Converter):
         if filename is None:
             raise ValueError("No filename provided for Saildrone database.")
 
-        input_fname = os.path.join(self.input_path, filename)
-        print(f"Reading file: {input_fname}")
+        input_fname = self.input_path + filename
+        print("Reading file: ", input_fname)
 
         # Hold lock for the entire NetCDF operation to prevent race conditions
         with lock:
@@ -134,8 +139,41 @@ class ConverterSaildrones(Converter):
         return df, invars
 
 #------------------------------------------------------------------------------#
-## Process pandas dataframe to standardize it to CrocoLake schema
+## Process large dataframe in chunks
     @dask.delayed(nout=1)
+    def process_df_chunked(self, df, invars, rows_per_chunk=50000):
+        """Process a large dataframe in chunks to manage memory
+        
+        Arguments:
+        df     -- pandas dataframe as generated from .nc file
+        invars -- list of variables in df
+
+        Returns:
+        df    -- pandas dataframe with standardized schema
+        """
+        
+        # check if we need to chunk this dataframe
+        if len(df) > rows_per_chunk:
+            chunk_size = rows_per_chunk
+            chunks = [df[i:i + chunk_size] for i in range(0, len(df), chunk_size)]
+            
+            # create delayed objects for parallel processing
+            delayed_chunks = []
+            for chunk in chunks:
+                delayed_chunk = dask.delayed(self.process_df)(chunk, invars)
+                delayed_chunks.append(delayed_chunk)
+            
+            # compute all chunks in parallel
+            processed_chunks = dask.compute(*delayed_chunks)
+            
+            # combine all processed chunks
+            df = pd.concat(processed_chunks, ignore_index=True)
+            return df
+        else:
+            return self.process_df(df, invars)
+
+#------------------------------------------------------------------------------#
+## Process pandas dataframe to standardize it to CrocoLake schema
     def process_df(self, df, invars):
         """Process pandas dataframe to standardize it to CrocoLake schema
 
@@ -148,7 +186,7 @@ class ConverterSaildrones(Converter):
         """
         
         # Assign depth column
-        df = self.assign_depths(df, invars)
+        df = self.assign_depths(df)
 
         # Ensure all identifiers are non-null AFTER depth assignment
         df.dropna(subset=["time", "latitude", "longitude", "depth"], inplace=True)
@@ -179,7 +217,7 @@ class ConverterSaildrones(Converter):
 
 #------------------------------------------------------------------------------#
 ## Assign depths to variables
-    def assign_depths(self, df, invars):
+    def assign_depths(self, df):
         """Assign depths to variables based on known sensor installation depths"""
 
         depth_map = {
@@ -205,7 +243,7 @@ class ConverterSaildrones(Converter):
         }
 
         id_vars = ["time", "latitude", "longitude", "wmo_id", "CYCLE_NUMBER"]
-        value_vars = [var for var in depth_map if var in df.columns and var in invars]
+        value_vars = [var for var in depth_map if var in df.columns]
 
         if not value_vars:
             return pd.DataFrame(columns=id_vars + ["depth"])
