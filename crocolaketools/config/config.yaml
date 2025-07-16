@@ -97,3 +97,15 @@ SprayGliders_BGC:
   add_derived_vars: True
   overwrite: False
   tmp_path: ../demo/demo_tmp_SPRAY_BGC/
+
+# Oleander
+Oleander_PHY:
+  db: Oleander
+  db_type: PHY
+  input_path: ../demo/demo_Oleander_PHY/
+  outdir_pq: ../demo/parquet/demo_Oleander_PHY/
+  outdir_schema: ./schemas/Oleander/
+  fname_pq: demo_Oleander_PHY
+  add_derived_vars: False
+  overwrite: True
+  tmp_path:
