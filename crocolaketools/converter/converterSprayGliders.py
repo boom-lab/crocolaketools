@@ -175,7 +175,7 @@ class ConverterSprayGliders(Converter):
 
 #------------------------------------------------------------------------------#
 ## Read netcdf files and convert them to dask dataframe
-    def read_to_ddf(self, flist=None, lock=None):
+    def read_to_ddf(self, flist=None, lock=None, path=None):
         """Read list of netCDF files and generate list of delayed objects with
         processed data
 
@@ -192,7 +192,7 @@ class ConverterSprayGliders(Converter):
 
         results = []
         for fname in flist:
-            read_result = self.read_to_df(fname, lock)
+            read_result = self.read_to_df(fname, lock, path)
             proc_result = self.process_df(read_result[0], read_result[1])
             results.append(proc_result)
 
@@ -230,7 +230,9 @@ class ConverterSprayGliders(Converter):
         input_fname = path + filename
         print("Reading file: ", input_fname)
 
-        lock.acquire(timeout=600)
+        if lock is not None:
+            lock.acquire(timeout=600)
+
         try:
             with xr.open_dataset(input_fname,cache=True,chunks=None,engine="h5netcdf") as ds:
                 ds_vars = list(ds.data_vars) + list(ds.coords)
@@ -249,7 +251,8 @@ class ConverterSprayGliders(Converter):
             raise
 
         finally: # always release lock in case of error in try block
-            lock.release()
+            if lock is not None:
+                lock.release()
 
         return df, invars
 
@@ -308,7 +311,7 @@ class ConverterSprayGliders(Converter):
         """Standardize xarray dataset to schema consistent across databases
 
         Argument:
-        ds -- xarray dataset
+        df -- pandas or dask dataframe with Spray Gliders data
 
         Returns:
         df -- homogenized dataframe
