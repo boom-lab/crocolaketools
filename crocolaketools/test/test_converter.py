@@ -27,6 +27,7 @@ from crocolaketools.converter.converterSprayGliders import ConverterSprayGliders
 from crocolaketools.converter.converterArgoQC import ConverterArgoQC
 from crocolaketools.converter.converterGLODAP import ConverterGLODAP
 from crocolaketools.converter.converterCPR import ConverterCPR
+from crocolaketools.converter.converterSaildrones import ConverterSaildrones
 from crocolakeloader import params
 
 ##########################################################################
@@ -40,6 +41,8 @@ spray_path = ''
 outdir_spray_pqt = ''
 cpr_path = ''
 outdir_cpr_pqt = ''
+saildrones_path = ''
+outdir_saildrones_pqt = ''
 
 # if not os.path.exists(outdir_phy_pqt):
 #     raise ValueError("PHY output directory does not exist.")
@@ -1085,6 +1088,132 @@ class TestConverter:
         assert "LATITUDE" in df.columns
         assert "LONGITUDE" in df.columns
         assert "JULD" in df.columns
+
+
+    def test_converter_saildrones_read_to_df(self):
+        """
+        Test that the Saildrone NetCDF file is correctly read into a pandas DataFrame.
+        """
+        # Get first available NetCDF file in the directory
+        SD_files = glob.glob(os.path.join(saildrones_path, '*.nc'))
+        if not SD_files:
+            pytest.skip("No NetCDF files found in input directory")
+        
+        test_file = os.path.basename(SD_files[0])
+
+        converter = ConverterSaildrones(
+            config={
+                "db": "Saildrones",
+                "db_type": "BGC",
+                "input_path": saildrones_path,
+                "outdir_pq": outdir_saildrones_pqt,
+                "outdir_schema": "./schemas/Saildrones/",
+                "fname_pq": "test_saildrones"
+            }
+        )
+
+        df = converter.read_to_df(filename=test_file)
+
+        # Check that the DataFrame is not empty
+        assert not df.empty
+
+        # Check that required columns are present
+        required_columns = ["PLATFORM_NUMBER", "LATITUDE", "LONGITUDE", "JULD", "PRES", "TEMP", "PSAL", "CHLA", "CDOM", "BBP700"]
+        for col in required_columns:
+            assert col in df.columns
+
+    def test_converter_saildrones_standardize_data(self):
+        """
+        Test that the Saildrone DataFrame is correctly standardized.
+        """
+        converter = ConverterSaildrones(
+            config={
+                "db": "Saildrones",
+                "db_type": "BGC",
+                "input_path": saildrones_path,
+                "outdir_pq": outdir_saildrones_pqt,
+                "outdir_schema": "./schemas/Saildrones/",
+                "fname_pq": "test_saildrones"
+            }
+        )
+
+        # Get a sample NetCDF file from the input directory
+        SD_files = glob.glob(os.path.join(saildrones_path, '*.nc'))
+        if not SD_files:
+            pytest.skip("No NetCDF files found in input directory")
+        
+        test_file = os.path.basename(SD_files[0])
+        
+        # Read the DataFrame using read_to_df
+        df = converter.read_to_df(filename=test_file)
+
+        # Check data types of key columns
+        assert df.dtypes["PLATFORM_NUMBER"] == "string[pyarrow]"
+        assert df.dtypes["LATITUDE"] == "float64[pyarrow]"
+        assert df.dtypes["LONGITUDE"] == "float64[pyarrow]"
+        assert df.dtypes["JULD"] == "timestamp[ns][pyarrow]"
+        assert df.dtypes["PRES"] == "float32[pyarrow]"
+        assert df.dtypes["TEMP"] == "float32[pyarrow]"
+        assert df.dtypes["PSAL"] == "float32[pyarrow]"
+        assert df.dtypes["DOXY"] == "float32[pyarrow]"
+        assert df.dtypes["CHLA"] == "float32[pyarrow]"
+        assert df.dtypes["BBP700"] == "float32[pyarrow]"
+        assert df.dtypes["CDOM"] == "float32[pyarrow]"
+        assert df.dtypes["DB_NAME"] == "string[pyarrow]"
+
+    def test_converter_saildrones_convert(self):
+        """
+        Test that the Saildrone NetCDF file is correctly converted to Parquet format.
+        """
+        # Get first available NetCDF file in the directory
+        SD_files = glob.glob(os.path.join(saildrones_path, '*.nc'))
+        if not SD_files:
+            pytest.skip("No NetCDF files found in input directory")
+        
+        test_file = os.path.basename(SD_files[0])
+
+        # Ensure the output directory exists
+        os.makedirs(outdir_saildrones_pqt, exist_ok=True)
+
+        converter = ConverterSaildrones(
+            config={
+                "db": "Saildrones",
+                "db_type": "BGC",
+                "input_path": saildrones_path,
+                "outdir_pq": outdir_saildrones_pqt,
+                "outdir_schema": "./schemas/Saildrones/",
+                "fname_pq": "test_saildrones"
+            }
+        )
+
+        # Convert a sample Saildrone NetCDF file
+        converter.convert(filenames=test_file)
+
+        # Check that the output Parquet file exists
+        output_files = glob.glob(os.path.join(outdir_saildrones_pqt, "test_saildrones_BGC*.parquet"))
+        assert len(output_files) > 0, "No output Parquet files found"
+
+        # Read the first Parquet file and check its contents
+        df = pd.read_parquet(output_files[0])
+        assert not df.empty
+        assert "PLATFORM_NUMBER" in df.columns
+        assert "LATITUDE" in df.columns
+        assert "LONGITUDE" in df.columns
+        assert "JULD" in df.columns
+        assert "PRES" in df.columns
+        assert "TEMP" in df.columns
+        assert "PSAL" in df.columns
+        assert "DOXY" in df.columns
+        assert "CHLA" in df.columns
+        assert "BBP700" in df.columns
+        assert "CDOM" in df.columns
+        assert "PRES_QC" in df.columns
+        assert "TEMP_QC" in df.columns
+        assert "PSAL_QC" in df.columns
+        assert "DOXY_QC" in df.columns
+        assert "BBP700_QC" in df.columns
+        assert "CHLA_QC" in df.columns
+        assert "CDOM_QC" in df.columns
 
     def test_converter_wrap_longitude(self):
         import numpy as np
