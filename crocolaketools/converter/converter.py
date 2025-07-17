@@ -232,19 +232,15 @@ class Converter:
             filenames = [filenames]
 
         lock = Lock()
-        if len(filenames) > 1:
-            print("reading reference files")
-            ddf = self.read_to_ddf(
-                flist=filenames,
-                lock=lock
-            )
+        # if len(filenames) > 1:
+        #     print("reading reference files")
+        ddf = self.read_to_ddf(
+            flist=filenames,
+            lock=lock
+        )
 
-        else:
-            df = self.read_to_df(filenames[0],lock)
-            if isinstance(df,pd.DataFrame):
-                ddf = dd.from_pandas(df)
-            elif isinstance(df,dd.DataFrame):
-                ddf = df
+        if not isinstance(ddf,dd.DataFrame):
+            raise TypeError("ddf must be a dask dataframe, not: ", type(df))
 
         if self.add_derived_vars:
             print("adding derived variables")
@@ -614,11 +610,9 @@ class Converter:
             # this turns 180 into -180
             #
             # not elegant but pyarrow backend does not support modulo operator
-            if df["LONGITUDE"].dtype == "float64[pyarrow]":
-                df["LONGITUDE"] = df["LONGITUDE"].astype("float64")
+            df["LONGITUDE"] = df["LONGITUDE"].astype("float64")
             df["LONGITUDE"] = (df["LONGITUDE"] - 180) % 360 - 180
-            if df["LONGITUDE"].dtype == "float64":
-                df["LONGITUDE"] = df["LONGITUDE"].astype("float64[pyarrow]")
+            df["LONGITUDE"] = df["LONGITUDE"].astype("float64[pyarrow]")
             return df
 
         ddf = ddf.map_partitions(

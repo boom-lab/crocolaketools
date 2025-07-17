@@ -9,11 +9,13 @@
 #
 ##########################################################################
 import glob
+import importlib.resources
 import os
 import random
 from pprint import pprint
 import shutil
 terminal_width = shutil.get_terminal_size().columns
+import yaml
 
 import dask.dataframe as dd
 from dask.distributed import Client
@@ -31,29 +33,6 @@ from crocolakeloader import params
 
 ##########################################################################
 
-# FILL HERE YOUR DATABASE ROOTPATHS
-argo_phy_path = ''
-outdir_phy_pqt =  ''
-argo_bgc_path = ''
-outdir_bgc_pqt =  ''
-spray_path = ''
-outdir_spray_pqt = ''
-cpr_path = ''
-outdir_cpr_pqt = ''
-
-# if not os.path.exists(outdir_phy_pqt):
-#     raise ValueError("PHY output directory does not exist.")
-# if not os.path.exists(outdir_bgc_pqt):
-#     raise ValueError("BGC output directory does not exist.")
-# if not os.path.exists(argo_phy_path):
-#     raise ValueError("PHY input directory does not exist.")
-# if not os.path.exists(argo_bgc_path):
-#     raise ValueError("BGC input directory does not exist.")
-# if not os.path.exists(spray_path):
-#     raise ValueError("SprayGliders input directory does not exist.")
-# if not os.path.exists(outdir_spray_pqt):
-#     raise ValueError("SprayGliders output directory does not exist.")
-
 class TestConverter:
 
 #------------------------------------------------------------------------------#
@@ -63,16 +42,8 @@ class TestConverter:
         """
         Test that the data types of the columns in the ARGO QC dataframe are as expected
         """
-        converterPHY = ConverterArgoQC(
-            db = "ARGO",
-            db_type="PHY",
-            input_path = argo_phy_path,
-            outdir_pq = outdir_phy_pqt,
-            outdir_schema = './schemas/ArgoQC/',
-            fname_pq = 'test_1002_PHY_ARGO-QC-DEV'
-        )
+        converterPHY = ConverterArgoQC(db_type='phy')
         ddf = converterPHY.read_pq()
-        print(ddf.head())
         assert not ddf.head().empty
 
         assert ddf.dtypes["PLATFORM_NUMBER"] == "int64[pyarrow]"#pd.Int64Dtype()
@@ -94,14 +65,7 @@ class TestConverter:
         """
         Test that the qc filters are properly generated for the ARGO QC dataframe 
         """
-        converterBGC = ConverterArgoQC(
-            db = "ARGO",
-            db_type="BGC",
-            input_path = argo_bgc_path,
-            outdir_pq = outdir_bgc_pqt,
-            outdir_schema = './schemas/ArgoQC/',
-            fname_pq = 'test_1002_BGC_ARGO-QC-DEV'
-        )
+        converterBGC = ConverterArgoQC(db_type='bgc')
         filters, param_basenames = converterBGC.generate_qc_schema_filters()
 
         # filters must be a list of lists of two tuples with three items each
@@ -120,14 +84,7 @@ class TestConverter:
         """
         Test that the data types of the columns in the ARGO QC dataframe are as expected
         """
-        converterBGC = ConverterArgoQC(
-            db = "ARGO",
-            db_type="BGC",
-            input_path = argo_bgc_path,
-            outdir_pq = outdir_bgc_pqt,
-            outdir_schema = './schemas/ArgoQC/',
-            fname_pq = 'test_1002_BGC_ARGO-QC-DEV'
-        )
+        converterBGC = ConverterArgoQC(db_type='bgc')
         ddf = converterBGC.read_pq()
         print(ddf.head())
         assert not ddf.head().empty
@@ -135,9 +92,9 @@ class TestConverter:
         for var in params.params["CROCOLAKE_BGC_QC"]:
             if var in ddf.columns:
                 print(var)
-                if var in ["PLATFORM_NUMBER"]:
+                if var in ["PLATFORM_NUMBER","CYCLE_NUMBER"]:
                     assert ddf.dtypes[var] == "int64[pyarrow]"
-                elif var == "JULD":
+                elif var in ["JULD","DATE_UPDATE"]:
                     assert ddf.dtypes[var] == "timestamp[ns][pyarrow]"
                 elif var in ["LATITUDE","LONGITUDE"]:
                     assert ddf.dtypes[var] == "float64[pyarrow]"
@@ -161,14 +118,7 @@ class TestConverter:
         """
         Test that the data types of the columns in the ARGO QC dataframe are as expected
         """
-        converterPHY = ConverterArgoQC(
-            db = "ARGO",
-            db_type="PHY",
-            input_path = argo_phy_path,
-            outdir_pq = outdir_phy_pqt,
-            outdir_schema = './schemas/ArgoQC/',
-            fname_pq = 'test_1002_PHY_ARGO-QC-DEV'
-        )
+        converterPHY = ConverterArgoQC(db_type='phy')
         ddf = converterPHY.read_pq()
         ddf = converterPHY.update_cols(ddf)
 
@@ -177,6 +127,7 @@ class TestConverter:
         assert ddf.dtypes["LATITUDE"] == "float64[pyarrow]"#pd.Float64Dtype()
         assert ddf.dtypes["LONGITUDE"] == "float64[pyarrow]"#pd.Float64Dtype()
         assert ddf.dtypes["JULD"] == "timestamp[ns][pyarrow]"#np.dtype("datetime64[ns]")
+        assert ddf.dtypes["DATE_UPDATE"] == "timestamp[ns][pyarrow]"#np.dtype("datetime64[ns]")
         assert ddf.dtypes["PRES"] == "float32[pyarrow]"#pd.Float32Dtype()
         assert ddf.dtypes["PRES_QC"] == "uint8[pyarrow]"#pd.UInt8Dtype()
         assert ddf.dtypes["PRES_ERROR"] == "float32[pyarrow]"#pd.Float32Dtype()
@@ -205,9 +156,11 @@ class TestConverter:
             "PLATFORM_NUMBER": [1000001, 1000002, 1000003, 1000004, 1000005, 1000006],
             "LATITUDE": [35.0, 36.0, 37.0, 38.0, 39.0, 40.0],
             "LONGITUDE": [-70.0, -71.0, -72.0, -73.0, -74.0, -75.0],
+            "POSITION_QC": [1, 1, 1, 1, 1, 1],
             "JULD": pd.to_datetime(
                 ["2021-01-01", "2021-01-02", "2021-01-03", "2021-01-04", "2021-01-05", "2021-01-06"]
             ),
+            "JULD_QC": [1, 1, 1, 1, 1, 1],
             "TEMP": [20.0, 20.0, 11.0, 11.0, 11.0, 11.0],
             "TEMP_QC": [1, 2, 3, 1, 1, 1],
             "TEMP_ADJUSTED": [pd.NA, pd.NA, pd.NA, 25.0, 25.0, 16.0],
@@ -241,9 +194,11 @@ class TestConverter:
             "PLATFORM_NUMBER": [1000001, 1000002, 1000004, 1000005],
             "LATITUDE": [35.0, 36.0, 38.0, 39.0],
             "LONGITUDE": [-70.0, -71.0, -73.0, -74.0],
+            "POSITION_QC": [1, 1, 1, 1],
             "JULD": pd.to_datetime(
                 ["2021-01-01", "2021-01-02", "2021-01-04", "2021-01-05"]
             ),
+            "JULD_QC": [1, 1, 1, 1],
             "TEMP": [20.0, 20.0, 25.0, 25.0],
             "TEMP_QC": [1, 2, 1, 2],
             "PSAL": [2.0, 2.0, 5.0, 5.0],
@@ -260,7 +215,7 @@ class TestConverter:
         for param in sol_df.columns:
             if param not in ["JULD", "DATA_MODE", "PLATFORM_NUMBER", "DB_NAME"] and "QC" not in param:
                 sol_df[ param ] = sol_df[ param ].astype("float32[pyarrow]")
-            elif "ADJUSTED_QC" in param:
+            elif param in ["ADJUSTED_QC","POSITION_QC","JULD_QC"]:
                 sol_df[ param ] = sol_df[ param ].astype("int64[pyarrow]")
             elif "QC" in param:
                 sol_df[ param ] = sol_df[ param ].astype("uint8[pyarrow]")
@@ -275,20 +230,12 @@ class TestConverter:
         with pd.option_context('display.max_columns', None, 'display.width', terminal_width):
             print(sol_df)
 
-        converterPHY = ConverterArgoQC(
-            db = "ARGO",
-            db_type="PHY",
-            input_path = argo_phy_path,
-            outdir_pq = outdir_phy_pqt,
-            outdir_schema = './schemas/ArgoQC/',
-            fname_pq = 'test_1002_PHY_ARGO-QC-DEV'
-        )
+        converterPHY = ConverterArgoQC(db_type='phy')
         filters, param_basenames = converterPHY.generate_qc_schema_filters()
         print("param_basenames:")
         print(param_basenames)
         converterPHY.param_basenames = param_basenames
         ddf = converterPHY.update_cols(dd.from_pandas(dummy_df))
-        #ddf = converterPHY.keep_best_values(ddf)
 
         ddf = ddf.compute()
         print("Resulting data:")
@@ -380,23 +327,22 @@ class TestConverter:
         with pd.option_context('display.max_columns', None, 'display.width', terminal_width):
             print(sol_df)
 
-        converterPHY = ConverterArgoQC(
-            db = "ARGO",
-            db_type="PHY",
-            input_path = argo_phy_path,
-            outdir_pq = outdir_phy_pqt,
-            outdir_schema = './schemas/ArgoQC/',
-            fname_pq = 'test_1002_PHY_ARGO-QC-DEV'
-        )
+        converterPHY = ConverterArgoQC(db_type="phy")
         filters, param_basenames = converterPHY.generate_qc_schema_filters()
         print("param_basenames:")
         print(param_basenames)
         converterPHY.param_basenames = param_basenames
+        for param in converterPHY.param_basenames:
+            print('param')
+            print(param)
 
         # test pandas dataframe
         df = dummy_df
-        for param in param_basenames:
-            df = converterPHY.keep_best_values(df, param, "DATA_MODE")
+        df = converterPHY.keep_best_values(
+            df,
+            converterPHY.param_basenames,
+            converterPHY.db_type
+        )
 
         #ddf = ddf.compute()
         print("Resulting data:")
@@ -409,7 +355,7 @@ class TestConverter:
         # test dask dataframe
         ddf = dd.from_pandas(dummy_df, npartitions=1)
         for param in param_basenames:
-            ddf = dd.map_partitions(converterPHY.keep_best_values, ddf, param, "DATA_MODE")
+            ddf = dd.map_partitions(converterPHY.keep_best_values, ddf, param_basenames, "DATA_MODE")
         ddf = ddf.compute()
 
         print("Resulting data:")
@@ -489,12 +435,7 @@ class TestConverter:
             print(sol_df)
 
         converterPHY = ConverterArgoQC(
-            db = "ARGO",
-            db_type="PHY",
-            input_path = argo_phy_path,
-            outdir_pq = outdir_phy_pqt,
-            outdir_schema = './schemas/ArgoQC/',
-            fname_pq = 'test_1002_PHY_ARGO-QC-DEV'
+            db_type="phy",
         )
         filters, param_basenames = converterPHY.generate_qc_schema_filters()
         print("param_basenames:")
@@ -620,12 +561,7 @@ class TestConverter:
             print(sol_df)
 
         converterPHY = ConverterArgoQC(
-            db = "ARGO",
             db_type="PHY",
-            input_path = argo_phy_path,
-            outdir_pq = outdir_phy_pqt,
-            outdir_schema = './schemas/ArgoQC/',
-            fname_pq = 'test_1002_PHY_ARGO-QC-DEV'
         )
         filters, param_basenames = converterPHY.generate_qc_schema_filters()
         print("param_basenames:")
@@ -655,24 +591,19 @@ class TestConverter:
         Test that the data types of the columns in the ARGO QC dataframe are as expected
         """
         converterBGC = ConverterArgoQC(
-            db = "ARGO",
             db_type="BGC",
-            input_path = argo_bgc_path,
-            outdir_pq = outdir_bgc_pqt,
-            outdir_schema = './schemas/ArgoQC/',
-            fname_pq = 'test_1002_BGC_ARGO-QC-DEV'
         )
 
-        fname = random.choice(glob.glob(argo_bgc_path + '/*.parquet'))
+        fname = random.choice(glob.glob(converterBGC.input_path + '/*.parquet'))
         ddf = converterBGC.read_pq(filename=fname)
         ddf = converterBGC.update_cols(ddf)
 
         for var in params.params["CROCOLAKE_BGC_QC"]:
             if var in ddf.columns:
                 print(var)
-                if var == "PLATFORM_NUMBER":
+                if var in ["PLATFORM_NUMBER","CYCLE_NUMBER"]:
                     assert ddf.dtypes[var] == "int64[pyarrow]"
-                elif var == "JULD":
+                elif var in ["JULD","DATE_UPDATE"]:
                     assert ddf.dtypes[var] == "timestamp[ns][pyarrow]"
                 elif var in ["LATITUDE","LONGITUDE"]:
                     assert ddf.dtypes[var] == "float64[pyarrow]"
@@ -696,18 +627,13 @@ class TestConverter:
         of the parquet output.
         """
 
-        pq_files = glob.glob(argo_phy_path + '/*.parquet')
+        converterPHY = ConverterArgoQC(
+            db_type="PHY",
+        )
+
+        pq_files = glob.glob(converterPHY.input_path + '/*.parquet')
         assert len(pq_files) > 0
         random_file = random.choice(pq_files)
-
-        converterPHY = ConverterArgoQC(
-            db = "ARGO",
-            db_type="PHY",
-            input_path = argo_phy_path,
-            outdir_pq = outdir_phy_pqt,
-            outdir_schema = './schemas/ArgoQC/',
-            fname_pq = 'test_1002_PHY_ARGO-QC-DEV',
-        )
 
         ddf = converterPHY.read_to_df(random_file)
         assert not ddf.head().empty
@@ -719,18 +645,13 @@ class TestConverter:
         and that a parquet output is generated. This does not test the content
         of the parquet output.
         """
-        pq_files = glob.glob(argo_bgc_path + '/*.parquet')
+        converterBGC = ConverterArgoQC(
+            db_type="BGC",
+        )
+
+        pq_files = glob.glob(converterBGC.input_path + '/*.parquet')
         assert len(pq_files) > 0
         random_file = random.choice(pq_files)
-
-        converterBGC = ConverterArgoQC(
-            db = "ARGO",
-            db_type="BGC",
-            input_path = argo_bgc_path,
-            outdir_pq = outdir_bgc_pqt,
-            outdir_schema = './schemas/ArgoQC/',
-            fname_pq = 'test_1002_BGC_ARGO-QC-DEV',
-        )
 
         ddf = converterBGC.read_to_df(random_file)
         assert not ddf.head().empty
@@ -752,12 +673,7 @@ class TestConverter:
         # create converter simply to access function to test
 
         converterPHY = ConverterArgoQC(
-            db = "ARGO",
             db_type="PHY",
-            input_path = argo_phy_path,
-            outdir_pq = outdir_phy_pqt,
-            outdir_schema = './schemas/ArgoQC/',
-            fname_pq = 'test_1002_PHY_ARGO-QC-DEV',
         )
 
         with pytest.warns(UserWarning):
@@ -768,126 +684,6 @@ class TestConverter:
             assert ddf.dtypes[var] == "float32[pyarrow]"
 
         print(ddf.compute())
-
-    def test_converter_spraygliders_standardize_data(self):
-        """
-        Test SprayGliders data standardization works as expected
-        """
-        spray_path = spray_path
-        outdir_spray_pqt = outdir_spray_path
-        converterSG = ConverterSprayGliders(
-            db = "SprayGliders",
-            db_type="PHY",
-            input_path = spray_path,
-            outdir_pq = outdir_spray_pqt,
-            outdir_schema = './schemas/SprayGliders/',
-            fname_pq = 'test_1200_PHY_SPRAY-DEV'
-        )
-        with pytest.warns(UserWarning):
-            ddf = converterSG.read_to_df(filename="NASCar.nc")
-
-        assert ddf.dtypes["PLATFORM_NUMBER"] == "string[pyarrow]"
-        assert ddf.dtypes["LATITUDE"] == "float64[pyarrow]"#pd.Float64Dtype()
-        assert ddf.dtypes["LONGITUDE"] == "float64[pyarrow]"#pd.Float64Dtype()
-        assert ddf.dtypes["JULD"] == "timestamp[ns][pyarrow]"#np.dtype("datetime64[ns]")
-        assert ddf.dtypes["PRES"] == "float32[pyarrow]"#pd.Float32Dtype()
-        assert ddf.dtypes["PRES_QC"] == "uint8[pyarrow]"#pd.UInt8Dtype()
-        assert ddf.dtypes["PRES_ERROR"] == "float32[pyarrow]"#pd.Float32Dtype()
-        assert ddf.dtypes["TEMP"] == "float32[pyarrow]"#pd.Float32Dtype()
-        assert ddf.dtypes["TEMP_QC"] == "uint8[pyarrow]"#pd.UInt8Dtype()
-        assert ddf.dtypes["TEMP_ERROR"] == "float32[pyarrow]"#pd.Float32Dtype()
-        assert ddf.dtypes["PSAL"] == "float32[pyarrow]"#pd.Float32Dtype()
-        assert ddf.dtypes["PSAL_QC"] == "uint8[pyarrow]"#pd.UInt8Dtype()
-        assert ddf.dtypes["PSAL_ERROR"] == "float32[pyarrow]"#pd.Float32Dtype()
-        assert ddf.dtypes["DB_NAME"] == "string[pyarrow]"
-
-    def test_converter_spraygliders_convert_single_file(self):
-        """Test that SprayGliders conversion executes; this test does not use
-        convert() but its internal steps to check the dataframe is never empty
-        """
-        spray_path = spray_path
-        outdir_spray_pqt = outdir_spray_path
-        converterSG = ConverterSprayGliders(
-            db = "SprayGliders",
-            db_type="PHY",
-            input_path = spray_path,
-            outdir_pq = outdir_spray_pqt,
-            outdir_schema = './schemas/SprayGliders/',
-            fname_pq = 'test_1200_PHY_SPRAY-DEV'
-        )
-        with pytest.warns(UserWarning):
-            ddf = dd.from_pandas(
-                converterSG.read_to_df(filename="NASCar.nc")
-            )
-        assert not ddf.head().empty
-
-        ddf = ddf.repartition(partition_size="300MB")
-        assert not ddf.head().empty
-
-        converterSG.to_parquet(ddf)
-
-    def test_converter_spraygliders_convert_steps_multiple_files(self):
-        """Test that SprayGliders conversion executes; this test does not use
-        convert() but its internal steps to check the dataframe is never empty
-        """
-        client = Client(
-            threads_per_worker=2,
-            n_workers=1,
-            memory_limit='auto'
-        )
-
-        spray_path = spray_path
-        outdir_spray_pqt = outdir_spray_path
-        converterSG = ConverterSprayGliders(
-            db = "SprayGliders",
-            db_type="PHY",
-            input_path = spray_path,
-            outdir_pq = outdir_spray_pqt,
-            outdir_schema = './schemas/SprayGliders/',
-            fname_pq = 'test_1200_PHY_SPRAY-DEV'
-        )
-
-        from dask.distributed import Lock
-        lock=Lock()
-        ddf = dd.from_map(
-            converterSG.read_to_df,
-            ["NASCar.nc", "Hawaii.nc"],
-            lock=lock
-        )
-        assert not ddf.head().empty
-        print(ddf.head())
-        print(ddf.dtypes)
-
-        ddf = ddf.repartition(partition_size="300MB")
-        assert not ddf.head().empty
-
-        converterSG.to_parquet(ddf)
-
-        client.shutdown()
-
-    def test_converter_spraygliders_convert_multiple_files(self):
-        """Test that SprayGliders conversion executes; this test uses convert()
-        """
-        client = Client(
-            threads_per_worker=2,
-            n_workers=1,
-            memory_limit='auto'
-        )
-
-        spray_path = spray_path
-        outdir_spray_pqt = outdir_spray_path
-        converterSG = ConverterSprayGliders(
-            db = "SprayGliders",
-            db_type="PHY",
-            input_path = spray_path,
-            outdir_pq = outdir_spray_pqt,
-            outdir_schema = './schemas/SprayGliders/',
-            fname_pq = 'test_1200_PHY_SPRAY-DEV'
-        )
-
-        converterSG.convert(["NASCar.nc", "Hawaii.nc"])
-
-        client.shutdown()
 
     def test_converter_spraygliders_prepare_tmp(self):
         """Test that SprayGliders conversion executes; this test does not use
@@ -900,43 +696,27 @@ class TestConverter:
             dashboard_address=':8787',
         )
 
-        spray_path = "/vortexfs1/share/boom/users/enrico.milanese/originalDatabases/SprayGliders/"
-        outdir_spray_pqt = "./tmp_pqt/" # this should not be used in this test actually
-        tmp_nc_path = "./tmp_nc_chunks/"
-
-        if os.path.isdir(tmp_nc_path):
-            raise ValueError("tmp_nc_path already exists, please remove it before running the test.")
-
-        spray_files = glob.glob(os.path.join(spray_path, '*.nc'))
-        spray_names = [os.path.basename(f) for f in spray_files]
-        print("spray_names:")
-        print(spray_names)
-
         converterSG = ConverterSprayGliders(
-            db = "SprayGliders",
             db_type="PHY",
-            input_path = spray_path,
-            outdir_pq = outdir_spray_pqt,
-            outdir_schema = './schemas/SprayGliders/',
-            fname_pq = 'test_1200_PHY_SPRAY-DEV',
-            tmp_path = tmp_nc_path
         )
 
         from dask.distributed import Lock
         lock=Lock()
 
         # select three random files to test
-        flist = random.sample(spray_names, k=3)
+        spray_files = glob.glob(os.path.join(converterSG.input_path, '*.nc'))
+        spray_names = [os.path.basename(f) for f in spray_files]
+        flist = random.sample(spray_names, k=min(3,len(spray_names)))
         print(f"Testing with {len(flist)} of {len(spray_names)} files")
         print("flist:")
         print(flist)
 
         converterSG.prepare_data(flist=flist,lock=lock)
 
-        not_empty_dir = bool(os.listdir(tmp_nc_path))
+        not_empty_dir = bool(os.listdir(converterSG.tmp_path))
         assert not_empty_dir == True
 
-        for file in glob.glob(tmp_nc_path+"/*.nc"):
+        for file in glob.glob(converterSG.tmp_path+"/*.nc"):
             try:
                 ds = xr.open_dataset(file, engine="h5netcdf", chunks=None, cache=True)
             except Exception as e:
@@ -958,28 +738,17 @@ class TestConverter:
         print("Dashboard address:")
         print(client.dashboard_link)
 
-        spray_path = "/vortexfs1/share/boom/users/enrico.milanese/crocolaketools-public-fork/crocolaketools/test/tmp_nc_chunks/"
-        outdir_spray_pqt = "./tmp_pqt/" # this should not be used in this test actually
-        tmp_nc_path = "./tmp_nc_chunks/"
-
-        spray_files = glob.glob(os.path.join(spray_path, '*.nc'))
-        spray_names = [os.path.basename(f) for f in spray_files]
-        print("spray_names:")
-        print(spray_names)
-
         converterSG = ConverterSprayGliders(
-            db = "SprayGliders",
             db_type="PHY",
-            input_path = spray_path,
-            outdir_pq = outdir_spray_pqt,
-            outdir_schema = './schemas/SprayGliders/',
-            fname_pq = 'test_1200_PHY_SPRAY-DEV'
         )
 
         from dask.distributed import Lock
         lock=Lock()
 
-        flist = spray_names
+        spray_files = glob.glob(os.path.join(converterSG.tmp_path, '*.nc'))
+        spray_names = [os.path.basename(f) for f in spray_files]
+        flist = random.sample(spray_names, k=min(3,len(spray_names)))
+
         print(f"Testing with {len(flist)} of {len(spray_names)} files")
         print("flist:")
         print(flist)
@@ -1094,8 +863,8 @@ class TestConverter:
                 lon_list = [-70.00, 70.00, -181.10,  181.10, 0.,  180]
                 solution = [-70.00, 70.00,  178.90, -178.90, 0., -180]
             else:
-                lon_list = [359,  360]
-                solution = [179, -180]
+                lon_list = [359.0,  360.0]
+                solution = [179.0, -180.0]
             data = {
                 'LATITUDE': list(np.random.rand(len(lon_list))*180-90),
                 'LONGITUDE': lon_list,
@@ -1103,15 +872,16 @@ class TestConverter:
                 'PRES': list(np.random.rand(len(lon_list))*1000),
                 'TEMP': list(np.random.rand(len(lon_list))*5+15),
             }
-            pdf = pd.DataFrame(data)
+            pdf = pd.DataFrame(data).convert_dtypes(dtype_backend='pyarrow')
             ddf = dd.from_pandas(pdf, npartitions=2)
             print("input data:")
             print(pdf)
 
             sol_df = pdf.copy()
             sol_df["LONGITUDE"] = solution
+            sol_df["LONGITUDE"] = sol_df["LONGITUDE"].astype("float64[pyarrow]")
 
-            # we need an instance of ConverterGLODAP to access the _wrap_longitude
+            # we need an instance of a converter to access the _wrap_longitude
             # method
             config = {
                 'db': 'GLODAP',
@@ -1133,7 +903,10 @@ class TestConverter:
                     pdf,
                     shift_range=True,
                 )
-                ddf = ConverterPHY._wrap_longitude(ddf,shift_range=True).compute()
+                ddf = ConverterPHY._wrap_longitude(
+                    ddf,
+                    shift_range=True
+                ).compute()
 
             print("solution:")
             print(sol_df)
