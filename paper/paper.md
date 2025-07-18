@@ -122,7 +122,7 @@ The second step is to convert the data to parquet, and finally merge the dataset
 Depending on the dataset, multiple converters can be applied. For example, to create CrocoLake, Argo data goes through two converters:
 1. `converterArgoGDAC`, which converts the original Argo GDAC preserving most of its original conventions;
 2. `converterArgoQC`, which takes the output of the previous step and applies some filtering based on Argo's QC flags and makes the data conforming to CrocoLake's schema.
-At this time CrocoLakeTools is released with converters for data from Argo [@wong2020argo], Spray Data [@sherman2002autonomous],[@rudnick2016spray] and GLODAP (Global Ocean Data Analysis Project) [@lauvset2016new],[@olsen2016global].
+At this time CrocoLakeTools is released with converters for data from Argo [@wong2020argo], Spray Data (@sherman2002autonomous,@rudnick2016spray) and GLODAP (Global Ocean Data Analysis Project) (@lauvset2016new,@olsen2016global).
 
 ### CrocoLake
 CrocoLake is one parquet dataset that contains all converted datasets merged together. This can be achieved with the script `merge_crocolake.py`. The script first creates a directory containing symbolic links to each converted dataset. It then uses the submodule `CrocoLakeLoader` to seamlessly load all the converted datasets into memory as one dask dataframe with a uniform schema, merges them into CrocoLake, and stores it back to disk.
