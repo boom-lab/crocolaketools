@@ -12,6 +12,7 @@ import dask
 import dask.dataframe as dd
 from dask.distributed import Client
 import numpy as np
+import os
 import pandas as pd
 from pathlib import Path
 import pyarrow as pa
@@ -81,19 +82,19 @@ class ConverterArgoGDAC(Converter):
 
             start_time = time.time()
 
-            db_name = db_names[k]
+            db_name = db_names[k].upper()
             print("Converting " + db_name + " database...")
             genSchema = generateSchema(outdir=schema_path, db=db_name)
             schema_fname = genSchema.schema_fname
             print("Schema file for " + db_name + " database: " + schema_fname)
 
-            if db_name=="phy":
+            if db_name=="PHY":
                 flist = flist_phy
                 metadata = metadata_phy
                 nw = 18
                 tw = 1
                 memlim = "5.5GB"
-            elif db_name=="bgc":
+            elif db_name=="BGC":
                 flist = flist_bgc
                 metadata = metadata_bgc
                 nw = 9
@@ -105,13 +106,13 @@ class ConverterArgoGDAC(Converter):
 
             # convert metadata
             if len(metadata) > 0:
-                metadata_dir = outdir_parquet + "metadata/"
+                metadata_dir = os.path.join(outdir_parquet, "metadata/")
                 Path(metadata_dir).mkdir(parents = True, exist_ok = True)
-                parquet_filename = metadata_dir + "Argo" + db_name.upper() + "_metadata.parquet"
+                parquet_filename = os.path.join(metadata_dir, "Argo" + db_name + "_metadata.parquet")
                 metadata.to_parquet(parquet_filename)
                 print("Metadata stored to " + str(parquet_filename) + ".")
 
-                client = Client(
+            client = Client(
                 n_workers=nw,
                 threads_per_worker=tw,
                 processes=True,
@@ -121,7 +122,7 @@ class ConverterArgoGDAC(Converter):
             chunksize = 1000
 
             daskConverter = daskTools(
-                db_type = db_name.upper(),
+                db_type = db_name,
                 out_dir = outdir_parquet,
                 flist = flist,
                 schema_path = schema_fname,

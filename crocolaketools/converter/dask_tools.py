@@ -177,7 +177,7 @@ class daskTools():
 
             df = df.repartition(partition_size="300MB")
 
-            name_function = lambda x: f"Argo{self.db_type}_dask_{j}_{x}.parquet"
+            name_function = lambda x: f"Argo{self.db_type}_{x}.parquet"
 
             # to_parquet() triggers execution of lazy functions
             append_db = False

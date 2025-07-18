@@ -154,22 +154,28 @@ class ConverterSprayGliders(Converter):
         # acquire lock to avoid concurrency issues on ds
         lock.acquire(timeout=600)
 
-        # load into memory the slice of ds that corresponds to chunk
-        ds_tmp = ds.isel(profile=slice(chunk_init, chunk_end)).compute()
+        try:
+            # load into memory the slice of ds that corresponds to chunk
+            ds_tmp = ds.isel(profile=slice(chunk_init, chunk_end)).compute()
 
-        # store slice to netCDF file
-        ds_tmp.to_netcdf(
-            chunk_filepath,
-            engine="netcdf4"
-        )
+            # store slice to netCDF file
+            ds_tmp.to_netcdf(
+                chunk_filepath,
+                engine="netcdf4"
+            )
 
-        lock.release()
+        except Exception as e:
+            print(f"Error writing file {chunk_filepath}: {e}")
+            raise
+
+        finally: # always release lock in case of error in try block
+            lock.release()
 
         return
 
 #------------------------------------------------------------------------------#
 ## Read netcdf files and convert them to dask dataframe
-    def read_to_ddf(self, flist=None, lock=None):
+    def read_to_ddf(self, flist=None, lock=None, path=None):
         """Read list of netCDF files and generate list of delayed objects with
         processed data
 
@@ -186,7 +192,7 @@ class ConverterSprayGliders(Converter):
 
         results = []
         for fname in flist:
-            read_result = self.read_to_df(fname, lock)
+            read_result = self.read_to_df(fname, lock, path)
             proc_result = self.process_df(read_result[0], read_result[1])
             results.append(proc_result)
 
@@ -224,7 +230,9 @@ class ConverterSprayGliders(Converter):
         input_fname = path + filename
         print("Reading file: ", input_fname)
 
-        lock.acquire(timeout=600)
+        if lock is not None:
+            lock.acquire(timeout=600)
+
         try:
             with xr.open_dataset(input_fname,cache=True,chunks=None,engine="h5netcdf") as ds:
                 ds_vars = list(ds.data_vars) + list(ds.coords)
@@ -234,13 +242,17 @@ class ConverterSprayGliders(Converter):
                 ds = ds.drop_vars(["mission_name"])
                 invars.remove("mission_name")
                 df = ds[invars].to_dataframe()
+                df["date_update"] = pd.to_datetime(
+                    ds.attrs["date_created"]
+                )
 
         except Exception as e:
             print(f"Error reading file {input_fname}: {e}")
             raise
 
         finally: # always release lock in case of error in try block
-            lock.release()
+            if lock is not None:
+                lock.release()
 
         return df, invars
 
@@ -299,7 +311,7 @@ class ConverterSprayGliders(Converter):
         """Standardize xarray dataset to schema consistent across databases
 
         Argument:
-        ds -- xarray dataset
+        df -- pandas or dask dataframe with Spray Gliders data
 
         Returns:
         df -- homogenized dataframe

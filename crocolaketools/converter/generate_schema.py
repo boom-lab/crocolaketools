@@ -99,7 +99,7 @@ class generateSchema():
             elif p in ['LATITUDE','LONGITUDE']:
                 f = pa.field( p, pa.float64() )
 
-            elif p=='JULD':
+            elif p in ['JULD','DATE_UPDATE']:
                 f = pa.field( p, pa.from_numpy_dtype(np.dtype('datetime64[ns]') ) )
 
             elif (p=='DIRECTION') or ('DATA_MODE' in p):

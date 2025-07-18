@@ -90,9 +90,9 @@ def argogdac2parquet():
     outdir_parquet = args.db_parquet
     db = args.db
     if db is None:
-        db = ["phy","bgc"]
+        db = ["PHY","BGC"]
     elif isinstance(db, str):
-        db = [db]
+        db = [db.upper()]
 
     if download_dbs.lower()=="true":
         dl_start_time = time.time()
@@ -111,21 +111,25 @@ def argogdac2parquet():
         metadata_phy = []
         metadata_bgc = []
 
-        if "phy" in db:
+        if "PHY" in db:
             downloaderArgo = DownloaderArgoGDAC()
-            flist_phy, _, metadata_phy, _ = downloaderArgo.argo_download(gdac_path, outdir_nc, ["phy"], True)
+            flist_phy, _, metadata_phy, _ = downloaderArgo.argo_download(gdac_path, outdir_nc, ["PHY"], True)
 
         print("flist_phy: ")
         print(flist_phy)
 
-        if "bgc" in db:
+        if "BGC" in db:
             downloaderArgo = DownloaderArgoGDAC()
-            _, flist_bgc, _, metadata_bgc = downloaderArgo.argo_download(gdac_path, outdir_nc, ["bgc"], True)
+            _, flist_bgc, _, metadata_bgc = downloaderArgo.argo_download(gdac_path, outdir_nc, ["BGC"], True)
 
     if convert_dbs.lower()=="true":
         conv_start_time = time.time()
         print("Converting the databases...")
         print("Destination folder: " + outdir_parquet)
+        print("Files to convert (PHY): ")
+        print(flist_phy)
+        print("Files to convert (BGC): ")
+        print(flist_bgc)
 
         ConverterArgoGDAC.convert_dask_tools(
             [flist_phy, flist_bgc],

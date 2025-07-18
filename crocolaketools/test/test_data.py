@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 
 import copy
+import datetime
 import os
 import glob
 import importlib.resources
 import logging
+from pathlib import Path
 import random
 
 import dask.dataframe as dd
@@ -25,26 +27,165 @@ class TestData:
 # are often performed on a subset of the whole database.
 
 #------------------------------------------------------------------------------#
-    def _check_variables(self,db_name,db_type):
-        """Pick a random variable in a random original netCDF file and find it
-        in the parquet version, check that they are equal"""
+    def _get_scalar_from_ds(self, selected_scalar):
+        """Get a scalar value from a dataset, it handles the case where the a
+        value is of np datetime64 type
+
+        Arguments:
+        selected_scalar -- scalar from xarray data array for given variable and
+                           indices
+
+        Returns:
+        value -- the value of the selected data, as a scalar or numpy datetime
+                 depending on the original dtype
+
+        """
+
+        if np.issubdtype(selected_scalar.dtype, np.datetime64):
+            return selected_scalar.values
+        elif isinstance(selected_scalar.item(), bytes):
+            return np.datetime64(
+                datetime.strptime(
+                    selected_scalar.item().decode(),
+                    "%Y%m%d%H%M%S"
+                )
+            )
+        else:
+            return selected_scalar.item()
+
+
+#------------------------------------------------------------------------------#
+    def _check_profiles(self,db_name,db_type,db_name_config=None):
+
+        """Pick a random profile given PLATFORM_NUMBER and CYCLE_NUMBER, check that
+        there is no duplicate row and that it sorted by increasing PRES values"""
+
+        if db_name_config is None:
+            db_name_config = db_name
 
         config_path = importlib.resources.files("crocolaketools.config").joinpath("config.yaml")
         config = yaml.safe_load(open(config_path))
-        config = config[db_name + "_" + db_type]
+        config = config[db_name_config + "_" + db_type]
+
+        pq_path = str(os.path.abspath(Path(config["outdir_pq"])))
+        print("parquet dataset path:", pq_path)
+
+        ddf_plat_nb = dd.read_parquet(
+            pq_path+"/",
+            columns=["PLATFORM_NUMBER"]
+        )
+        frac = 20/len(ddf_plat_nb.drop_duplicates())
+        sample_frac = np.min([1,frac]) # max 20 entries
+
+        # get random platform numbers
+        platform_numbers = (
+            ddf_plat_nb["PLATFORM_NUMBER"]
+            .drop_duplicates()
+            .sample(frac=sample_frac, random_state=25)
+            .compute()
+        )
+
+        logging.info(platform_numbers)
+
+        for pn in platform_numbers:
+            ddf_prof = dd.read_parquet(
+                pq_path,
+                columns=["CYCLE_NUMBER"],
+                filters=[ ("PLATFORM_NUMBER", "==", pn)]
+            )
+            profs = (
+                ddf_prof["CYCLE_NUMBER"]
+                .drop_duplicates()
+                .compute()
+            )
+
+            # test (at most) 10 random profiles
+            for p in random.choices(profs.to_list(), k=np.min([10,len(profs.to_list())])):
+                logging.info(f"PLATFORM_NUMBER = {pn}")
+                logging.info(f"CYCLE_NUMBER = {p}")
+                df = dd.read_parquet(
+                    pq_path,
+                    filters=[
+                        ("PLATFORM_NUMBER", "==", pn),
+                        ("CYCLE_NUMBER", "==", p)
+                    ]
+                )
+
+                df = df.dropna(subset=["PRES"])
+                if len(df) == 0:
+                    # data for this profile are NaNs
+                    continue
+
+                # test that ddf has no duplicates for (pressure,time,lat,lon) values
+                df = df[["PRES","JULD","LATITUDE","LONGITUDE"]].compute()
+                # note that Argo's cycle number might have multiple profiles, so
+                # the above still work, but it would not be unique by pressure
+                # (this would be the case if we used N_PROF but CYCLE_NUMBER
+                # seems to be the standard)
+                logging.info(f"len(df): {len(df)}")
+                logging.info(f"len(df.drop_duplicates): {len(df.drop_duplicates())}")
+
+                if db_name != "GLODAP":
+                    assert len(df) == len(df.drop_duplicates())
+
+                # test that ddf is sorted by PRES
+                def check_sorted(df):
+                    """Check that df is sorted by PRES"""
+                    return df["PRES"].is_monotonic_increasing
+                condition = df.groupby(["JULD","LATITUDE","LONGITUDE"]).apply(check_sorted)
+
+                assert condition.all()
+
+
+#------------------------------------------------------------------------------#
+    def _check_variables_nc(self,db_name,db_type,db_name_config=None,nc_pattern=None):
+
+        """Pick a random variable in a random original netCDF file and find it
+        in the parquet version, check that they are equal
+
+        Arguments:
+        db_name   --  database name as in params.py
+        db_type   --  phy or bgc
+        db_name_config  -- database name as in config.yaml if different from db_name
+        nc_pattern      -- specific file name patterns for original netCDF files
+
+        """
+
+        if db_name_config is None:
+            db_name_config = db_name
+        if nc_pattern is None:
+            nc_pattern = "*.nc"
+
+        config_path = importlib.resources.files("crocolaketools.config").joinpath("config.yaml")
+        config = yaml.safe_load(open(config_path))
+        config = config[db_name_config + "_" + db_type]
 
         nc_path = config["input_path"]
         pq_path = config["outdir_pq"]
 
         # get list of original nc files
         if os.path.isdir(nc_path):
-            nc_path = os.path.join(nc_path, "**", "*.nc")
+            nc_path = os.path.join(nc_path, "**", nc_pattern)
         nc_files = glob.glob(nc_path, recursive=True)
 
+        logging.info(f"nc_path: {nc_path}")
+        logging.info(f"Files found: {nc_files}")
+
         params_db2crocolake = params.params[db_name + "2CROCOLAKE"]
-        # remove PLATFORM_NUMBER from params_db2crocolake because it needs to be dealt with separately for Spray Gliders
-        params_in_crocolake = [k for k, v in params_db2crocolake.items()
-                               if v != "PLATFORM_NUMBER"]
+        # remove PLATFORM_NUMBER from params_db2crocolake because it needs to be dealt with separately
+        # (in general it is not unique given lat, lon, profile)
+
+        multi = ["CYCLE_NUMBER", "PLATFORM_NUMBER", "DATA_MODE", "DIRECTION",
+                 "JULD_QC", "LATITUDE", "LONGITUDE", "POSITION_QC", "JULD"]
+
+        # PLATFORM_NUMBER needs to be handled differently for spray gliders
+        # because it's not 1:1 conversion but there is some extra step (not
+        # implemented yet)
+        if db_name == "SprayGliders":
+            params_in_crocolake = [k for k, v in params_db2crocolake.items()
+                                   if v not in ["PLATFORM_NUMBER"]]
+        else:
+            params_in_crocolake = params_db2crocolake.keys()
 
         params_crocolake2db = params.params[ "CROCOLAKE2" + db_name]
         lat_name = params_crocolake2db["LATITUDE"]
@@ -53,7 +194,7 @@ class TestData:
         for j in range(1000):
             nc_file = random.choice( nc_files )
 
-            if config["db"]=="ARGO":
+            if db_name == "Argo":
                 ds = xr.open_dataset(nc_file, engine="argo")
             else:
                 ds = xr.open_dataset(nc_file, engine="h5netcdf")
@@ -71,12 +212,20 @@ class TestData:
             random_var = random.choice(variables)
             var_data = ds[random_var]
             indices = {dim: random.randint(0, size - 1) for dim, size in var_data.sizes.items()}
-            nc_value = var_data.isel(**indices).item()
+            if len(ds[random_var].dims) > 0:
+                nc_value = self._get_scalar_from_ds(var_data.isel(**indices))
+            else:
+                nc_value = self._get_scalar_from_ds(var_data)
 
-            shared_indices = {dim: idx for dim, idx in indices.items() if dim in ds[lat_name].dims}
-            nc_lat = ds[lat_name].isel(**shared_indices).item()
-            shared_indices = {dim: idx for dim, idx in indices.items() if dim in ds[lon_name].dims}
-            nc_lon = ds[lon_name].isel(**shared_indices).item()
+            if len(ds[random_var].dims) > 0:
+                shared_indices_lat = {dim: idx for dim, idx in indices.items() if dim in ds[lat_name].dims}
+                shared_indices_lon = {dim: idx for dim, idx in indices.items() if dim in ds[lon_name].dims}
+            else: # scalar has no indices, we just need to assign
+                shared_indices_lat = {dim: random.randint(0, size - 1) for dim, size in ds[lat_name].sizes.items()}
+                shared_indices_lon = shared_indices_lat
+
+            nc_lat = self._get_scalar_from_ds(ds[lat_name].isel(**shared_indices_lat))
+            nc_lon = self._get_scalar_from_ds(ds[lon_name].isel(**shared_indices_lon))
 
             # Some Spray Gliders data have nan for lat and lon, the target
             # variable seems to be nan too in that case; it doesn't hurt to keep
@@ -89,7 +238,7 @@ class TestData:
             logging.info(f"indices: {indices}")
             logging.info(f"coordinates:")
             for k,v in indices.items():
-                logging.info(f"{k} : {ds[k][v].item()}")
+                logging.info(f"{k} : {self._get_scalar_from_ds(ds[k][v])}")
             logging.info(f"nc_value: {nc_value}")
 
             # get coords and variable names in crocolake
@@ -97,9 +246,11 @@ class TestData:
             cols_pq = [var_pq]
             indices_pq = {}
             for k, v in indices.items():
-                indices_pq[ params_db2crocolake[k] ] = ds[k][v].item()
+                indices_pq[ params_db2crocolake[k] ] = self._get_scalar_from_ds(ds[k][v])
             indices_pq[ "LATITUDE" ] = nc_lat
             indices_pq[ "LONGITUDE" ] = nc_lon
+            if db_name_config != "ARGO-GDAC":
+                indices_pq[ "LONGITUDE" ] = (indices_pq[ "LONGITUDE" ] - 180) % 360 - 180
             cols_pq.extend(indices_pq.keys())
 
             logging.info(f"var_pq: {var_pq}")
@@ -124,8 +275,15 @@ class TestData:
                 assert pd.isna(nc_value)
                 continue
 
-            # otherwise ddf has at most one row
+            # otherwise ddf has multiple rows only for the variables in multi or
+            # if random_var was constant for a given file (float), but all rows
+            # should be identical
+            if var_pq in multi or len(ds[random_var].dims)==0:
+                ddf = ddf.drop_duplicates()
+
+            # otherwise has at most one row
             assert ddf.shape[0] == 1
+
 
             pq_value = ddf[var_pq].values[0] # this should be a scalar or a pd.NA
             logging.info(f"pq_value: {pq_value}")
@@ -137,15 +295,20 @@ class TestData:
             elif np.isscalar(pq_value):
                 # CrocoLake measured variables are float32, but original dataset
                 # might have float64 precision
-                assert pq_value == np.float32(nc_value)
+                if np.issubdtype(type(pq_value), np.integer):
+                    pq_value = np.int32(pq_value)
+                    nc_value = np.int32(nc_value)
+                elif np.issubdtype(type(pq_value), np.floating):
+                    pq_value = np.float32(pq_value)
+                    nc_value = np.float32(nc_value)
+                assert pq_value == nc_value
 
             else:
                 assert False, "value in CrocoLake is not a scalar nor a pd.NA"
 
-
 #------------------------------------------------------------------------------#
     def test_data_integrity_spraygliders_phy(self):
-        self._check_variables(
+        self._check_variables_nc(
             db_type="PHY",
             db_name="SprayGliders"
         )
@@ -153,7 +316,85 @@ class TestData:
 #------------------------------------------------------------------------------#
     def test_data_integrity_spraygliders_bgc(self):
 
-        self._check_variables(
+        self._check_variables_nc(
             db_type="BGC",
             db_name="SprayGliders"
+        )
+
+#------------------------------------------------------------------------------#
+    def test_data_integrity_argogdac_phy(self):
+        self._check_variables_nc(
+            db_type="PHY",
+            db_name="Argo",
+            db_name_config="ARGO-GDAC",
+            nc_pattern="*_prof.nc"
+        )
+
+#------------------------------------------------------------------------------#
+    def test_data_integrity_argogdac_bgc(self):
+        self._check_variables_nc(
+            db_type="BGC",
+            db_name="Argo",
+            db_name_config="ARGO-GDAC",
+            nc_pattern="*_Sprof.nc"
+        )
+
+#------------------------------------------------------------------------------#
+    def test_profiles_spraygliders_phy(self):
+        self._check_profiles(
+            db_type="PHY",
+            db_name="SprayGliders",
+        )
+
+#------------------------------------------------------------------------------#
+    def test_profiles_spraygliders_bgc(self):
+        self._check_profiles(
+            db_type="BGC",
+            db_name="SprayGliders",
+        )
+
+#------------------------------------------------------------------------------#
+    def test_profiles_argogdac_phy(self):
+        self._check_profiles(
+            db_type="PHY",
+            db_name="Argo",
+            db_name_config="ARGO-GDAC",
+        )
+
+#------------------------------------------------------------------------------#
+    def test_profiles_argogdac_bgc(self):
+        self._check_profiles(
+            db_type="BGC",
+            db_name="Argo",
+            db_name_config="ARGO-GDAC",
+        )
+
+#------------------------------------------------------------------------------#
+    def test_profiles_argoqc_phy(self):
+        self._check_profiles(
+            db_type="PHY",
+            db_name="Argo",
+            db_name_config="ARGO",
+        )
+
+#------------------------------------------------------------------------------#
+    def test_profiles_argoqc_bgc(self):
+        self._check_profiles(
+            db_type="BGC",
+            db_name="Argo",
+            db_name_config="ARGO",
+        )
+
+#------------------------------------------------------------------------------#
+    def test_profiles_glodap_phy(self):
+        self._check_profiles(
+            db_type="PHY",
+            db_name="GLODAP",
+        )
+
+#------------------------------------------------------------------------------#
+    def test_profiles_glodap_bgc(self):
+        self._check_profiles(
+            db_type="BGC",
+            db_name="GLODAP",
         )

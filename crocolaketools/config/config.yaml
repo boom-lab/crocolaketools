@@ -38,7 +38,7 @@ ARGO_PHY:
   outdir_schema: ./schema/
   fname_pq: demo_ARGO-QC_PHY
   add_derived_vars: True
-  overwrite: False
+  overwrite: True
   tmp_path:
 
 ARGO_BGC:
@@ -49,8 +49,21 @@ ARGO_BGC:
   outdir_schema: ./schema/
   fname_pq: demo_ARGO-QC_BGC
   add_derived_vars: True
-  overwrite: False
+  overwrite: True
   tmp_path:
+
+# Argo GDAC
+ARGO-GDAC_PHY:
+  db: ARGO-GDAC
+  db_type: PHY
+  input_path: ../demo/demo_ARGO_GDAC/GDAC/dac/
+  outdir_pq: ../demo/parquet/demo_ARGO-GDAC_PHY/
+
+ARGO-GDAC_BGC:
+  db: ARGO-GDAC
+  db_type: BGC
+  input_path: ../demo/demo_ARGO_GDAC/GDAC/dac/
+  outdir_pq: ../demo/parquet/demo_ARGO-GDAC_BGC/
 
 # GLODAP config
 GLODAP_PHY:
@@ -60,8 +73,8 @@ GLODAP_PHY:
   outdir_pq: ../demo/parquet/demo_GLODAP_PHY/
   outdir_schema: ./schema/
   fname_pq: demo_GLODAP_PHY
-  add_derived_vars: False
-  overwrite: False
+  add_derived_vars: True
+  overwrite: True
   tmp_path:
 
 GLODAP_BGC:
@@ -72,7 +85,7 @@ GLODAP_BGC:
   outdir_schema: ./schema/
   fname_pq: demo_GLODAP_BGC
   add_derived_vars: True
-  overwrite: False
+  overwrite: True
   tmp_path:
 
 # Spray Gliders
@@ -84,7 +97,7 @@ SprayGliders_PHY:
   outdir_schema: ./schemas/
   fname_pq: demo_SPRAY_PHY
   add_derived_vars: True
-  overwrite: False
+  overwrite: True
   tmp_path: ../demo/demo_tmp_SPRAY_PHY/
 
 SprayGliders_BGC:
@@ -95,8 +108,31 @@ SprayGliders_BGC:
   outdir_schema: ./schemas/
   fname_pq: demo_SPRAY_BGC
   add_derived_vars: True
-  overwrite: False
+  overwrite: True
   tmp_path: ../demo/demo_tmp_SPRAY_BGC/
+
+# Saildrones
+Saildrones_PHY:
+  db: Saildrones
+  db_type: PHY
+  input_path: ../demo/demo_Saildrones_PHY/
+  outdir_pq: ../demo/parquet/demo_Saildrones_PHY/
+  outdir_schema: ./schemas/Saildrones/
+  fname_pq: demo_SAILDRONES_PHY
+  add_derived_vars: True
+  overwrite: True
+  tmp_path:
+
+Saildrones_BGC:
+  db: Saildrones
+  db_type: BGC
+  input_path: ../demo/demo_Saildrones_BGC/
+  outdir_pq: ../demo/parquet/demo_Saildrones_BGC/
+  outdir_schema: ./schemas/Saildrones/
+  fname_pq: demo_SAILDRONES_BGC
+  add_derived_vars: True
+  overwrite: True
+  tmp_path:
 
 # Oleander
 Oleander_PHY:
@@ -109,3 +145,8 @@ Oleander_PHY:
   add_derived_vars: False
   overwrite: True
   tmp_path:
+
+# Default relative path for demo data download
+demo:
+  download_path: ../demo/
+>>>>>>> develop

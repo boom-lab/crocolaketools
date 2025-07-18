@@ -9,6 +9,11 @@
 
 ##########################################################################
 import argparse
+import importlib.resources
+import yaml
+from dask.distributed import Client
+
+
 from datetime import datetime
 from warnings import simplefilter
 import pandas as pd
@@ -19,6 +24,11 @@ from crocolaketools.converter.converterGLODAP import ConverterGLODAP
 
 def glodap2parquet(glodap_path=None, glodap_name=None, outdir_pqt_phy=None, outdir_pqt_bgc=None, fname_pq=None, use_config_file=None):
     """Convert GLODAP data to parquet format"""
+
+    config_path = importlib.resources.files("crocolaketools.config").joinpath("config_cluster.yaml")
+    config_cluster = yaml.safe_load(open(config_path))
+    client = Client(**config_cluster["GLODAP"])
+    print("Dask client dashboard link:", client.dashboard_link)
 
     if not use_config_file:
         print("Using user-defined configuration")
@@ -39,7 +49,6 @@ def glodap2parquet(glodap_path=None, glodap_name=None, outdir_pqt_phy=None, outd
         ConverterPHY = ConverterGLODAP(db_type='phy')
 
     ConverterPHY.convert()
-
     del ConverterPHY
 
     if not use_config_file:
@@ -61,7 +70,6 @@ def glodap2parquet(glodap_path=None, glodap_name=None, outdir_pqt_phy=None, outd
         ConverterBGC = ConverterGLODAP(db_type='bgc')
 
     ConverterBGC.convert()
-
     del ConverterBGC
 
     return

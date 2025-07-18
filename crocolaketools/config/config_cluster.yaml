@@ -7,8 +7,8 @@
 # Argo
 ARGO-QC_PHY:
     threads_per_worker: 1
-    n_workers: 18
-    memory_limit: 'auto'
+    n_workers: 4
+    memory_limit: '2GB'
     processes: True
 
 ARGO-QC_BGC:
@@ -18,9 +18,22 @@ ARGO-QC_BGC:
     processes: True
 
 SPRAY_GLIDERS:
+    threads_per_worker: 4
+    n_workers: 1
+    memory_limit: '12GB'
+    processes: True
+
+GLODAP:
     threads_per_worker: 20
     n_workers: 1
-    memory_limit: '110GB'
+    memory_limit: '12GB'
+    processes: True
+
+# Saildrones configuration
+SAILDRONES:
+    threads_per_worker: 8
+    n_workers: 2
+    memory_limit: '32GB'
     processes: True
 
 # Oleander configuration

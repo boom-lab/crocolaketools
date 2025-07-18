@@ -45,7 +45,7 @@ def argo2argoqc_phy(argo_path,outdir_pqt,fname_pq,use_config_file):
             'outdir_schema': './schemas/ARGO/',
             'fname_pq': fname_pq,
             'add_derived_vars': True,
-            'overwrite': False,
+            'overwrite': True,
         }
         ConverterPHY = ConverterArgoQC(config)
 

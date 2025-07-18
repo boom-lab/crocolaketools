@@ -12,6 +12,7 @@ import argparse
 import importlib.resources
 import logging
 import os
+import subprocess
 import yaml
 from datetime import datetime
 
@@ -59,13 +60,9 @@ def merge_crocolake(db_type,croco_path,outdir,croco_name):
     croco_name  --  name of merged CrocoLake
     """
 
-    client = Client(
-        threads_per_worker=9,
-        n_workers=4,
-        memory_limit='36GiB', # memory limit per worker
-        processes=True,
-        dashboard_address='localhost:35784'
-    )
+    config_path = importlib.resources.files("crocolaketools.config").joinpath("config_cluster.yaml")
+    config_cluster = yaml.safe_load(open(config_path))
+    client = Client(**config_cluster["SPRAY_GLIDERS"])
 
     logging.info("Client dashboard address: %s", client.dashboard_link)
     logging.info("Client scheduler address: %s", client.scheduler.address)
@@ -76,6 +73,7 @@ def merge_crocolake(db_type,croco_path,outdir,croco_name):
     )
     print("getting dataframe")
     ddf = crocoloader.get_dataframe()
+    crocoloader.add_units_to_schema()
     ddf = ddf.repartition(partition_size="300MB")
 
     name_function = lambda x: f"{croco_name}_{x:04d}.parquet"
@@ -110,6 +108,16 @@ def main():
         raise ValueError("CrocoLake type must be PHY or BGC.")
 
     if args.config:
+
+        print("Using configuration from config.yaml")
+        # generage symlinks
+        with importlib.resources.as_file(
+                importlib.resources.files("crocolaketools.config").joinpath("generate_crocolake_symlinks.sh")
+        ) as sh_script:
+            print("Executing script to generate symlinks for CrocoLake data...")
+            variants = [args.d.upper()]
+            subprocess.run(["bash", str(sh_script)] + variants)
+
         config_file = importlib.resources.files("crocolaketools.config").joinpath("config.yaml")
         config_path = importlib.resources.files("crocolaketools.config")
         config = yaml.safe_load(open(config_file))
