@@ -11,12 +11,13 @@ authors:
   - firstname: Enrico
     surname: Milanese
     orcid: 0000-0002-7316-9718
-    correponding: true
+    corresponding: true
     affiliation: 1
   - firstname: David
     surname: Nicholson
     orcid: 0000-0003-2653-9349
     affiliation: 1
+    corresponding: true
   - firstname: Gaël
     surname: Forget
     affiliation: 2
@@ -122,7 +123,7 @@ The second step is to convert the data to parquet, and finally merge the dataset
 Depending on the dataset, multiple converters can be applied. For example, to create CrocoLake, Argo data goes through two converters:
 1. `converterArgoGDAC`, which converts the original Argo GDAC preserving most of its original conventions;
 2. `converterArgoQC`, which takes the output of the previous step and applies some filtering based on Argo's QC flags and makes the data conforming to CrocoLake's schema.
-At this time CrocoLakeTools is released with converters for data from Argo [@wong2020argo], Spray Data (@sherman2002autonomous,@rudnick2016spray) and GLODAP (Global Ocean Data Analysis Project) (@lauvset2016new,@olsen2016global).
+At this time CrocoLakeTools is released with converters for data from Argo [@wong2020argo], Spray Data (@sherman2002autonomous, @rudnick2016spray) and GLODAP (Global Ocean Data Analysis Project, @lauvset2016new, @olsen2016global).
 
 ### CrocoLake
 CrocoLake is one parquet dataset that contains all converted datasets merged together. This can be achieved with the script `merge_crocolake.py`. The script first creates a directory containing symbolic links to each converted dataset. It then uses the submodule `CrocoLakeLoader` to seamlessly load all the converted datasets into memory as one dask dataframe with a uniform schema, merges them into CrocoLake, and stores it back to disk.
@@ -141,8 +142,10 @@ CrocoLake can be accessed with several programming languages with just a few lin
     \caption{CrocoLake's workflowL `converter`s. `converter`s read the data in their original format, transform it following CrocoLake's conventions, converts it to parquet, and stores it back to disk. Each dataset is converted to its own parquet version. Thanks to the submodule `CrocoLakeLoader`, multiple parquet datasets are merged into a uniform dataframe which is saved to disk as CrocoLake. For each dataset, a version containing only physical variables (`PHY`) or also biogeochemical variables (`BGC`) can be generated. \label{fig:workflow02}}
 \end{figure}
 
-### Schema
-The nomenclature, units and data types are generally based on Argo's (https://vocab.nerc.ac.uk/collection/R03/current/). For CrocoLake's variables that are not present in the Argo program, we provide new names mantaining consistency with Argo's style.
+### Schema and metadata
+The nomenclature, units and data types are generally based on Argo's (https://vocab.nerc.ac.uk/collection/R03/current/) and are detailed in the online documentation. For CrocoLake's variables that are not present in the Argo program, we provide new names mantaining consistency with Argo's style.
+
+The parquet format has two different types of metadata: metadata related to storage (e.g. schema, number of rows, etc.) and column attributes. We use the latter type to store information about the units for each variable present in CrocoLake. At the moment we are not including other metadata from the original sources (e.g. information about principal investigator, contact details, comments, etc.), but we are exploring solutions to include some of this in the future, based also on feedback from users.
 
 ### Profile numbering
 Ocean data is often accessed by profiles and we provide this functionality for CrocoLake too: the user can retrieve the profiles through the `CYCLE_NUMBER` variable, which is unique and progressive for each `PLATFORM_NUMBER` of each subdataset (`DB_NAME`). As each original product uses its own conventions, the `CYCLE_NUMBER` of some datasets is generated ad hoc during their conversion if no obvious match with `CYCLE_NUMBER` exists. The procedure for each dataset is detailed in the online documentation.
