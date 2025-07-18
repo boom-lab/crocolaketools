@@ -49,6 +49,21 @@ class ConverterGLODAP(Converter):
     # ------------------------------------------------------------------ #
 
 #------------------------------------------------------------------------------#
+## Read database into dask dataframe
+    def read_to_ddf(self, flist=None, lock=None):
+
+        if len(flist) > 1:
+            raise ValueError("GLODAP database must be read from a single file. Please check your input.")
+
+        df = self.read_to_df(flist[0], lock)
+        if isinstance(df,pd.DataFrame):
+            return dd.from_pandas(df)
+        elif isinstance(df,dd.DataFrame):
+            return df
+        else:
+            raise TypeError("read_to_df must return a pandas or dask dataframe, not: ", type(df))
+
+#------------------------------------------------------------------------------#
 ## Read file to convert into a pandas dataframe
     def read_to_df(self, filename=None, lock=None):
         """Read file into a pandas dataframe

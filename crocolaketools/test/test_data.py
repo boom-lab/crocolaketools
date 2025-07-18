@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import copy
+import datetime
 import os
 import glob
 import importlib.resources
@@ -42,6 +43,13 @@ class TestData:
 
         if np.issubdtype(selected_scalar.dtype, np.datetime64):
             return selected_scalar.values
+        elif isinstance(selected_scalar.item(), bytes):
+            return np.datetime64(
+                datetime.strptime(
+                    selected_scalar.item().decode(),
+                    "%Y%m%d%H%M%S"
+                )
+            )
         else:
             return selected_scalar.item()
 
@@ -167,8 +175,8 @@ class TestData:
         # remove PLATFORM_NUMBER from params_db2crocolake because it needs to be dealt with separately
         # (in general it is not unique given lat, lon, profile)
 
-        multi = ["CYCLE_NUMBER", "PLATFORM_NUMBER", "DATA_MODE",
-                 "DIRECTION", "JULD_QC", "LATITUDE", "LONGITUDE", "POSITION_QC", "JULD"]
+        multi = ["CYCLE_NUMBER", "PLATFORM_NUMBER", "DATA_MODE", "DIRECTION",
+                 "JULD_QC", "LATITUDE", "LONGITUDE", "POSITION_QC", "JULD"]
 
         # PLATFORM_NUMBER needs to be handled differently for spray gliders
         # because it's not 1:1 conversion but there is some extra step (not
@@ -204,14 +212,20 @@ class TestData:
             random_var = random.choice(variables)
             var_data = ds[random_var]
             indices = {dim: random.randint(0, size - 1) for dim, size in var_data.sizes.items()}
-            nc_value = self._get_scalar_from_ds(var_data.isel(**indices))
-            # nc_value = var_data.isel(**indices).item()
+            if len(ds[random_var].dims) > 0:
+                nc_value = self._get_scalar_from_ds(var_data.isel(**indices))
+            else:
+                nc_value = self._get_scalar_from_ds(var_data)
 
-            shared_indices = {dim: idx for dim, idx in indices.items() if dim in ds[lat_name].dims}
-            nc_lat = self._get_scalar_from_ds(ds[lat_name].isel(**shared_indices))
-            # nc_lat = ds[lat_name].isel(**shared_indices).item()
-            shared_indices = {dim: idx for dim, idx in indices.items() if dim in ds[lon_name].dims}
-            nc_lon = self._get_scalar_from_ds(ds[lon_name].isel(**shared_indices))
+            if len(ds[random_var].dims) > 0:
+                shared_indices_lat = {dim: idx for dim, idx in indices.items() if dim in ds[lat_name].dims}
+                shared_indices_lon = {dim: idx for dim, idx in indices.items() if dim in ds[lon_name].dims}
+            else: # scalar has no indices, we just need to assign
+                shared_indices_lat = {dim: random.randint(0, size - 1) for dim, size in ds[lat_name].sizes.items()}
+                shared_indices_lon = shared_indices_lat
+
+            nc_lat = self._get_scalar_from_ds(ds[lat_name].isel(**shared_indices_lat))
+            nc_lon = self._get_scalar_from_ds(ds[lon_name].isel(**shared_indices_lon))
 
             # Some Spray Gliders data have nan for lat and lon, the target
             # variable seems to be nan too in that case; it doesn't hurt to keep
@@ -235,6 +249,8 @@ class TestData:
                 indices_pq[ params_db2crocolake[k] ] = self._get_scalar_from_ds(ds[k][v])
             indices_pq[ "LATITUDE" ] = nc_lat
             indices_pq[ "LONGITUDE" ] = nc_lon
+            if db_name_config != "ARGO-GDAC":
+                indices_pq[ "LONGITUDE" ] = (indices_pq[ "LONGITUDE" ] - 180) % 360 - 180
             cols_pq.extend(indices_pq.keys())
 
             logging.info(f"var_pq: {var_pq}")
@@ -259,9 +275,10 @@ class TestData:
                 assert pd.isna(nc_value)
                 continue
 
-            # otherwise ddf has multiple rows only for the variables in multi,
-            # but all rows should be identical
-            if var_pq in multi:
+            # otherwise ddf has multiple rows only for the variables in multi or
+            # if random_var was constant for a given file (float), but all rows
+            # should be identical
+            if var_pq in multi or len(ds[random_var].dims)==0:
                 ddf = ddf.drop_duplicates()
 
             # otherwise has at most one row
