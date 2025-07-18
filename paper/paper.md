@@ -131,7 +131,7 @@ CrocoLake can be accessed with several programming languages with just a few lin
 \begin{figure}[h!]
     \centering
     \includegraphics[width=\textwidth]{workflow_01.png}
-    \caption{CrocoLake's workflow: `downloader`s. `CrocoLakeTools` is set up to host modules that are dedicated to download the desired datasets from the web. It currently supports the download only of Argo data (solid line subset), and other datasets require the user to download them manually (dashed border subsets). Argo, Spray Data and GLODAP (Global Ocean Data Analysis Project) are different data providers. \label{fig:workflow01}}
+    \caption{CrocoLake's workflow: `downloader`s. `CrocoLakeTools` is set up to host modules that are dedicated to download the desired datasets from the web. It currently supports the download only of Argo data (solid line subset), and other datasets require the user to download them manually (dashed border subsets). Argo [@wong2020argo], Spray Data [@sherman2002autonomous,@rudnick2016spray] and GLODAP (Global Ocean Data Analysis Project) [@lauvset2016new,@olsen2016global] are the different data providers supported at the time of submission. \label{fig:workflow01}}
 \end{figure}
 
 \begin{figure}[h!]
@@ -160,7 +160,9 @@ If you use CrocoLakeTools and/or CrocoLake, please do not limit yourself to citi
 
 # Acknowledgements
 
-We acknowledge funding from [NSF CSSI CROCODILE details] and [NASA ECCO NSC...].
+ [NASA ECCO NSC...].
+This material is based upon work supported by the National Science Foundation under Grant No. 2311382, "Collaborative Research: Frameworks: A community platform for accelerating observationally-constrained regional oceanographic modeling."
+The Argo data are collected and made freely available by the International Argo Program and the national programs that contribute to it (https://argo.ucsd.edu,  https://www.ocean-ops.org). The Argo Program is part of the Global Ocean Observing System.
 
 # References
 
