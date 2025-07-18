@@ -94,6 +94,6 @@ The `downloader` module downloads the observations sources to convert. It curren
 
 As of this release, CrocoLake includes all the [Argo](https://argo.ucsd.edu/) physical and biogeochemical data present in the GDAC, [GLODAP](https://glodap.info/)'s database, and QC-ed observations from [Spray Gliders](https://spraydata.ucsd.edu/about/spray-glider).
 
-We are always working on including new sources, and the next candidates are the [North Atlantic CPR Survey](https://www.bco-dmo.org/project/547835) and the [Oleander project](https://www.aoml.noaa.gov/phod/goos/oleander/intro.php).
+We are always working on including new sources, and we are currently working on importing the [Oleander XBT data](https://www.aoml.noaa.gov/phod/goos/oleander/intro.php) and the [TPOS USV (Saildrones)](https://www.pmel.noaa.gov/ocs/tpos-usv).
 
 If you are interested in a particular dataset to be added, [get in touch](enrico.milanese@whoi.edu)!
