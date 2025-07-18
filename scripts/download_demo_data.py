@@ -77,7 +77,7 @@ def main():
     print(f"Downloading test datasets...")
     local_zip_filename = os.path.join(destination,"crocolaketools_demo_data.zip")
     download_file(
-        "https://zenodo.org/records/15556267/files/crocolaketools_demo_data.zip?download=1",
+        "https://zenodo.org/records/16101615/files/crocolaketools_demo_data.zip?download=1",
         local_zip_filename
     )
 
