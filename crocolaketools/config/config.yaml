@@ -149,4 +149,3 @@ Oleander_PHY:
 # Default relative path for demo data download
 demo:
   download_path: ../demo/
->>>>>>> develop
