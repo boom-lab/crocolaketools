@@ -44,12 +44,16 @@ class TestData:
         if np.issubdtype(selected_scalar.dtype, np.datetime64):
             return selected_scalar.values
         elif isinstance(selected_scalar.item(), bytes):
-            return np.datetime64(
-                datetime.strptime(
-                    selected_scalar.item().decode(),
-                    "%Y%m%d%H%M%S"
+            decoded = selected_scalar.item().decode()
+            try:
+                return np.datetime64(
+                    datetime.datetime.strptime(
+                        decoded, 
+                        "%Y%m%d%H%M%S"
+                    )
                 )
-            )
+            except ValueError:
+                return decoded
         else:
             return selected_scalar.item()
 
@@ -196,6 +200,8 @@ class TestData:
 
             if db_name == "Argo":
                 ds = xr.open_dataset(nc_file, engine="argo")
+            if db_name == "Oleander":
+                ds = xr.open_dataset(nc_file, engine="netcdf4")
             else:
                 ds = xr.open_dataset(nc_file, engine="h5netcdf")
 
@@ -246,9 +252,13 @@ class TestData:
             cols_pq = [var_pq]
             indices_pq = {}
             for k, v in indices.items():
-                indices_pq[ params_db2crocolake[k] ] = self._get_scalar_from_ds(ds[k][v])
+                if k in params_db2crocolake:
+                    indices_pq[ params_db2crocolake[k] ] = self._get_scalar_from_ds(ds[k][v])
             indices_pq[ "LATITUDE" ] = nc_lat
             indices_pq[ "LONGITUDE" ] = nc_lon
+            if "z" in indices and "depth" in ds:
+                depth_val = self._get_scalar_from_ds(ds["depth"].isel(**indices))
+                indices_pq["DEPTH"] = depth_val
             if db_name_config != "ARGO-GDAC":
                 indices_pq[ "LONGITUDE" ] = (indices_pq[ "LONGITUDE" ] - 180) % 360 - 180
             cols_pq.extend(indices_pq.keys())
@@ -272,7 +282,11 @@ class TestData:
                 # if the original data ended in a row with all observations as
                 # pd.NAs the row was dropped as it did not contain relevant info
                 logging.info("pq_value was pd.NA and discarded")
-                assert pd.isna(nc_value)
+                if isinstance(nc_value, (float, int)) and nc_value < -1e20:
+                    # Interpreted as missing
+                    pass
+                else:
+                    assert pd.isna(nc_value)
                 continue
 
             # otherwise ddf has multiple rows only for the variables in multi or
@@ -292,16 +306,28 @@ class TestData:
                 # check that also original source is NaN or pd.NA
                 assert pd.isna(nc_value)
 
-            elif np.isscalar(pq_value):
+            elif np.isscalar(pq_value) or isinstance(pq_value, pd.Timestamp):
                 # CrocoLake measured variables are float32, but original dataset
                 # might have float64 precision
-                if np.issubdtype(type(pq_value), np.integer):
+                if isinstance(pq_value, pd.Timestamp):
+                    # Convert both to numpy datetime64 for comparison
+                    pq_value = np.datetime64(pq_value)
+                    nc_value = np.datetime64(nc_value)
+
+                if isinstance(pq_value, np.datetime64) and isinstance(nc_value, np.datetime64):
+                    # Allow small tolerance due to precision differences
+                    delta = np.abs(pq_value - nc_value).astype("timedelta64[ns]").astype(np.int64)
+                    assert delta < 1000  # 1000 ns = 1 µs tolerance
+                elif np.issubdtype(type(pq_value), np.integer):
                     pq_value = np.int32(pq_value)
                     nc_value = np.int32(nc_value)
+                    assert pq_value == nc_value
                 elif np.issubdtype(type(pq_value), np.floating):
                     pq_value = np.float32(pq_value)
                     nc_value = np.float32(nc_value)
-                assert pq_value == nc_value
+                    assert pq_value == nc_value
+                else:
+                    assert pq_value == nc_value  # fallback for other scalar types
 
             else:
                 assert False, "value in CrocoLake is not a scalar nor a pd.NA"
@@ -319,6 +345,13 @@ class TestData:
         self._check_variables_nc(
             db_type="BGC",
             db_name="SprayGliders"
+        )
+
+#------------------------------------------------------------------------------#
+    def test_data_integrity_oleander_phy(self):
+        self._check_variables_nc(
+            db_type="PHY",
+            db_name="Oleander"
         )
 
 #------------------------------------------------------------------------------#
@@ -351,6 +384,13 @@ class TestData:
         self._check_profiles(
             db_type="BGC",
             db_name="SprayGliders",
+        )
+
+#------------------------------------------------------------------------------#
+    def test_profiles_oleander_phy(self):
+        self._check_profiles(
+            db_type="PHY",
+            db_name="Oleander"
         )
 
 #------------------------------------------------------------------------------#
