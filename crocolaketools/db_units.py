@@ -787,9 +787,10 @@ params["Saildrones2CROCOLAKE"] = {
 #
 # original names of parameters to keep
 #
+
 params["Oleander"] = [
-    'trajectory'
-    'profile_number',
+    'trajectory',
+    'profile',
     'latitude',
     'longitude',
     'time',
@@ -802,7 +803,7 @@ params["Oleander"] = [
 #
 params["Oleander2CROCOLAKE"] = {
     'trajectory' : 'PLATFORM_NUMBER',
-    'profile_number' : 'CYCLE_NUMBER',
+    'profile' : 'CYCLE_NUMBER',
     'latitude' : 'LATITUDE',
     'longitude' : 'LONGITUDE',
     'time' : 'JULD',
