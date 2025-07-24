@@ -112,8 +112,6 @@ class ConverterOleander(Converter):
         lock.acquire(timeout=600)
         try:
             with xr.open_dataset(input_fname,cache=True,chunks=None,engine="netcdf4") as ds:
-                # Promote profile_number to a coordinate to handle it as a label.
-                ds = ds.set_coords('profile_number')
                 ds_vars = list(ds.data_vars) + list(ds.coords)
                 invars = list(set(params.params["Oleander"]) & set(ds_vars))
                 df = ds[invars].to_dataframe()
