@@ -321,8 +321,6 @@ class TestData:
                 assert pq_value == nc_value
 
             else:
-                print(f"pq_value type: {type(pq_value)}")
-                print(f"pq_value content: {pq_value}")
                 assert False, "value in CrocoLake is not a scalar nor a pd.NA"
 
 #------------------------------------------------------------------------------#
