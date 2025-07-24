@@ -53,6 +53,7 @@ class TestData:
                     )
                 )
             except ValueError:
+                # handle 'byte' data that isn't datetime format
                 return decoded
         else:
             return selected_scalar.item()
@@ -256,11 +257,11 @@ class TestData:
                     indices_pq[ params_db2crocolake[k] ] = self._get_scalar_from_ds(ds[k][v])
             indices_pq[ "LATITUDE" ] = nc_lat
             indices_pq[ "LONGITUDE" ] = nc_lon
-            if "z" in indices and "depth" in ds:
-                depth_val = self._get_scalar_from_ds(ds["depth"].isel(**indices))
-                indices_pq["DEPTH"] = depth_val
             if db_name_config != "ARGO-GDAC":
                 indices_pq[ "LONGITUDE" ] = (indices_pq[ "LONGITUDE" ] - 180) % 360 - 180
+            if db_name == "Oleander" and "z" in indices:
+                depth_val = self._get_scalar_from_ds(ds["depth"].isel(**indices))
+                indices_pq["DEPTH"] = depth_val
             cols_pq.extend(indices_pq.keys())
 
             logging.info(f"var_pq: {var_pq}")
@@ -283,7 +284,8 @@ class TestData:
                 # pd.NAs the row was dropped as it did not contain relevant info
                 logging.info("pq_value was pd.NA and discarded")
                 if isinstance(nc_value, (float, int)) and nc_value < -1e20:
-                    # Interpreted as missing
+                    # -1e20 is used as a threshold for invalid or erroneous 
+                    # data points that should be treated as missing.
                     pass
                 else:
                     assert pd.isna(nc_value)
@@ -309,27 +311,18 @@ class TestData:
             elif np.isscalar(pq_value) or isinstance(pq_value, pd.Timestamp):
                 # CrocoLake measured variables are float32, but original dataset
                 # might have float64 precision
-                if isinstance(pq_value, pd.Timestamp):
-                    # Convert both to numpy datetime64 for comparison
-                    pq_value = np.datetime64(pq_value)
-                    nc_value = np.datetime64(nc_value)
-
-                if isinstance(pq_value, np.datetime64) and isinstance(nc_value, np.datetime64):
-                    # Allow small tolerance due to precision differences
-                    delta = np.abs(pq_value - nc_value).astype("timedelta64[ns]").astype(np.int64)
-                    assert delta < 1000  # 1000 ns = 1 µs tolerance
-                elif np.issubdtype(type(pq_value), np.integer):
+                if np.issubdtype(type(pq_value), np.integer):
                     pq_value = np.int32(pq_value)
                     nc_value = np.int32(nc_value)
-                    assert pq_value == nc_value
                 elif np.issubdtype(type(pq_value), np.floating):
                     pq_value = np.float32(pq_value)
                     nc_value = np.float32(nc_value)
-                    assert pq_value == nc_value
-                else:
-                    assert pq_value == nc_value  # fallback for other scalar types
+                # For Timestamp objects, compare directly
+                assert pq_value == nc_value
 
             else:
+                print(f"pq_value type: {type(pq_value)}")
+                print(f"pq_value content: {pq_value}")
                 assert False, "value in CrocoLake is not a scalar nor a pd.NA"
 
 #------------------------------------------------------------------------------#
