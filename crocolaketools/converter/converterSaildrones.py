@@ -220,27 +220,7 @@ class ConverterSaildrones(Converter):
     def assign_depths(self, df):
         """Assign depths to variables based on known sensor installation depths"""
 
-        depth_map = {
-            "TEMP_CTD_MEAN":               0.6,
-            "TEMP_CTD_RBR_MEAN":           0.53,
-            "TEMP_SBE37_MEAN":             1.7,
-            "TEMP_DEPTH_HALFMETER_MEAN":   0.5,
-            "O2_CONC_MEAN":                0.6,
-            "O2_RBR_CONC_MEAN":            0.53,
-            "O2_CONC_RBR_MEAN":            0.53,
-            "O2_CONC_SBE37_MEAN":          1.7,
-            "O2_CONC_UNCOR_MEAN":          0.6,
-            "O2_AANDERAA_CONC_UNCOR_MEAN": 0.6,
-            "O2_CONC_AANDERAA_MEAN":       0.6,
-            "SAL_MEAN":                    0.6,
-            "SAL_RBR_MEAN":                0.53,
-            "SAL_SBE37_MEAN":              1.7,
-            "CHLOR_MEAN":                  0.25,
-            "CHLOR_RBR_MEAN":              0.53,
-            "CHLOR_WETLABS_MEAN":          1.9,
-            "CDOM_MEAN":                   1.9,
-            "BKSCT_RED_MEAN":              1.9,
-        }
+        depth_map = params.params["Saildrones_depth_map"]
 
         id_vars = ["time", "latitude", "longitude", "wmo_id", "CYCLE_NUMBER"]
         value_vars = [var for var in depth_map if var in df.columns]
@@ -248,7 +228,13 @@ class ConverterSaildrones(Converter):
         if not value_vars:
             return pd.DataFrame(columns=id_vars + ["depth"])
 
-        df_long = df.melt(id_vars=id_vars, value_vars=value_vars, var_name='variable', value_name='value')
+        df_long = df.melt(
+            id_vars=id_vars, 
+            value_vars=value_vars, 
+            var_name='variable', 
+            value_name='value'
+        )
+
         df_long.dropna(subset=['value'], inplace=True)
         df_long['depth'] = df_long['variable'].map(depth_map)
 
@@ -306,8 +292,8 @@ class ConverterSaildrones(Converter):
         # Handle single file to compute delayed results
         if len(filenames) == 1:
             print("Reading single file")
-            df_delayed, invars_delayed = self.read_to_df(filenames[0])
-            processed_delayed = self.process_df(df_delayed, invars_delayed)
+            df_delayed, invars_delayed = self.read_to_df(filenames[0], lock)
+            processed_delayed = self.process_df_chunked(df_delayed, invars_delayed)
             df = dask.compute(processed_delayed)[0]
             ddf = dd.from_pandas(df, npartitions=1)
             self.call_guess_schema = True
