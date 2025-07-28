@@ -44,17 +44,12 @@ class TestData:
         if np.issubdtype(selected_scalar.dtype, np.datetime64):
             return selected_scalar.values
         elif isinstance(selected_scalar.item(), bytes):
-            decoded = selected_scalar.item().decode()
-            try:
-                return np.datetime64(
-                    datetime.datetime.strptime(
-                        decoded, 
-                        "%Y%m%d%H%M%S"
-                    )
+            return np.datetime64(
+                datetime.strptime(
+                    selected_scalar.item().decode(),
+                    "%Y%m%d%H%M%S"
                 )
-            except ValueError:
-                # handle 'byte' data that isn't datetime format
-                return decoded
+            )
         else:
             return selected_scalar.item()
 
@@ -270,7 +265,7 @@ class TestData:
             indices_pq[ "LONGITUDE" ] = nc_lon
             if db_name_config != "ARGO-GDAC":
                 indices_pq[ "LONGITUDE" ] = (indices_pq[ "LONGITUDE" ] - 180) % 360 - 180
-            elif db_name == "Saildrones":
+            if db_name == "Saildrones":
                 depth_map = params.params["Saildrones_depth_map"]
                 if random_var in depth_map:
                     nc_depth = depth_map[random_var]
