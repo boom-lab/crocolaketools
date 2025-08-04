@@ -27,6 +27,7 @@ setup(
             'saildrones2parquet = scripts.saildrones2parquet:main',
             'oleander2parquet = scripts.oleander2parquet:main',
             'argogdac2parquet = scripts.argogdac2parquet:argogdac2parquet',
+            'download_oleander = scripts.download_oleander:main',
             'merge_crocolake = scripts.merge_crocolake:main',
             'download_demo_data = scripts.download_demo_data:main',
         ],
