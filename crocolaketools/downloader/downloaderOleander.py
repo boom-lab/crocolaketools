@@ -108,41 +108,34 @@ class DownloaderURLList(Downloader):
         if dryrun:
             logging.info("DRY RUN: Would download %s to %s", url, output_path)
             return
-        
-        if os.path.exists(output_path) and not overwrite:
-            logging.info("File %s already exists and overwrite is False. Skipping.", output_path)
-            return
 
-        max_retries = 3
-        retry_delay = 2  # seconds
+        # Check if .nc files from this zip already exist
+        if not overwrite:
+            extract_dir = os.path.dirname(output_path)
+            year = os.path.basename(output_path)[:4]  # Extract year from zip filename
+            if os.path.exists(extract_dir) and any(f.endswith('.nc') and f.startswith(year) for f in os.listdir(extract_dir)):
+                logging.info("NetCDF files from %s already exist and overwrite is False. Skipping.", output_path)
+                return
+
+        try:
+            response = requests.get(url, stream=True, timeout=timeout)
+            response.raise_for_status()  # Will raise an exception for HTTP errors
+
+            with open(output_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+
+            logging.info("Downloaded %s to %s", url, output_path)
+
+            # Unzip and delete the zip file
+            self.unzip_file(output_path)
         
-        for attempt in range(max_retries):
-            try:
-                if attempt > 0:
-                    time.sleep(retry_delay * attempt)
-                    logging.info("Retrying download of %s (attempt %d/%d)", url, attempt + 1, max_retries)
-                
-                response = requests.get(url, stream=True, timeout=timeout)
-                response.raise_for_status()
-                
-                with open(output_path, 'wb') as f:
-                    for chunk in response.iter_content(chunk_size=8192):
-                        f.write(chunk)
-                
-                logging.info("Downloaded %s to %s", url, output_path)
-                
-                # Unzip and delete the zip file
-                self.unzip_file(output_path)
-                return  # Success, exit the retry loop
-                
-            except (requests.exceptions.Timeout, requests.exceptions.ConnectionError, requests.exceptions.RequestException) as e:
-                logging.warning("Error downloading %s (attempt %d/%d): %s", url, attempt + 1, max_retries, str(e))
-                if attempt == max_retries - 1:
-                    logging.error("Failed to download %s after %d attempts", url, max_retries)
-                    break
-            except Exception as e:
-                logging.error("Unexpected error downloading %s: %s", url, str(e))
-                break
+        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError, requests.exceptions.RequestException) as e:
+            logging.error("Error downloading %s: %s", url, str(e))
+        
+        except Exception as e:
+            logging.error("Unexpected error downloading %s: %s", url, str(e))
+
 
     def url_list_download(self, urls, base_dir, log_file="oleander_download.log", strip_prefix="thredds/fileServer/oceansites/", num_threads=4, overwrite=False, dryrun=False):
         """Download files from a list of URLs, preserving directory structure.

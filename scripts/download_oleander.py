@@ -36,16 +36,9 @@ def main():
         help="The base URL for constructing download links for year-based downloads."
     )
     parser.add_argument(
-        '-p', 
-        '--strip_prefix', 
-        default='erddap/files/oleanderXbtNcFiles/', 
-        help='Prefix to strip from the URL path to create the local directory structure.'
-    )
-    parser.add_argument(
-        '--save_to', 
-        type=str,
-        help='Root folder where the dataset will be downloaded to.',
-        required=True
+        '--save_to', type=str,
+        help="Directory to save downloaded and unzipped files",
+        required=False, default="./oleander_data/"
     )
     parser.add_argument(
         '--threads', 
@@ -64,24 +57,24 @@ def main():
         help='If set, overwrite existing files.'
     )
     parser.add_argument(
-        '--verbose', 
-        action='store_true', 
-        help='If set, print additional information (currently enabled by default through logging).'
+        '--log_file',
+        type=str,
+        default="oleander_download.log",
+        help='Path to log file (default: oleander_download.log).'
     )
 
     args = parser.parse_args()
 
     config = {
-        'save_to': args.save_to,
-        'threads': args.threads,
-        'dryrun': args.dryrun,
-        'overwrite': args.overwrite,
-        'verbose': args.verbose,
         'url_file': args.url_file,
         'start_year': args.start_year,
         'end_year': args.end_year,
         'base_url': args.base_url,
-        'strip_prefix': args.strip_prefix,
+        'save_to': args.save_to,
+        'threads': args.threads,
+        'dryrun': args.dryrun,
+        'overwrite': args.overwrite,
+        'log_file': args.log_file,
     }
 
     print("Calling Oleander downloader with the following configuration:")
@@ -104,7 +97,7 @@ def main():
     downloader.url_list_download(
         urls=urls,
         base_dir=config['save_to'],
-        strip_prefix=config['strip_prefix'],
+        log_file=config['log_file'],
         num_threads=config['threads'],
         overwrite=config['overwrite'],
         dryrun=config['dryrun']
