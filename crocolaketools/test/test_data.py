@@ -365,13 +365,6 @@ class TestData:
         )
 
 #------------------------------------------------------------------------------#
-    def test_data_integrity_oleander_phy(self):
-        self._check_variables_nc(
-            db_type="PHY",
-            db_name="Oleander"
-        )
-
-#------------------------------------------------------------------------------#
     def test_data_integrity_argogdac_phy(self):
         self._check_variables_nc(
             db_type="PHY",
@@ -404,10 +397,17 @@ class TestData:
         )
 
 #------------------------------------------------------------------------------#
-    def test_profiles_oleander_phy(self):
+    def test_profiles_saildrones_phy(self):
         self._check_profiles(
             db_type="PHY",
-            db_name="Oleander"
+            db_name="Saildrones",
+        )
+
+#------------------------------------------------------------------------------#
+    def test_profiles_saildrones_bgc(self):
+        self._check_profiles(
+            db_type="BGC",
+            db_name="Saildrones",
         )
 
 #------------------------------------------------------------------------------#
