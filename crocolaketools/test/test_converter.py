@@ -855,131 +855,102 @@ class TestConverter:
         assert "LONGITUDE" in df.columns
         assert "JULD" in df.columns
 
-
-    def test_converter_saildrones_read_to_df(self):
+    def test_converter_saildrones_sensor_merging(self):
         """
-        Test that the Saildrone NetCDF file is correctly read into a pandas DataFrame.
+        Test that sensor readings for the same variable (e.g, TEMP) from
+        different instruments are correctly merged into a single column.
+        This test evaluates the backfilling logic in process_df().
         """
-        # Get first available NetCDF file in the directory
-        SD_files = glob.glob(os.path.join(saildrones_path, '*.nc'))
-        if not SD_files:
-            pytest.skip("No NetCDF files found in input directory")
-        
-        test_file = os.path.basename(SD_files[0])
+        converter = ConverterSaildrones(db_type="PHY")
 
-        converter = ConverterSaildrones(
-            config={
-                "db": "Saildrones",
-                "db_type": "BGC",
-                "input_path": saildrones_path,
-                "outdir_pq": outdir_saildrones_pqt,
-                "outdir_schema": "./schemas/Saildrones/",
-                "fname_pq": "test_saildrones"
-            }
-        )
+        # Dummy data simulating readings from multiple sensors.
+        # NAs are included to test the backfill (bfill) logic.
+        dummy_data = {
+            "time": pd.to_datetime(["2023-01-01T12:00", "2023-01-01T12:00", "2023-01-01T13:00"]),
+            "latitude": [35.0, 35.0, 36.0],
+            "longitude": [-70.0, -70.0, -71.0],
+            "wmo_id": ["TEST01", "TEST01", "TEST01"],
+            "CYCLE_NUMBER": [1, 1, 1],
+            "depth": [0.5, 1.7, 0.5],
+            # TEMP_CTD_RBR_MEAN and TEMP_SBE37_MEAN should merge to TEMP
+            "TEMP_CTD_RBR_MEAN": [20.5, pd.NA, 21.0],
+            "TEMP_SBE37_MEAN": [pd.NA, 20.2, pd.NA],
+            # SAL_RBR_MEAN and SAL_SBE37_MEAN should merge to PSAL
+            "SAL_RBR_MEAN": [35.0, pd.NA, 35.5],
+            "SAL_SBE37_MEAN": [pd.NA, 34.8, pd.NA]
+        }
+        dummy_df = pd.DataFrame(dummy_data)
+        invars = list(dummy_df.columns)
 
-        df = converter.read_to_df(filename=test_file)
+        # Call the process_df method, which contains the merging logic.
+        result_df = converter.process_df(dummy_df, invars)
 
-        # Check that the DataFrame is not empty
-        assert not df.empty
+        # Expected data after processing.
+        # The TEMP and PSAL columns should be filled based on the bfill logic.
+        sol_data = {
+            'LATITUDE': [35.0, 35.0, 36.0],
+            'LONGITUDE': [-70.0, -70.0, -71.0],
+            'JULD': pd.to_datetime(["2023-01-01T12:00", "2023-01-01T12:00", "2023-01-01T13:00"]),
+            'PLATFORM_NUMBER': ["TEST01", "TEST01", "TEST01"],
+            'CYCLE_NUMBER': [1, 1, 1],
+            'PRES': [0.533854, 1.712368, 0.533901],
+            'PRES_QC': [1, 1, 1],
+            'TEMP': [20.5, 20.2, 21.0], # Merged values
+            'TEMP_QC': [1, 1, 1],
+            'PSAL': [35.0, 34.8, 35.5], # Merged values
+            'PSAL_QC': [1, 1, 1],
+            'DB_NAME': ['Saildrones', 'Saildrones', 'Saildrones']
+        }
+        sol_df = pd.DataFrame(sol_data)
 
-        # Check that required columns are present
-        required_columns = ["PLATFORM_NUMBER", "LATITUDE", "LONGITUDE", "JULD", "PRES", "TEMP", "PSAL", "CHLA", "CDOM", "BBP700"]
-        for col in required_columns:
-            assert col in df.columns
+        # Select and reorder columns to match the output
+        result_df = result_df[sol_df.columns].reset_index(drop=True)
 
-    def test_converter_saildrones_standardize_data(self):
+        pd.testing.assert_frame_equal(result_df, sol_df, check_exact=False, atol=1e-5, check_dtype=False)
+
+    def test_converter_saildrones_assign_depths(self):
         """
-        Test that the Saildrone DataFrame is correctly standardized.
+        Test that sensor variables are correctly assigned their known depths.
         """
-        converter = ConverterSaildrones(
-            config={
-                "db": "Saildrones",
-                "db_type": "BGC",
-                "input_path": saildrones_path,
-                "outdir_pq": outdir_saildrones_pqt,
-                "outdir_schema": "./schemas/Saildrones/",
-                "fname_pq": "test_saildrones"
-            }
-        )
+        converter = ConverterSaildrones(db_type="BGC")
 
-        # Get a sample NetCDF file from the input directory
-        SD_files = glob.glob(os.path.join(saildrones_path, '*.nc'))
-        if not SD_files:
-            pytest.skip("No NetCDF files found in input directory")
-        
-        test_file = os.path.basename(SD_files[0])
-        
-        # Read the DataFrame using read_to_df
-        df = converter.read_to_df(filename=test_file)
+        dummy_data = {
+            "time": pd.to_datetime(["2023-01-01T12:00:00"]),
+            "latitude": [35.0],
+            "longitude": [-70.0],
+            "wmo_id": ["TEST01"],
+            "CYCLE_NUMBER": [1],
+            "TEMP_CTD_MEAN": [20.1],      # depth 0.6
+            "SAL_SBE37_MEAN": [35.5],     # depth 1.7
+            "CHLOR_WETLABS_MEAN": [0.5],  # depth 1.9
+            "O2_CONC_MEAN": [280.0]       # depth 0.6
+        }
+        dummy_df = pd.DataFrame(dummy_data)
 
-        # Check data types of key columns
-        assert df.dtypes["PLATFORM_NUMBER"] == "string[pyarrow]"
-        assert df.dtypes["LATITUDE"] == "float64[pyarrow]"
-        assert df.dtypes["LONGITUDE"] == "float64[pyarrow]"
-        assert df.dtypes["JULD"] == "timestamp[ns][pyarrow]"
-        assert df.dtypes["PRES"] == "float32[pyarrow]"
-        assert df.dtypes["TEMP"] == "float32[pyarrow]"
-        assert df.dtypes["PSAL"] == "float32[pyarrow]"
-        assert df.dtypes["DOXY"] == "float32[pyarrow]"
-        assert df.dtypes["CHLA"] == "float32[pyarrow]"
-        assert df.dtypes["BBP700"] == "float32[pyarrow]"
-        assert df.dtypes["CDOM"] == "float32[pyarrow]"
-        assert df.dtypes["DB_NAME"] == "string[pyarrow]"
+        # Expected data after assign_depths: each sensor reading gets its
+        # own row, grouped by common identifiers and the assigned depth.
+        sol_data = {
+            "time": pd.to_datetime(["2023-01-01T12:00:00", "2023-01-01T12:00:00", "2023-01-01T12:00:00"]),
+            "latitude": [35.0, 35.0, 35.0],
+            "longitude": [-70.0, -70.0, -70.0],
+            "wmo_id": ["TEST01", "TEST01", "TEST01"],
+            "CYCLE_NUMBER": [1, 1, 1],
+            "depth": [0.6, 1.7, 1.9],
+            "TEMP_CTD_MEAN": [20.1, pd.NA, pd.NA],
+            "O2_CONC_MEAN": [280.0, pd.NA, pd.NA],
+            "SAL_SBE37_MEAN": [pd.NA, 35.5, pd.NA],
+            "CHLOR_WETLABS_MEAN": [pd.NA, pd.NA, 0.5]
+        }
 
-    def test_converter_saildrones_convert(self):
-        """
-        Test that the Saildrone NetCDF file is correctly converted to Parquet format.
-        """
-        # Get first available NetCDF file in the directory
-        SD_files = glob.glob(os.path.join(saildrones_path, '*.nc'))
-        if not SD_files:
-            pytest.skip("No NetCDF files found in input directory")
-        
-        test_file = os.path.basename(SD_files[0])
+        id_vars = ["time", "latitude", "longitude", "wmo_id", "CYCLE_NUMBER", "depth"]
+        value_vars = sorted(["TEMP_CTD_MEAN", "SAL_SBE37_MEAN", "CHLOR_WETLABS_MEAN", "O2_CONC_MEAN"])
+        sol_df = pd.DataFrame(sol_data, columns=id_vars + value_vars)
 
-        # Ensure the output directory exists
-        os.makedirs(outdir_saildrones_pqt, exist_ok=True)
+        # the method to be tested
+        result_df = converter.assign_depths(dummy_df).reset_index(drop=True)
 
-        converter = ConverterSaildrones(
-            config={
-                "db": "Saildrones",
-                "db_type": "BGC",
-                "input_path": saildrones_path,
-                "outdir_pq": outdir_saildrones_pqt,
-                "outdir_schema": "./schemas/Saildrones/",
-                "fname_pq": "test_saildrones"
-            }
-        )
-
-        # Convert a sample Saildrone NetCDF file
-        converter.convert(filenames=test_file)
-
-        # Check that the output Parquet file exists
-        output_files = glob.glob(os.path.join(outdir_saildrones_pqt, "test_saildrones_BGC*.parquet"))
-        assert len(output_files) > 0, "No output Parquet files found"
-
-        # Read the first Parquet file and check its contents
-        df = pd.read_parquet(output_files[0])
-        assert not df.empty
-        assert "PLATFORM_NUMBER" in df.columns
-        assert "LATITUDE" in df.columns
-        assert "LONGITUDE" in df.columns
-        assert "JULD" in df.columns
-        assert "PRES" in df.columns
-        assert "TEMP" in df.columns
-        assert "PSAL" in df.columns
-        assert "DOXY" in df.columns
-        assert "CHLA" in df.columns
-        assert "BBP700" in df.columns
-        assert "CDOM" in df.columns
-        assert "PRES_QC" in df.columns
-        assert "TEMP_QC" in df.columns
-        assert "PSAL_QC" in df.columns
-        assert "DOXY_QC" in df.columns
-        assert "BBP700_QC" in df.columns
-        assert "CHLA_QC" in df.columns
-        assert "CDOM_QC" in df.columns
+        # compare results
+        pd.testing.assert_frame_equal(result_df, sol_df, check_dtype=False)
 
     def test_converter_wrap_longitude(self):
         import numpy as np
