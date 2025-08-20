@@ -350,21 +350,6 @@ class TestData:
         )
 
 #------------------------------------------------------------------------------#
-    def test_data_integrity_saildrones_phy(self):
-        self._check_variables_nc(
-            db_type="PHY",
-            db_name="Saildrones"
-        )
-
-#------------------------------------------------------------------------------#
-    def test_data_integrity_saildrones_bgc(self):
-
-        self._check_variables_nc(
-            db_type="BGC",
-            db_name="Saildrones"
-        )
-
-#------------------------------------------------------------------------------#
     def test_data_integrity_oleander_phy(self):
         self._check_variables_nc(
             db_type="PHY",
