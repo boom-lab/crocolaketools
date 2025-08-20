@@ -16,7 +16,7 @@ import copy
 #------------------------------------------------------------------------------#
 #
 # List of databases and their folder names
-databases = ["ARGO", "GLODAP", "SprayGliders", "CPR", "Saildrones"]
+databases = ["ARGO", "GLODAP", "SprayGliders", "CPR", "Saildrones", "Oleander"]
 
 databases_codenames = {}
 databases_codenames["ARGO"] = "ARGO" #"ARGO-CLOUD"
@@ -24,6 +24,7 @@ databases_codenames["GLODAP"] = "GLODAP"#"GLODAP-DEV"
 databases_codenames["SprayGliders"] = "SPRAY"#"SPRAY-DEV"
 databases_codenames["CPR"] = "CPR"#"SPRAY-DEV"
 databases_codenames["Saildrones"] = "SAILDRONES"#"SAILDRONES-DEV"
+databases_codenames["Oleander"] = "OLEANDER"#"OLEANDER-DEV"
 
 params = {}
 units  = {}
@@ -779,6 +780,35 @@ params["Saildrones2CROCOLAKE"] = {
     'CHLOR_STDDEV': 'CHLA_ERROR',
     'CDOM_STDDEV': 'CDOM_ERROR',
     'BKSCT_RED_STDDEV': 'BBP700_ERROR',
+}
+
+#------------------------------------------------------------------------------#
+# Oleander
+#
+# original names of parameters to keep
+#
+
+params["Oleander"] = [
+    'trajectory',
+    'profile',
+    'latitude',
+    'longitude',
+    'time',
+    'depth',
+    'temp',
+]
+
+#
+# dict for renaming parameters to crocolake names
+#
+params["Oleander2CROCOLAKE"] = {
+    'trajectory' : 'PLATFORM_NUMBER',
+    'profile' : 'CYCLE_NUMBER',
+    'latitude' : 'LATITUDE',
+    'longitude' : 'LONGITUDE',
+    'time' : 'JULD',
+    'depth' : 'DEPTH',
+    'temp' : 'TEMP',
 }
 
 
