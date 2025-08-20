@@ -734,6 +734,7 @@ params["Saildrones"] = [
     'CDOM_STDDEV',
     'BKSCT_RED_STDDEV',
 ]
+
 #
 # dict for renaming parameters to crocolake names
 #
@@ -742,6 +743,7 @@ params["Saildrones2CROCOLAKE"] = {
     'latitude': 'LATITUDE',
     'longitude': 'LONGITUDE',
     'time': 'JULD',
+    'depth': 'DEPTH',
     'TEMP_CTD_MEAN': 'TEMP',
     'TEMP_CTD_RBR_MEAN': 'TEMP',
     'TEMP_SBE37_MEAN': 'TEMP',
@@ -781,6 +783,40 @@ params["Saildrones2CROCOLAKE"] = {
     'CDOM_STDDEV': 'CDOM_ERROR',
     'BKSCT_RED_STDDEV': 'BBP700_ERROR',
 }
+
+params["CROCOLAKE2Saildrones"] = {v: k for k, v in 
+                                  params["Saildrones2CROCOLAKE"].items()}
+
+#
+# Saildrones data doesn't include a dedicated depth variable.
+# depths are inferred from metadata associated with specific sensor variables.
+#
+
+params["Saildrones_depth_map"] = {
+    "TEMP_CTD_MEAN":               0.6,
+    "TEMP_CTD_RBR_MEAN":           0.53,
+    "TEMP_SBE37_MEAN":             1.7,
+    "TEMP_DEPTH_HALFMETER_MEAN":   0.5,
+    "O2_CONC_MEAN":                0.6,
+    "O2_RBR_CONC_MEAN":            0.53,
+    "O2_CONC_RBR_MEAN":            0.53,
+    "O2_CONC_SBE37_MEAN":          1.7,
+    "O2_CONC_UNCOR_MEAN":          0.6,
+    "O2_AANDERAA_CONC_UNCOR_MEAN": 0.6,
+    "O2_CONC_AANDERAA_MEAN":       0.6,
+    "SAL_MEAN":                    0.6,
+    "SAL_RBR_MEAN":                0.53,
+    "SAL_SBE37_MEAN":              1.7,
+    "CHLOR_MEAN":                  0.25,
+    "CHLOR_RBR_MEAN":              0.53,
+    "CHLOR_WETLABS_MEAN":          1.9,
+    "CDOM_MEAN":                   1.9,
+    "BKSCT_RED_MEAN":              1.9,
+}
+
+# Add corresponding _STDDEV variables with same depths
+params["Saildrones_depth_map"].update({k.replace("_MEAN", "_STDDEV"): v for k, v in 
+                                       params["Saildrones_depth_map"].items() if "_MEAN" in k})
 
 #------------------------------------------------------------------------------#
 # Oleander
