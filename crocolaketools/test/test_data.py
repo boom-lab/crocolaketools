@@ -44,12 +44,15 @@ class TestData:
         if np.issubdtype(selected_scalar.dtype, np.datetime64):
             return selected_scalar.values
         elif isinstance(selected_scalar.item(), bytes):
-            return np.datetime64(
-                datetime.strptime(
-                    selected_scalar.item().decode(),
-                    "%Y%m%d%H%M%S"
+            try:
+                return np.datetime64(
+                    datetime.datetime.strptime(
+                        selected_scalar.item().decode(), 
+                        "%Y%m%d%H%M%S"
+                    )
                 )
-            )
+            except ValueError: # handle 'byte' data that isn't datetime format
+                return selected_scalar.item().decode()
         else:
             return selected_scalar.item()
 
@@ -196,6 +199,8 @@ class TestData:
 
             if db_name == "Argo":
                 ds = xr.open_dataset(nc_file, engine="argo")
+            elif db_name in ["Oleander", "Saildrones"]:
+                ds = xr.open_dataset(nc_file, engine="netcdf4")
             else:
                 ds = xr.open_dataset(nc_file, engine="h5netcdf")
 
@@ -207,6 +212,13 @@ class TestData:
             variables = list(
                 set(list(ds.data_vars)) & set(params_in_crocolake)
             )
+
+            if db_name == "Saildrones":
+                # Exclude coordinate variables ('latitude', 'longitude', 'time') for Saildrones
+                # since they do not have corresponding depth information, which is required 
+                # for uniquely identifying each row in the dataset.
+                excluded_vars = {lat_name, lon_name, "time"}
+                variables = [v for v in variables if v not in excluded_vars]
 
             logging.info(f"variables:{variables}")
             random_var = random.choice(variables)
@@ -246,7 +258,18 @@ class TestData:
             cols_pq = [var_pq]
             indices_pq = {}
             for k, v in indices.items():
-                indices_pq[ params_db2crocolake[k] ] = self._get_scalar_from_ds(ds[k][v])
+                if k in params_db2crocolake:
+                    indices_pq[ params_db2crocolake[k] ] = self._get_scalar_from_ds(ds[k][v])
+                else:
+                    if db_name == "Oleander":
+                        nc_depth = self._get_scalar_from_ds(ds["depth"].isel(**indices))
+                        indices_pq[ "DEPTH" ] = nc_depth
+                    elif db_name == "Saildrones":
+                        depth_map = params.params["Saildrones_depth_map"]
+                        nc_depth = depth_map[random_var]
+                        nc_juld = self._get_scalar_from_ds(ds["time"].isel(**indices))
+                        indices_pq[ "DEPTH" ] = np.float32(nc_depth)
+                        indices_pq[ "JULD" ] = nc_juld
             indices_pq[ "LATITUDE" ] = nc_lat
             indices_pq[ "LONGITUDE" ] = nc_lon
             if db_name_config != "ARGO-GDAC":
@@ -267,11 +290,16 @@ class TestData:
                                 # (if the was missing and the whole row it ended
                                 # up into contained missing data that was thus
                                 # discarded)
-
             if ddf.shape[0] == 0:
                 # if the original data ended in a row with all observations as
                 # pd.NAs the row was dropped as it did not contain relevant info
                 logging.info("pq_value was pd.NA and discarded")
+
+                if isinstance(nc_value, (float, int)) and nc_value < -1e20:
+                    # some missing data might be stored as extremely large negative num
+                    # (e.g, -9.999900276792041e+20). that should be treated as missing
+                    nc_value = np.nan
+                    
                 assert pd.isna(nc_value)
                 continue
 
@@ -292,7 +320,7 @@ class TestData:
                 # check that also original source is NaN or pd.NA
                 assert pd.isna(nc_value)
 
-            elif np.isscalar(pq_value):
+            elif np.isscalar(pq_value) or isinstance(pq_value, pd.Timestamp):
                 # CrocoLake measured variables are float32, but original dataset
                 # might have float64 precision
                 if np.issubdtype(type(pq_value), np.integer):
@@ -319,6 +347,21 @@ class TestData:
         self._check_variables_nc(
             db_type="BGC",
             db_name="SprayGliders"
+        )
+
+#------------------------------------------------------------------------------#
+    def test_data_integrity_saildrones_phy(self):
+        self._check_variables_nc(
+            db_type="PHY",
+            db_name="Saildrones"
+        )
+
+#------------------------------------------------------------------------------#
+    def test_data_integrity_saildrones_bgc(self):
+
+        self._check_variables_nc(
+            db_type="BGC",
+            db_name="Saildrones"
         )
 
 #------------------------------------------------------------------------------#
@@ -351,6 +394,20 @@ class TestData:
         self._check_profiles(
             db_type="BGC",
             db_name="SprayGliders",
+        )
+
+#------------------------------------------------------------------------------#
+    def test_profiles_saildrones_phy(self):
+        self._check_profiles(
+            db_type="PHY",
+            db_name="Saildrones",
+        )
+
+#------------------------------------------------------------------------------#
+    def test_profiles_saildrones_bgc(self):
+        self._check_profiles(
+            db_type="BGC",
+            db_name="Saildrones",
         )
 
 #------------------------------------------------------------------------------#
