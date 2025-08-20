@@ -756,7 +756,7 @@ class Converter:
             else:
                 raise ValueError("QC value must be an integer or a list of integers.")
 
-            df[param_qc] = qc
+            df[param_qc] = df[param].apply(lambda x: qc if pd.notna(x) else pd.NA)
             df[param_qc] = df[param_qc].astype("uint8[pyarrow]")
 
             if param_qc not in self.schema_pq.names:
