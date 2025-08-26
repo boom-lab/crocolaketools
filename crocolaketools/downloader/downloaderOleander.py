@@ -49,6 +49,8 @@ class DownloaderURLList(Downloader):
     # Methods                                                            #
     # ------------------------------------------------------------------ #
 
+#------------------------------------------------------------------------------#
+## Set up logging to file and console
     def configure_logging(self, log_file):
         """Configure logging to both file and console.
 
@@ -66,6 +68,8 @@ class DownloaderURLList(Downloader):
                 ]
             )
 
+#------------------------------------------------------------------------------#
+## Unzip file and delete the original zip
     def unzip_file(self, zip_path):
         """Unzip a file and delete the original zip file.
 
@@ -81,6 +85,8 @@ class DownloaderURLList(Downloader):
         except Exception as e:
             logging.error("Error processing zip file %s: %s", zip_path, e)
 
+#------------------------------------------------------------------------------#
+## Download, save and unzip files
     def download_file(self, url, output_path):
         """Download a file, save it, then unzip and delete the zip.
 
@@ -131,6 +137,8 @@ class DownloaderURLList(Downloader):
             logging.error("Unexpected error downloading %s: %s", url, str(e))
             return False
 
+#------------------------------------------------------------------------------#
+## Download files from URL list using multithreading
     def url_list_download(self):
         """Download files from a list of URLs."""
         logging.info("Starting download of %d files with %d threads", len(self.urls), self.num_threads)
