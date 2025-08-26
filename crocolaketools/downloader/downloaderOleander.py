@@ -78,10 +78,13 @@ class DownloaderURLList(Downloader):
             timeout (int): Timeout in seconds for the request.
             overwrite (bool): If True, overwrite existing files.
             dryrun (bool): If True, log the action without downloading.
+
+        Returns:
+            bool: True if download and unzip succeeded, False otherwise.
         """
         if dryrun:
             logging.info("DRY RUN: Would download %s to %s", url, output_path)
-            return
+            return True
 
         # Check if .nc files from this zip already exist
         if not overwrite:
@@ -89,11 +92,17 @@ class DownloaderURLList(Downloader):
             year = os.path.basename(output_path)[:4]  # Extract year from zip filename
             if os.path.exists(extract_dir) and any(f.endswith('.nc') and f.startswith(year) for f in os.listdir(extract_dir)):
                 logging.info("NetCDF files from %s already exist and overwrite is False. Skipping.", output_path)
-                return
+                return True
 
         try:
             response = requests.get(url, stream=True, timeout=timeout)
             response.raise_for_status()  # Will raise an exception for HTTP errors
+
+            # Check content type to ensure it's not an HTML error page (indicating file not found)
+            content_type = response.headers.get('Content-Type', '').lower()
+            if 'text/html' in content_type:
+                logging.info("File not found (returned HTML), skipping %s", url)
+                return False
 
             with open(output_path, 'wb') as f:
                 for chunk in response.iter_content(chunk_size=8192):
@@ -103,12 +112,15 @@ class DownloaderURLList(Downloader):
 
             # Unzip and delete the zip file
             self.unzip_file(output_path)
+            return True
         
         except (requests.exceptions.Timeout, requests.exceptions.ConnectionError, requests.exceptions.RequestException) as e:
             logging.error("Error downloading %s: %s", url, str(e))
+            return False
         
         except Exception as e:
             logging.error("Unexpected error downloading %s: %s", url, str(e))
+            return False
 
     def url_list_download(self, urls, base_dir, log_file="oleander_download.log", num_threads=4, overwrite=False, dryrun=False):
         """Download files from a list of URLs.
@@ -152,8 +164,10 @@ class DownloaderURLList(Downloader):
             for future in as_completed(future_to_url):
                 url = future_to_url[future]
                 try:
-                    future.result()
-                    completed += 1
+                    if future.result():
+                        completed += 1
+                    else:
+                        failed += 1
                 except Exception as e:
                     failed += 1
                     logging.error("Error processing %s: %s", url, e)

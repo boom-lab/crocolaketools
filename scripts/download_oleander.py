@@ -38,7 +38,8 @@ def main():
         help="The base URL for constructing download links for year-based downloads."
     )
     parser.add_argument(
-        '--save_to', type=str,
+        '--save_to', 
+        type=str,
         help="Directory to save downloaded and unzipped files",
         required=False, default=None
     )
@@ -75,9 +76,15 @@ def main():
     # Use the default save path if --save_to arg is not specified
     save_path = args.save_to if args.save_to is not None else default_save_path
 
+    # enforce minimum start_year of 1977
+    start_year = args.start_year
+    if start_year and start_year < 1977:
+        print(f"Warning: Start year {start_year} is before 1977. Adjusting to 1977.")
+        start_year = 1977
+
     config = {
         'url_file': args.url_file,
-        'start_year': args.start_year,
+        'start_year': start_year,
         'end_year': args.end_year,
         'base_url': args.base_url,
         'save_to': save_path,
