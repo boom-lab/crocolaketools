@@ -12,6 +12,9 @@ import argparse
 import importlib.resources
 import yaml
 from pprint import pprint
+import requests
+import re
+import html
 from crocolaketools.downloader.downloaderOleander import DownloaderURLList
 
 def main():
@@ -73,14 +76,30 @@ def main():
     config_converter = yaml.safe_load(open(config_path))
     default_save_path = config_converter["Oleander_PHY"]["input_path"]
 
-    # Use the default save path if --save_to arg is not specified
+    # Use the default save path if --save_to arg is not specified by user
     save_path = args.save_to if args.save_to is not None else default_save_path
 
-    # enforce minimum start_year of 1977
+    # extract all years to determine min and max years available
+    def extract_available_years(base_url):
+        try:
+            response = requests.get(base_url)
+            response.raise_for_status()
+            html_text = html.unescape(response.text)
+            year_matches = re.findall(r'(\d{4})_xbt_nc\.zip', html_text)
+            years = sorted(set(int(y) for y in year_matches if y.isdigit() and len(y) == 4))
+            return years
+        except requests.RequestException as e:
+            print(f"Error fetching directory listing: {e}")
+            return []
+    
+    min_year = min(extract_available_years(args.base_url))
+    max_year = max(extract_available_years(args.base_url))
+
+    # enforce minimum start_year
     start_year = args.start_year
-    if start_year and start_year < 1977:
-        print(f"Warning: Start year {start_year} is before 1977. Adjusting to 1977.")
-        start_year = 1977
+    if start_year and start_year < min_year:
+        print(f"Warning: Start year {start_year} is before {min_year}. Adjusting to {min_year}.")
+        start_year = min_year
 
     config = {
         'url_file': args.url_file,
@@ -105,8 +124,13 @@ def main():
         years = range(config['start_year'], config['end_year'] + 1)
         urls = [f"{config['base_url']}/{year}_xbt_nc.zip" for year in years]
     else:
-        print("\nPlease provide either --url_file or both --start_year and --end_year.")
-        return
+        print(f"\nWarning: No --url_file or --start_year/--end_year provided. Defaulting to download all Oleander XBT files ({min_year}-{max_year}).")
+        response = input("Do you want to continue? (y/N): ").strip().lower()
+        if response != 'y':
+            print("Download cancelled.")
+            return
+        years = extract_available_years(config['base_url'])
+        urls = [f"{config['base_url']}/{year}_xbt_nc.zip" for year in years]
 
     print(f"\nAttempting to download from {len(urls)} URLs to: {config['save_to']}")
     
