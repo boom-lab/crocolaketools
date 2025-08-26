@@ -101,55 +101,44 @@ def main():
         print(f"Warning: Start year {start_year} is before {min_year}. Adjusting to {min_year}.")
         start_year = min_year
 
-    config = {
-        'url_file': args.url_file,
-        'start_year': start_year,
-        'end_year': args.end_year,
-        'base_url': args.base_url,
-        'save_to': save_path,
-        'threads': args.threads,
-        'dryrun': args.dryrun,
-        'overwrite': args.overwrite,
-        'log_file': args.log_file,
-    }
-
-    print("Calling Oleander downloader with the following configuration:")
-    pprint(config)
-
     # Determine the list of URLs to download
-    if config['url_file']:
-        with open(config['url_file'], 'r') as f:
+    if args.url_file:
+        with open(args.url_file, 'r') as f:
             urls = [url.strip() for url in f.readlines() if url.strip()]
-    elif config['start_year'] and config['end_year']:
-        years = range(config['start_year'], config['end_year'] + 1)
-        urls = [f"{config['base_url']}/{year}_xbt_nc.zip" for year in years]
+    elif start_year and args.end_year:
+        years = range(start_year, args.end_year + 1)
+        urls = [f"{args.base_url}/{year}_xbt_nc.zip" for year in years]
     else:
         print(f"\nWarning: No --url_file or --start_year/--end_year provided. Defaulting to download all Oleander XBT files ({min_year}-{max_year}).")
         response = input("Do you want to continue? (y/N): ").strip().lower()
         if response != 'y':
             print("Download cancelled.")
             return
-        years = extract_available_years(config['base_url'])
-        urls = [f"{config['base_url']}/{year}_xbt_nc.zip" for year in years]
+        years = extract_available_years(args.base_url)
+        urls = [f"{args.base_url}/{year}_xbt_nc.zip" for year in years]
 
-    print(f"\nAttempting to download from {len(urls)} URLs to: {config['save_to']}")
+    config = {
+        'urls': urls,
+        'base_dir': save_path,
+        'log_file': args.log_file,
+        'num_threads': args.threads,
+        'overwrite': args.overwrite,
+        'dryrun': args.dryrun,
+    }
+
+    print("Calling Oleander downloader with the following configuration:")
+    pprint(config)
+
+    print(f"\nAttempting to download from {len(urls)} URLs to: {save_path}")
     
-    downloader = DownloaderURLList()
-    downloader.url_list_download(
-        urls=urls,
-        base_dir=config['save_to'],
-        log_file=config['log_file'],
-        num_threads=config['threads'],
-        overwrite=config['overwrite'],
-        dryrun=config['dryrun']
-    )
+    downloader = DownloaderURLList(**config)
+    downloader.url_list_download()
 
     print("\nOleander download process finished.")
     if config['dryrun']:
         print("Dry run complete. No files were actually downloaded.")
     else:
         print(f"Review 'oleander_download.log' for details on the downloaded files.")
-
 
 if __name__ == "__main__":
     main()

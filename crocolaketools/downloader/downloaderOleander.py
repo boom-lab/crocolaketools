@@ -29,9 +29,21 @@ class DownloaderURLList(Downloader):
     # Constructors/Destructors                                           #
     # ------------------------------------------------------------------ #
 
-    def __init__(self):
-        """Initialize the DownloaderURLList instance."""
+    def __init__(self, urls, base_dir, log_file="oleander_download.log", num_threads=4, overwrite=False, dryrun=False):
+        """Initialize the DownloaderURLList instance with configuration."""
         super().__init__()
+        self.urls = urls
+        self.base_dir = base_dir
+        self.log_file = log_file
+        self.num_threads = num_threads
+        self.overwrite = overwrite
+        self.dryrun = dryrun
+        self.configure_logging(self.log_file)
+        if self.dryrun:
+            logging.info("DRY RUN enabled. No files will be downloaded.")
+
+        if not self.dryrun and not os.path.exists(self.base_dir):
+            os.makedirs(self.base_dir, exist_ok=True)
 
     # ------------------------------------------------------------------ #
     # Methods                                                            #
@@ -69,25 +81,22 @@ class DownloaderURLList(Downloader):
         except Exception as e:
             logging.error("Error processing zip file %s: %s", zip_path, e)
 
-    def download_file(self, url, output_path, timeout=60, overwrite=False, dryrun=False):
+    def download_file(self, url, output_path):
         """Download a file, save it, then unzip and delete the zip.
 
         Args:
             url (str): URL of the file to download.
             output_path (str): Path where the file will be saved.
-            timeout (int): Timeout in seconds for the request.
-            overwrite (bool): If True, overwrite existing files.
-            dryrun (bool): If True, log the action without downloading.
 
         Returns:
             bool: True if download and unzip succeeded, False otherwise.
         """
-        if dryrun:
+        if self.dryrun:
             logging.info("DRY RUN: Would download %s to %s", url, output_path)
             return True
 
         # Check if .nc files from this zip already exist
-        if not overwrite:
+        if not self.overwrite:
             extract_dir = os.path.dirname(output_path)
             year = os.path.basename(output_path)[:4]  # Extract year from zip filename
             if os.path.exists(extract_dir) and any(f.endswith('.nc') and f.startswith(year) for f in os.listdir(extract_dir)):
@@ -95,7 +104,7 @@ class DownloaderURLList(Downloader):
                 return True
 
         try:
-            response = requests.get(url, stream=True, timeout=timeout)
+            response = requests.get(url, stream=True)
             response.raise_for_status()  # Will raise an exception for HTTP errors
 
             # Check content type to ensure it's not an HTML error page (indicating file not found)
@@ -122,41 +131,18 @@ class DownloaderURLList(Downloader):
             logging.error("Unexpected error downloading %s: %s", url, str(e))
             return False
 
-    def url_list_download(self, urls, base_dir, log_file="oleander_download.log", num_threads=4, overwrite=False, dryrun=False):
-        """Download files from a list of URLs.
+    def url_list_download(self):
+        """Download files from a list of URLs."""
+        logging.info("Starting download of %d files with %d threads", len(self.urls), self.num_threads)
 
-        Args:
-            urls (list): List of URLs to download.
-            base_dir (str): Base directory to save downloaded files.
-            log_file (str, optional): Path to the log file.
-            num_threads (int, optional): Number of threads for downloading.
-            overwrite (bool, optional): If True, overwrite existing files.
-            dryrun (bool, optional): If True, simulate download without writing files.
-
-        Returns:
-            bool: True if download process completes with no failures, False otherwise.
-        """
-        self.configure_logging(log_file)
-        
-        if dryrun:
-            logging.info("DRY RUN enabled. No files will be downloaded.")
-        
-        # Ensure base_dir exists
-        if not dryrun and not os.path.exists(base_dir):
-            os.makedirs(base_dir, exist_ok=True)
-
-        logging.info("Starting download of %d files with %d threads", len(urls), num_threads)
-
-        with ThreadPoolExecutor(max_workers=num_threads) as executor:
+        with ThreadPoolExecutor(max_workers=self.num_threads) as executor:
             future_to_url = {
                 executor.submit(
                     self.download_file, 
                     url, 
-                    os.path.join(base_dir, os.path.basename(urlparse(url).path)),
-                    overwrite=overwrite,
-                    dryrun=dryrun
+                    os.path.join(self.base_dir, os.path.basename(urlparse(url).path))
                 ): url
-                for url in urls
+                for url in self.urls
             }
 
             completed = 0
