@@ -23,9 +23,7 @@ from crocolaketools.downloader.downloader import Downloader
 ##########################################################################
 
 class DownloaderURLList(Downloader):
-    """class DownloaderURLList: methods to download files from a URL list,
-    preserving directory structure
-    """
+    """class DownloaderURLList: methods to download files from a URL list"""
 
     # ------------------------------------------------------------------ #
     # Constructors/Destructors                                           #
@@ -55,30 +53,6 @@ class DownloaderURLList(Downloader):
                     logging.StreamHandler()
                 ]
             )
-
-    def create_directory_structure(self, base_dir, url, strip_prefix):
-        """Create the directory structure based on the URL, stripping the specified prefix.
-
-        Args:
-            base_dir (str): Base directory to save files.
-            url (str): URL of the file to download.
-            strip_prefix (str): Prefix to strip from the URL path.
-
-        Returns:
-            str: Full path where the file will be saved.
-        """
-        parsed_url = urlparse(url)
-        path = parsed_url.path.lstrip('/')
-
-        # Strip the unwanted prefix
-        if strip_prefix and path.startswith(strip_prefix):
-            path = path[len(strip_prefix):].lstrip('/')
-
-        full_path = os.path.join(base_dir, path)
-        directory = os.path.dirname(full_path)
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-        return full_path
 
     def unzip_file(self, zip_path):
         """Unzip a file and delete the original zip file.
@@ -136,15 +110,13 @@ class DownloaderURLList(Downloader):
         except Exception as e:
             logging.error("Unexpected error downloading %s: %s", url, str(e))
 
-
-    def url_list_download(self, urls, base_dir, log_file="oleander_download.log", strip_prefix="thredds/fileServer/oceansites/", num_threads=4, overwrite=False, dryrun=False):
-        """Download files from a list of URLs, preserving directory structure.
+    def url_list_download(self, urls, base_dir, log_file="oleander_download.log", num_threads=4, overwrite=False, dryrun=False):
+        """Download files from a list of URLs.
 
         Args:
             urls (list): List of URLs to download.
             base_dir (str): Base directory to save downloaded files.
             log_file (str, optional): Path to the log file.
-            strip_prefix (str, optional): Prefix to strip from URL paths.
             num_threads (int, optional): Number of threads for downloading.
             overwrite (bool, optional): If True, overwrite existing files.
             dryrun (bool, optional): If True, simulate download without writing files.
@@ -157,6 +129,10 @@ class DownloaderURLList(Downloader):
         if dryrun:
             logging.info("DRY RUN enabled. No files will be downloaded.")
         
+        # Ensure base_dir exists
+        if not dryrun and not os.path.exists(base_dir):
+            os.makedirs(base_dir, exist_ok=True)
+
         logging.info("Starting download of %d files with %d threads", len(urls), num_threads)
 
         with ThreadPoolExecutor(max_workers=num_threads) as executor:
@@ -164,7 +140,7 @@ class DownloaderURLList(Downloader):
                 executor.submit(
                     self.download_file, 
                     url, 
-                    self.create_directory_structure(base_dir, url, strip_prefix),
+                    os.path.join(base_dir, os.path.basename(urlparse(url).path)),
                     overwrite=overwrite,
                     dryrun=dryrun
                 ): url

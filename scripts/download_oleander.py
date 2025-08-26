@@ -9,6 +9,8 @@
 ## @date Wed 23 Jul 2025
 
 import argparse
+import importlib.resources
+import yaml
 from pprint import pprint
 from crocolaketools.downloader.downloaderOleander import DownloaderURLList
 
@@ -38,7 +40,7 @@ def main():
     parser.add_argument(
         '--save_to', type=str,
         help="Directory to save downloaded and unzipped files",
-        required=False, default="./oleander_data/"
+        required=False, default=None
     )
     parser.add_argument(
         '--threads', 
@@ -65,12 +67,20 @@ def main():
 
     args = parser.parse_args()
 
+    # Load configuration to get the default save path
+    config_path = importlib.resources.files("crocolaketools.config").joinpath("config.yaml")
+    config_converter = yaml.safe_load(open(config_path))
+    default_save_path = config_converter["Oleander_PHY"]["input_path"]
+
+    # Use the default save path if --save_to arg is not specified
+    save_path = args.save_to if args.save_to is not None else default_save_path
+
     config = {
         'url_file': args.url_file,
         'start_year': args.start_year,
         'end_year': args.end_year,
         'base_url': args.base_url,
-        'save_to': args.save_to,
+        'save_to': save_path,
         'threads': args.threads,
         'dryrun': args.dryrun,
         'overwrite': args.overwrite,
