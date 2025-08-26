@@ -174,7 +174,7 @@ class ConverterOleander(Converter):
         df = super().standardize_data(df)
 
         # add qc flag = 1 for temperature and salinity
-        df = super().add_qc_flags(df, ["TEMP"], 1)
+        df = super().add_qc_flags(df, ["TEMP", "PRES"], 1)
 
         df = df[sorted(df.columns.tolist())]
 

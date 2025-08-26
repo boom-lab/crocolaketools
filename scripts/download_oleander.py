@@ -8,6 +8,7 @@
 #
 ## @date Wed 23 Jul 2025
 
+############################################################################
 import argparse
 import importlib.resources
 import yaml
@@ -16,6 +17,7 @@ import requests
 import re
 import html
 from crocolaketools.downloader.downloaderOleander import DownloaderURLList
+############################################################################
 
 def main():
     parser = argparse.ArgumentParser(description='Download Oleander data from a list of URLs or by specifying years.')
@@ -131,7 +133,7 @@ def main():
 
     print(f"\nAttempting to download from {len(urls)} URLs to: {save_path}")
     
-    downloader = DownloaderURLList(**config)
+    downloader = DownloaderURLList( **config )
     downloader.url_list_download()
 
     print("\nOleander download process finished.")
@@ -140,5 +142,7 @@ def main():
     else:
         print(f"Review 'oleander_download.log' for details on the downloaded files.")
 
+
+##########################################################################
 if __name__ == "__main__":
     main()
