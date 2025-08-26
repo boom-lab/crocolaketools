@@ -12,7 +12,6 @@
 ##########################################################################
 import os
 import requests
-import argparse
 import logging
 import zipfile
 import time
@@ -29,11 +28,29 @@ class DownloaderURLList(Downloader):
     # Constructors/Destructors                                           #
     # ------------------------------------------------------------------ #
 
-    def __init__(self, urls, base_dir, log_file="oleander_download.log", num_threads=4, overwrite=False, dryrun=False):
-        """Initialize the DownloaderURLList instance with configuration."""
-        super().__init__()
+    def __init__(self, urls, log_file="oleander_download.log", num_threads=4, overwrite=False, dryrun=False, config=None, base_dir=None):
+        """Initialize the DownloaderURLList instance with configuration.
+
+        Args:
+            urls (list[str]): URLs to download.
+            log_file (str): Log file path.
+            num_threads (int): Number of download threads.
+            overwrite (bool): Overwrite existing extracted files.
+            dryrun (bool): If True, don't download.
+            config (dict): Optional config with at least {'db','db_type'} and
+                           optionally 'input_path'. If not provided, defaults
+                           to Oleander PHY using package config.yaml.
+            base_dir (str): Optional explicit destination directory; if None,
+                            uses resolved input_path from base class.
+        """
+        if config is None:
+            config = {
+                'db': 'Oleander',
+                'db_type': 'PHY',
+            }
+        super().__init__(config)
         self.urls = urls
-        self.base_dir = base_dir
+        self.base_dir = base_dir if base_dir is not None else self.input_path
         self.log_file = log_file
         self.num_threads = num_threads
         self.overwrite = overwrite

@@ -73,13 +73,8 @@ def main():
 
     args = parser.parse_args()
 
-    # Load configuration to get the default save path
-    config_path = importlib.resources.files("crocolaketools.config").joinpath("config.yaml")
-    config_converter = yaml.safe_load(open(config_path))
-    default_save_path = config_converter["Oleander_PHY"]["input_path"]
-
-    # Use the default save path if --save_to arg is not specified by user
-    save_path = args.save_to if args.save_to is not None else default_save_path
+    # only pass through when provided
+    save_path = args.save_to
 
     # extract all years to determine min and max years available
     def extract_available_years(base_url):
