@@ -98,19 +98,24 @@ def main():
         print(f"Warning: Start year {start_year} is before {min_year}. Adjusting to {min_year}.")
         start_year = min_year
 
-    # Determine the list of URLs to download
-    if args.url_file:
+    # determine list of URLs to download
+    if args.url_file: # read URLs from the provided file
         with open(args.url_file, 'r') as f:
-            urls = [url.strip() for url in f.readlines() if url.strip()]
-    elif start_year and args.end_year:
+            urls = [url.strip() for url in f if url.strip()]
+
+    elif start_year and args.end_year: # generate URLs for specified year range
         years = range(start_year, args.end_year + 1)
         urls = [f"{args.base_url}/{year}_xbt_nc.zip" for year in years]
-    else:
-        print(f"\nWarning: No --url_file or --start_year/--end_year provided. Defaulting to download all Oleander XBT files ({min_year}-{max_year}).")
+
+    else: # download all available years
+        print(f"\nWarning: No --url_file or --start_year/--end_year provided. "
+            f"Defaulting to download all Oleander XBT files ({min_year}-{max_year}).")
+
         response = input("Do you want to continue? (y/N): ").strip().lower()
         if response != 'y':
             print("Download cancelled.")
             return
+
         years = extract_available_years(args.base_url)
         urls = [f"{args.base_url}/{year}_xbt_nc.zip" for year in years]
 
