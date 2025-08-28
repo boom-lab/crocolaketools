@@ -14,11 +14,11 @@ import os
 import requests
 import logging
 import zipfile
+import shutil
 import time
 from urllib.parse import urlparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from crocolaketools.downloader.downloader import Downloader
-
 ##########################################################################
 
 class DownloaderURLList(Downloader):
@@ -56,11 +56,6 @@ class DownloaderURLList(Downloader):
         self.overwrite = overwrite
         self.dryrun = dryrun
         self.configure_logging(self.log_file)
-        if self.dryrun:
-            logging.info("DRY RUN enabled. No files will be downloaded.")
-
-        if not self.dryrun and not os.path.exists(self.base_dir):
-            os.makedirs(self.base_dir, exist_ok=True)
 
     # ------------------------------------------------------------------ #
     # Methods                                                            #
@@ -93,22 +88,16 @@ class DownloaderURLList(Downloader):
         Args:
             zip_path (str): Path to the zip file.
         """
-        try:
-            extract_dir = os.path.dirname(zip_path)
-            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                zip_ref.extractall(extract_dir)
-            logging.info("Unzipped %s to %s", zip_path, extract_dir)
+        extract_dir = os.path.dirname(zip_path)
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            zip_ref.extractall(extract_dir)
 
-            # Remove the __MACOSX directory if it exists
-            macosx_path = os.path.join(extract_dir, "__MACOSX")
-            if os.path.exists(macosx_path) and os.path.isdir(macosx_path):
-                import shutil
-                shutil.rmtree(macosx_path)
-                logging.info("Removed __MACOSX folder from %s", extract_dir)
+        # Remove the __MACOSX directory if it exists
+        macosx_path = os.path.join(extract_dir, "__MACOSX")
+        if os.path.exists(macosx_path) and os.path.isdir(macosx_path):
+            shutil.rmtree(macosx_path)
 
-            os.remove(zip_path)
-        except Exception as e:
-            logging.error("Error processing zip file %s: %s", zip_path, e)
+        os.remove(zip_path)
 
 #------------------------------------------------------------------------------#
 ## Download, save and unzip files
