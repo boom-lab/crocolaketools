@@ -199,7 +199,7 @@ class TestData:
 
             if db_name == "Argo":
                 ds = xr.open_dataset(nc_file, engine="argo")
-            elif db_name in ["Oleander", "Saildrones"]:
+            elif db_name in ["OleanderXBT", "Saildrones"]:
                 ds = xr.open_dataset(nc_file, engine="netcdf4")
             else:
                 ds = xr.open_dataset(nc_file, engine="h5netcdf")
@@ -261,7 +261,7 @@ class TestData:
                 if k in params_db2crocolake:
                     indices_pq[ params_db2crocolake[k] ] = self._get_scalar_from_ds(ds[k][v])
                 else:
-                    if db_name == "Oleander":
+                    if db_name == "OleanderXBT":
                         nc_depth = self._get_scalar_from_ds(ds["depth"].isel(**indices))
                         indices_pq[ "DEPTH" ] = nc_depth
                     elif db_name == "Saildrones":
@@ -348,7 +348,7 @@ class TestData:
             db_type="BGC",
             db_name="SprayGliders"
         )
-
+         
 #------------------------------------------------------------------------------#
     def test_data_integrity_saildrones_phy(self):
         self._check_variables_nc(
@@ -362,6 +362,13 @@ class TestData:
         self._check_variables_nc(
             db_type="BGC",
             db_name="Saildrones"
+        )
+     
+#------------------------------------------------------------------------------#
+    def test_data_integrity_oleanderXBT_phy(self):
+        self._check_variables_nc(
+            db_type="PHY",
+            db_name="OleanderXBT"
         )
 
 #------------------------------------------------------------------------------#
@@ -408,6 +415,13 @@ class TestData:
         self._check_profiles(
             db_type="BGC",
             db_name="Saildrones",
+        )
+
+#------------------------------------------------------------------------------#
+    def test_profiles_oleanderXBT_phy(self):
+        self._check_profiles(
+            db_type="PHY",
+            db_name="OleanderXBT"
         )
 
 #------------------------------------------------------------------------------#

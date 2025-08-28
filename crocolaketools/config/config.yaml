@@ -134,6 +134,18 @@ Saildrones_BGC:
   overwrite: True
   tmp_path:
 
+# OleanderXBT
+OleanderXBT_PHY:
+  db: OleanderXBT
+  db_type: PHY
+  input_path: ../demo/demo_OleanderXBT_PHY/
+  outdir_pq: ../demo/parquet/demo_OleanderXBT_PHY/
+  outdir_schema: ./schemas/OleanderXBT/
+  fname_pq: demo_OleanderXBT_PHY
+  add_derived_vars: False
+  overwrite: True
+  tmp_path:
+
 # Default relative path for demo data download
 demo:
   download_path: ../demo/
