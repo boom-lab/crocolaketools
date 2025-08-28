@@ -38,7 +38,7 @@ class Downloader:
                   config.yaml are used; user-provided values override them.
 
         Relevant fields used by Downloader implementations:
-        db            -- database name (e.g., 'Oleander')
+        db            -- database name (e.g., 'OleanderXBT')
         db_type       -- 'PHY' or 'BGC'
         input_path    -- destination path where original files are stored
         """

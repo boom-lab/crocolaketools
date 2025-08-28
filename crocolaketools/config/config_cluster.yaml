@@ -36,8 +36,8 @@ SAILDRONES:
     memory_limit: '32GB'
     processes: True
 
-# Oleander configuration
-OLEANDER:
+# OleanderXBT configuration
+OLEANDER_XBT:
     threads_per_worker: 1
     n_workers: 8
     memory_limit: '32GB'

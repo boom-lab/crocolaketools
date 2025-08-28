@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-## @file download_oleander.py
+## @file download_oleanderXBT.py
 #
-# CLI for downloading Oleander data.
+# CLI for downloading OleanderXBT data.
 #
 ## @author David Nady <davidnady4yad@gmail.com>
 #
@@ -16,11 +16,11 @@ from pprint import pprint
 import requests
 import re
 import html
-from crocolaketools.downloader.downloaderOleander import DownloaderURLList
+from crocolaketools.downloader.downloaderOleanderXBT import DownloaderURLList
 ############################################################################
 
 def main():
-    parser = argparse.ArgumentParser(description='Download Oleander data from a list of URLs or by specifying years.')
+    parser = argparse.ArgumentParser(description='Download OleanderXBT data from a list of URLs or by specifying years.')
     parser.add_argument(
         '-u', 
         '--url_file', 
@@ -29,12 +29,12 @@ def main():
     parser.add_argument(
         '--start_year', 
         type=int, 
-        help='Start year for downloading Oleander data (e.g., 2020).'
+        help='Start year for downloading OleanderXBT data (e.g., 2020).'
     )
     parser.add_argument(
         '--end_year', 
         type=int, 
-        help='End year for downloading Oleander data (e.g., 2024).'
+        help='End year for downloading OleanderXBT data (e.g., 2024).'
     )
     parser.add_argument(
         '--base_url',
@@ -67,8 +67,8 @@ def main():
     parser.add_argument(
         '--log_file',
         type=str,
-        default="oleander_download.log",
-        help='Path to log file (default: oleander_download.log).'
+        default="oleanderXBT_download.log",
+        help='Path to log file (default: oleanderXBT_download.log).'
     )
 
     args = parser.parse_args()
@@ -109,7 +109,7 @@ def main():
 
     else: # download all available years
         print(f"\nWarning: No --url_file or --start_year/--end_year provided. "
-            f"Defaulting to download all Oleander XBT files ({min_year}-{max_year}).")
+            f"Defaulting to download all OleanderXBT files ({min_year}-{max_year}).")
 
         response = input("Do you want to continue? (y/N): ").strip().lower()
         if response != 'y':
@@ -128,7 +128,7 @@ def main():
         'dryrun': args.dryrun,
     }
 
-    print("Calling Oleander downloader with the following configuration:")
+    print("Calling OleanderXBT downloader with the following configuration:")
     pprint(config)
 
     print(f"\nAttempting to download from {len(urls)} URLs to: {save_path}")
@@ -136,11 +136,11 @@ def main():
     downloader = DownloaderURLList( **config )
     downloader.url_list_download()
 
-    print("\nOleander download process finished.")
+    print("\nOleanderXBT download process finished.")
     if config['dryrun']:
         print("Dry run complete. No files were actually downloaded.")
     else:
-        print(f"Review 'oleander_download.log' for details on the downloaded files.")
+        print(f"Review 'oleanderXBT_download.log' for details on the downloaded files.")
 
 
 ##########################################################################

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-## @file converterOleander.py
+## @file converterOleanderXBT.py
 #
 #
 ## @author David Nady <davidnady4yad@gmail.com>
@@ -25,10 +25,10 @@ from crocolakeloader import params
 from crocolaketools.converter.converter import Converter
 ##########################################################################
 
-class ConverterOleander(Converter):
+class ConverterOleanderXBT(Converter):
 
-    """class ConverterOleander: methods to generate parquet schemas for
-    Oleander netCDF files
+    """class ConverterOleanderXBT: methods to generate parquet schemas for
+    OleanderXBT netCDF files
 
     """
 
@@ -38,11 +38,11 @@ class ConverterOleander(Converter):
 
     def __init__(self, config=None, db_type=None):
 
-        if config is not None and not config['db'] == "Oleander":
-            raise ValueError("Database must be Oleander.")
+        if config is not None and not config['db'] == "OleanderXBT":
+            raise ValueError("Database must be OleanderXBT.")
         elif ((config is None) and (db_type is not None)):
             config = {
-                'db': 'Oleander',
+                'db': 'OleanderXBT',
                 'db_type': db_type.upper(),
             }
 
@@ -104,7 +104,7 @@ class ConverterOleander(Converter):
             warnings.warn("No lock provided. This might lead to concurrency or segmentation fault errors.")
 
         if filename is None:
-            raise ValueError("No filename provided for Oleander database.")
+            raise ValueError("No filename provided for OleanderXBT database.")
 
         input_fname = self.input_path + filename
         print("Reading file: ", input_fname)
@@ -113,7 +113,7 @@ class ConverterOleander(Converter):
         try:
             with xr.open_dataset(input_fname,cache=True,chunks=None,engine="netcdf4") as ds:
                 ds_vars = list(ds.data_vars) + list(ds.coords)
-                invars = list(set(params.params["Oleander"]) & set(ds_vars))
+                invars = list(set(params.params["OleanderXBT"]) & set(ds_vars))
                 df = ds[invars].to_dataframe()
                 df["date_update"] = pd.to_datetime(
                     ds.attrs["date_created"]
@@ -182,4 +182,4 @@ class ConverterOleander(Converter):
 
 ##########################################################################
 if __name__ == "__main__":
-    ConverterOleander()
+    ConverterOleanderXBT()

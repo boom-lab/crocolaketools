@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-## @file downloaderOleander.py
+## @file downloaderOleanderXBT.py
 #
-# Downloader for Oleander netCDF files
+# Downloader for OleanderXBT netCDF files
 #
 ## @author David Nady <davidnady4yad@gmail.com>
 #         Adapted from Enrico Milanese <enrico.milanese@whoi.edu>
@@ -28,7 +28,7 @@ class DownloaderURLList(Downloader):
     # Constructors/Destructors                                           #
     # ------------------------------------------------------------------ #
 
-    def __init__(self, urls, log_file="oleander_download.log", num_threads=4, overwrite=False, dryrun=False, config=None, base_dir=None):
+    def __init__(self, urls, log_file="oleanderXBT_download.log", num_threads=4, overwrite=False, dryrun=False, config=None, base_dir=None):
         """Initialize the DownloaderURLList instance with configuration.
 
         Args:
@@ -39,13 +39,13 @@ class DownloaderURLList(Downloader):
             dryrun (bool): If True, don't download.
             config (dict): Optional config with at least {'db','db_type'} and
                            optionally 'input_path'. If not provided, defaults
-                           to Oleander PHY using package config.yaml.
+                           to OleanderXBT PHY using package config.yaml.
             base_dir (str): Optional explicit destination directory; if None,
                             uses resolved input_path from base class.
         """
         if config is None:
             config = {
-                'db': 'Oleander',
+                'db': 'OleanderXBT',
                 'db_type': 'PHY',
             }
         super().__init__(config)
