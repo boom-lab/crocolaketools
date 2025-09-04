@@ -246,6 +246,8 @@ class Converter:
             print("adding derived variables")
             ddf = self.add_derived_variables(ddf)
 
+        ddf = self.convert_units(ddf)
+
         ddf = self.reorder_columns(ddf)
 
         ddf = ddf.drop_duplicates()
@@ -809,6 +811,20 @@ class Converter:
         )
 
         return df
+
+#------------------------------------------------------------------------------#
+## Convert units
+    def convert_units(self, ddf):
+        """Template method for unit conversions.
+        Override in subclasses that need specific unit conversions.
+        
+        Arguments:
+        ddf -- dask dataframe
+        
+        Returns:
+        ddf -- updated dask dataframe with converted units
+        """
+        return ddf
 
 #------------------------------------------------------------------------------#
 ## Update columns
