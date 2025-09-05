@@ -45,6 +45,12 @@ class ConverterSaildrones(Converter):
 
         super().__init__(config)
 
+        # define unit conversions for Saildrones
+        # DOXY is provided in μmol/L and must become μmol/kg
+        self.cols_to_convert = {
+            "DOXY": "micromol/L2micromol/kg"
+        }
+
     # ------------------------------------------------------------------ #
     # Methods                                                            #
     # ------------------------------------------------------------------ #
@@ -275,41 +281,6 @@ class ConverterSaildrones(Converter):
         return df
 
 #------------------------------------------------------------------------------#
-## Convert units
-    def convert_units(self, ddf):
-        """Convert DOXY from μmol/L to μmol/kg using seawater density."""
-        
-        if 'DOXY' not in ddf.columns:
-            return ddf
-        
-        if not self.add_derived_vars:
-            raise ValueError(
-                    "DOXY unit conversion requires derived variables "
-                    "Set add_derived_vars=True to enable unit conversion."
-                )
-        
-        # Ensure required derived columns exist (should be added if add_derived_vars=True)
-        required_cols = ['ABS_SAL_COMPUTED', 'CONSERVATIVE_TEMP_COMPUTED']
-        missing = [col for col in required_cols if col not in ddf.columns]
-        if missing:
-            raise RuntimeError(f"Missing required columns for DOXY conversion: {missing_cols}.")
-        
-        def convert_doxy_partition(df):
-            # convert DOXY units in a single partition.
-            sigma0 = gsw.density.sigma0(df['ABS_SAL_COMPUTED'], df['CONSERVATIVE_TEMP_COMPUTED'])
-            correction_factor = sigma0 / 1000 + 1
-            df['DOXY'] = df['DOXY'] / correction_factor
-            return df
-        
-        print("Converting DOXY from μmol/L to μmol/kg")
-        ddf = ddf.map_partitions(
-            convert_doxy_partition, 
-            meta=ddf._meta
-        )
-        
-        return ddf
-
-#------------------------------------------------------------------------------#
 ## Convert file
     def convert(self, filenames=None, filepath=None):
         """Override convert to handle single file to compute delayed operations, 
@@ -336,6 +307,7 @@ class ConverterSaildrones(Converter):
             if self.add_derived_vars:
                 print("Adding derived variables")
                 ddf = self.compute_derived_variables(ddf)
+            ddf = self.convert_units(ddf)
             ddf = self.reorder_columns(ddf)
             ddf = ddf.drop_duplicates()
             self.to_parquet(ddf)

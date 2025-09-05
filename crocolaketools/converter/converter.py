@@ -22,6 +22,7 @@ import pyarrow.parquet as pq
 import shutil
 import xarray as xr
 from crocolakeloader import params
+from crocolaketools.converter import unit_converter
 ##########################################################################
 
 
@@ -173,6 +174,9 @@ class Converter:
         # This should be false unless you're using from_delayed to generate the
         # dask dataframe
         self.call_guess_schema = False
+
+        # Initialize unit conversion mapping - override in subclasses
+        self.cols_to_convert = {"skip": "skip"}
 
     # ------------------------------------------------------------------ #
     # Methods                                                            #
@@ -815,8 +819,7 @@ class Converter:
 #------------------------------------------------------------------------------#
 ## Convert units
     def convert_units(self, ddf):
-        """Template method for unit conversions.
-        Override in subclasses that need specific unit conversions.
+        """Apply unit conversions defined in self.cols_to_convert.
         
         Arguments:
         ddf -- dask dataframe
@@ -824,6 +827,17 @@ class Converter:
         Returns:
         ddf -- updated dask dataframe with converted units
         """
+
+        for col, conversion_key in self.cols_to_convert.items():
+            if conversion_key == "skip":
+                continue
+            if conversion_key not in unit_converter.conversion_map:
+                raise ValueError(f"No conversion defined for '{conversion_key}'")
+            if col not in ddf.columns: # column not found in df - skipping
+                continue
+            convert_fn = unit_converter.conversion_map[conversion_key]
+            ddf = convert_fn(ddf, col)
+
         return ddf
 
 #------------------------------------------------------------------------------#
