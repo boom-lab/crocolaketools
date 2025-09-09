@@ -22,7 +22,7 @@ import pyarrow.parquet as pq
 import shutil
 import xarray as xr
 from crocolakeloader import params
-from crocolaketools.converter import unit_converter
+from crocolaketools.converter import units_conversion
 ##########################################################################
 
 
@@ -831,11 +831,15 @@ class Converter:
         for col, conversion_key in self.cols_to_convert.items():
             if conversion_key == "skip":
                 continue
-            if conversion_key not in unit_converter.conversion_map:
+            if conversion_key not in units_conversion.conversion_map:
                 raise ValueError(f"No conversion defined for '{conversion_key}'")
-            if col not in ddf.columns: # column not found in df - skipping
+            if col not in ddf.columns:
+                is_expected = col in self.reference_schema.names
+                if is_expected:
+                    raise ValueError(f"Expected column '{col}' not found in dataframe. This may indicate a typo or missing variable.")
+                # column is not expected in the db_type, so skip conversion
                 continue
-            convert_fn = unit_converter.conversion_map[conversion_key]
+            convert_fn = units_conversion.conversion_map[conversion_key]
             ddf = convert_fn(ddf, col)
 
         return ddf

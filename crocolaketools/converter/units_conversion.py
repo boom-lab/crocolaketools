@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 
-## @file unit_converter.py
+## @file units_conversion.py
 #
 #  Shared unit conversion functions and registry
 #
 ## ## @author David Nady <davidnady4yad@gmail.com>
 #
-## @date Sat 05 Sep 2025
+## @date Fri 05 Sep 2025
 
 ##########################################################################
 import gsw
@@ -43,17 +43,12 @@ def micromol_L_to_micromol_kg(ddf, col):
     )
 
     return ddf
-    
-#------------------------------------------------------------------------------#
 
+#------------------------------------------------------------------------------#
 # ... Add new conversions here ...
-
-#------------------------------------------------------------------------------#
 
 #------------------------------------------------------------------------------#
 # Conversion mapping dictionary
 conversion_map = {
     "micromol/L2micromol/kg": micromol_L_to_micromol_kg,
 }
-
-
