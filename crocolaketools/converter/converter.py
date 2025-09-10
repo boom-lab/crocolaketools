@@ -834,8 +834,7 @@ class Converter:
             if conversion_key not in units_conversion.conversion_map:
                 raise ValueError(f"No conversion defined for '{conversion_key}'")
             if col not in ddf.columns:
-                is_expected = col in self.reference_schema.names
-                if is_expected:
+                if col in self.reference_schema.names:
                     raise ValueError(f"Expected column '{col}' not found in dataframe. This may indicate a typo or missing variable.")
                 # column is not expected in the db_type, so skip conversion
                 continue
