@@ -45,6 +45,12 @@ class ConverterSaildrones(Converter):
 
         super().__init__(config)
 
+        # define unit conversions for Saildrones
+        # DOXY is provided in μmol/L and must become μmol/kg
+        self.cols_to_convert = {
+            "DOXY": "micromol/L2micromol/kg"
+        }
+
     # ------------------------------------------------------------------ #
     # Methods                                                            #
     # ------------------------------------------------------------------ #
@@ -301,6 +307,7 @@ class ConverterSaildrones(Converter):
             if self.add_derived_vars:
                 print("Adding derived variables")
                 ddf = self.compute_derived_variables(ddf)
+            ddf = self.convert_units(ddf)
             ddf = self.reorder_columns(ddf)
             ddf = ddf.drop_duplicates()
             self.to_parquet(ddf)
