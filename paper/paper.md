@@ -164,65 +164,33 @@ The goal of this benchmarking exercise is to provide a ballpark estimate of read
 
 Benchmarks were performed on a Lenovo ThinkPad P14s Gen 4 equipped with an AMD Ryzen 7 PRO 7840U processor (8 cores, 16 threads, up to 5.13 GHz) and 26 GiB DDR4 RAM. Network connectivity was provided via Wi-Fi: bandwidth measurements indicated an average download speed of 466.41 Mbit/s (10 runs, range: 363.37–555.70 Mbit/s) and an upload speed of 27.34 Mbit/s (10 runs, range: 26.98–27.48 Mbit/s); latency to google.com averaged 26.2 ms (10 measurements, range: 20.9–27.6 ms). All non-essential applications were closed during benchmarking, and measurements were collected immediately prior to the tests to ensure reproducibility.
 
-[NOTES RERUNNING SPEED TESTS AT HOME]
-BGC 1
-8.45 s ± 675 ms per loop (mean ± std. dev. of 2 runs, 1 loop each)
-15min 54s ± 1.11 s per loop (mean ± std. dev. of 2 runs, 1 loop each)
+The following Tables 2 and 3 summarize data loading times for BGC and PHY Argo datasets from AWS S3 (Parquet) versus the `argopy` Python library. Benchmarks include regional/yearly filtering and loading by float WMO ID.
 
-BGC 2
-dask: 4.98 s ± 2.29 s per loop (mean ± std. dev. of 10 runs, 1 loop each)
-argopy: 1min 48s ± 4.31 s per loop (mean ± std. dev. of 10 runs, 1 loop each)
+Table 2 -- North West Atlantic Regional Subsets (2017)
 
-BGC 3
-3.42 s ± 1.81 s per loop (mean ± std. dev. of 10 runs, 1 loop each)
-6.21 s ± 614 ms per loop (mean ± std. dev. of 10 runs, 1 loop each)
+| Data type | Subset size          | Filter details                                    | Parquet time         | Argopy time         | Runs      |
+|-----------|---------------------|---------------------------------------------------|----------------------|---------------------|-------------------------------|
+| **BGC**   | Large (NWA)         | Lat 25–60, Lon -80––-30, 2017-01-01 to 2018-01-01 | 8.45 ± 0.68 s        | 15m54s ± 1.1s       | 2                         |
+| **BGC**   | Small (NWA)         | Lat 55–60, Lon -50––-55, 2017-01-01 to 2018-01-01 | 4.98 ± 2.29 s        | 1m48s ± 4.3s        | 10                       |
+| **PHY**   | Large (NWA)         | Lat 25–60, Lon -80––-30, 2017-01-01 to 2018-01-01 | 44.8 ± 0.36 s        | 21m6s ± 8.6s        | 2                          |
+| **PHY**   | Small (NWA)         | Lat 55–60, Lon -50––-55, 2017-01-01 to 2018-01-01 | 19.5 ± 1.52 s        | 1m3s ± 1.9s         | 10                       |
 
-BGC 4
-7.95 s ± 2.75 s per loop (mean ± std. dev. of 10 runs, 1 loop each)
-2min 20s ± 6.02 s per loop (mean ± std. dev. of 10 runs, 1 loop each)
+---
 
-PHY 1
-44.8 s ± 362 ms per loop (mean ± std. dev. of 2 runs, 1 loop each)
-21min 6s ± 8.62 s per loop (mean ± std. dev. of 2 runs, 1 loop each)
+Table 3 -- Loading Full Float Records
 
-PHY 2
-19.5 s ± 1.52 s per loop (mean ± std. dev. of 10 runs, 1 loop each)
-1min 3s ± 1.85 s per loop (mean ± std. dev. of 10 runs, 1 loop each)
+| Data type | Floats              | Parquet time      | Argopy time          | Runs       |
+|-----------|---------------------|-------------------|----------------------|------------|
+| **BGC**   | 1 float (4902410)   | 3.42 ± 1.81 s     | 6.21 ± 0.61 s        | 10         |
+| **BGC**   | 20 floats           | 7.95 ± 2.75 s     | 2m20s ± 6.0s         | 10         |
+| **PHY**   | 1 float (6902801)   | 4.22 ± 1.25 s     | 3.02 ± 0.33 s        | 10         |
+| **PHY**   | 20 floats           | 17.4 ± 0.77 s     | 22.5 ± 1.1 s         | 10         |
 
-PHY 3
-4.22 s ± 1.25 s per loop (mean ± std. dev. of 10 runs, 1 loop each)
-3.02 s ± 325 ms per loop (mean ± std. dev. of 10 runs, 1 loop each)
+---
 
-PHY 4
-17.4 s ± 766 ms per loop (mean ± std. dev. of 10 runs, 1 loop each)
-22.5 s ± 1.14 s per loop (mean ± std. dev. of 10 runs, 1 loop each)
-
-
-[RESULTS BELOW ARE ON WHOI'S NETWORK: Bandwidth measurements over five runs indicated download speeds between 83.8 and 250.2 Mbit/s, and upload speeds between 133.9 and 292.7 Mbit/s. Latency to google.com averaged 14.6 ms over ten measurements (range: 12.5–18.1 ms).]
-
-### Case 1: one year of BGC data in the North West Atlantic (large)
-The data was filtered between 2017-01-01 00:00 and 2018-01-01 00:00 in the region of latitude 25-60 and longitude -80 -- -30. Loading the data took 24.3s for the parquet dataset stored in AWS S3, and 16min 36s with `argopy`.
-
-### Case 2: one year of BGC data in the North West Atlantic (small)
-The data was filtered between 2017-01-01 00:00 and 2018-01-01 00:00 in the region of latitude 55-60 and longitude -50 -- -55. Loading the data took 15.0s +- 2.35s (10 runs) for the parquet dataset stored in AWS S3, and 2min 4s +- 12.7s (10 runs) with `argopy`.
-
-## Case 3: all data from a BGC float
-Loading all the data for the float with WMO ID 4902410 took 11.2s ± 1.48s (10 runs) for the parquet dataset stored in AWS S3, and 6.4s ± 1.2s (10 runs) with `argopy`.
-
-## Case 4: all data from 20 BGC floats
-Loading all the data for the floats with WMOID in [6901754,6901030,4902409,6902810,6901750,6902805,6901182,6902686,5904989,6901603,4902390,5904770,1901217,6901751,1901208,6901752,6902812,6901023,6901758,6901524] took 19.6s ± 2.81s (10 runs) in parquet, 54.7 s ± 3.28 s in argopy
-
-### Case 1: one year of PHY data in the North West Atlantic (large)
-The data was filtered between 2017-01-01 00:00 and 2018-01-01 00:00 in the region of latitude 25-60 and longitude -80 -- -30. Loading the data took 3min 22s (one run) for the parquet dataset stored in AWS S3, and 22min 39s with `argopy` (3822.55 MB) (one run)
-
-### Case 2: one year of PHY data in the North West Atlantic (small)
-The data was filtered between 2017-01-01 00:00 and 2018-01-01 00:00 in the region of latitude 55-60 and longitude -50 -- -55. Loading the data took 1min 26s (1 run) for the parquet dataset (48.96 MB) stored in AWS S3, and 1min 14s (1 run) with `argopy` (131.16 MB)
-
-## Case 3: all data from a PHY float
-Loading all the data for the float with WMO ID 6902801 took 15 s ± 2.17 s (10 runs) for the parquet dataset stored in AWS S3, and 3.36 s ± 279 ms  (10 runs) with `argopy`.
-
-## Case 4: all data from 20 PHY floats
-1min 32 for parquet, 24.7s +- 2.3s for argopy
+Notes:
+- **Large/small** regional subsets differ by latitude/longitude bounding boxes (see above).
+- "Runs" columns indicate number of runs over which timings are estimated as mean ± standard deviation (SD).
 
 ## Documentation and updates
 The [documentation](https://crocolakedocs.readthedocs.io/en/latest/index.html) describes the specifics of each dataset (e.g. what quality-control filter we apply to each dataset, the procedure to generate the profile numbers, etc.), and get updated every time a new feature is made available.
