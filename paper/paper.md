@@ -169,7 +169,7 @@ The following Tables 2 and 3 summarize data loading times for BGC and PHY Argo d
 Table 2 -- North West Atlantic Regional Subsets (2017)
 
 | Data type | Subset size          | Filter details                                    | Parquet time         | `argopy` time         |
-|-----------|---------------------|---------------------------------------------------|----------------------|---------------------|
+|-----------|---------------------|---------------------------------------------------|---------------------:|--------------------:|
 | PHY   | Large         | Lat: [25,60], Lon: [-80,-30], Date: 2017-01-01 to 2018-01-01 | 44.8 ± 0.36 s        | 1266s ± 8.6s        |
 | PHY   | Small         | Lat: [55,60], Lon: [-50,-55], Date: 2017-01-01 to 2018-01-01 | 19.5 ± 1.52 s        | 63s ± 1.9s         |
 | BGC   | Large         | Lat: [25,60], Lon: [-80,-30], Date: 2017-01-01 to 2018-01-01 | 8.45 ± 0.68 s        | 954s ± 1.1s       |
@@ -182,19 +182,10 @@ Table 3 -- Loading Full Float Records
 | Data type | Floats              | Parquet time      | `argopy` time          | 
 |-----------|---------------------|-------------------|----------------------|
 | PHY   | 1 float   | 4.22 ± 1.25 s     | 3.02 ± 0.33 s |
-| PHY   | 20 floats           | 17.4 ± 0.77 s     | 22.5 ± 1.1 s         |
+| PHY   | 20 floats | 17.40 ± 0.77 s    | 22.5 ± 1.10 s         |
 | BGC   | 1 float   | 3.42 ± 1.81 s     | 6.21 ± 0.61 s |
-| BGC   | 20 floats           | 7.95 ± 2.75 s     | 140s ± 6.0s         |
+| BGC   | 20 floats | 7.95 ± 2.75 s     | 140s ± 6.00s         |
 
-
-```text
-| Data type | Floats     | Parquet time      | `argopy` time     |
-|-----------|------------|-------------------|-------------------|
-| PHY       | 1 float    |  4.22 ± 1.25 s    |   3.02 ± 0.33 s   |
-| PHY       | 20 floats  | 17.40 ± 0.77 s    |  22.50 ± 1.10 s   |
-| BGC       | 1 float    |  3.42 ± 1.81 s    |   6.21 ± 0.61 s   |
-| BGC       | 20 floats  |  7.95 ± 2.75 s    | 140.00 ± 6.00 s   |
-```
 ---
 
 Notes:
