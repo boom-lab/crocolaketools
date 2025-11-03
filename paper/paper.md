@@ -168,29 +168,36 @@ The following Tables 2 and 3 summarize data loading times for BGC and PHY Argo d
 
 Table 2 -- North West Atlantic Regional Subsets (2017)
 
-| Data type | Subset size          | Filter details                                    | Parquet time         | Argopy time         | Runs      |
-|-----------|---------------------|---------------------------------------------------|----------------------|---------------------|-------------------------------|
-| **BGC**   | Large (NWA)         | Lat 25–60, Lon -80––-30, 2017-01-01 to 2018-01-01 | 8.45 ± 0.68 s        | 15m54s ± 1.1s       | 2                         |
-| **BGC**   | Small (NWA)         | Lat 55–60, Lon -50––-55, 2017-01-01 to 2018-01-01 | 4.98 ± 2.29 s        | 1m48s ± 4.3s        | 10                       |
-| **PHY**   | Large (NWA)         | Lat 25–60, Lon -80––-30, 2017-01-01 to 2018-01-01 | 44.8 ± 0.36 s        | 21m6s ± 8.6s        | 2                          |
-| **PHY**   | Small (NWA)         | Lat 55–60, Lon -50––-55, 2017-01-01 to 2018-01-01 | 19.5 ± 1.52 s        | 1m3s ± 1.9s         | 10                       |
+| Data type | Subset size          | Filter details                                    | Parquet time         | Argopy time         |
+|-----------|---------------------|---------------------------------------------------|----------------------|---------------------|
+| **PHY**   | Large (NWA)         | Lat 25–60, Lon -80––-30, 2017-01-01 to 2018-01-01 | 44.8 ± 0.36 s        | 21m6s ± 8.6s        |
+| **PHY**   | Small (NWA)         | Lat 55–60, Lon -50––-55, 2017-01-01 to 2018-01-01 | 19.5 ± 1.52 s        | 1m3s ± 1.9s         |
+| **BGC**   | Large (NWA)         | Lat 25–60, Lon -80––-30, 2017-01-01 to 2018-01-01 | 8.45 ± 0.68 s        | 15m54s ± 1.1s       |
+| **BGC**   | Small (NWA)         | Lat 55–60, Lon -50––-55, 2017-01-01 to 2018-01-01 | 4.98 ± 2.29 s        | 1m48s ± 4.3s        |
 
 ---
 
 Table 3 -- Loading Full Float Records
 
-| Data type | Floats              | Parquet time      | Argopy time          | Runs       |
-|-----------|---------------------|-------------------|----------------------|------------|
-| **BGC**   | 1 float (4902410)   | 3.42 ± 1.81 s     | 6.21 ± 0.61 s        | 10         |
-| **BGC**   | 20 floats           | 7.95 ± 2.75 s     | 2m20s ± 6.0s         | 10         |
-| **PHY**   | 1 float (6902801)   | 4.22 ± 1.25 s     | 3.02 ± 0.33 s        | 10         |
-| **PHY**   | 20 floats           | 17.4 ± 0.77 s     | 22.5 ± 1.1 s         | 10         |
+| Data type | Floats              | Parquet time      | Argopy time          | 
+|-----------|---------------------|-------------------|----------------------|
+| **PHY**   | 1 float (WMOID: 6902801)   | 4.22 ± 1.25 s     | 3.02 ± 0.33 s |
+| **PHY**   | 20 floats           | 17.4 ± 0.77 s     | 22.5 ± 1.1 s         |
+| **BGC**   | 1 float (WMOID: 4902410)   | 3.42 ± 1.81 s     | 6.21 ± 0.61 s |
+| **BGC**   | 20 floats           | 7.95 ± 2.75 s     | 2m20s ± 6.0s         |
 
 ---
 
 Notes:
-- **Large/small** regional subsets differ by latitude/longitude bounding boxes (see above).
-- "Runs" columns indicate number of runs over which timings are estimated as mean ± standard deviation (SD).
+
+- All timings are mean ± standard deviation (SD) measured over ten runs, except for the "Large" subsets which are measured over two runs.
+
+- Large/small regional subsets (Table 2) differ by latitude/longitude bounding boxes (see above).
+
+- The 20 PHY float records (Table 3) were randomly picked and are identified by the following WMO IDs: 4902120, 6902707, 3901629, 6901177, 4901812, 4901765, 4901216, 4902322, 6902801, 6902753, 6902805, 5904749, 4901827, 4902419, 4902397, 4901755, 6902810, 5904007, 4902112, 1901596.
+
+- The 20 BGC float records (Table 3) were randomly picked and are identified by the following WMO IDs: 6901754, 6901030, 4902409, 6902810, 6901750, 6902805, 6901182, 6902686, 5904989, 6901603, 4902390, 5904770, 1901217, 6901751, 1901208, 6901752, 6902812, 6901023, 6901758, 6901524.
+
 
 ## Documentation and updates
 The [documentation](https://crocolakedocs.readthedocs.io/en/latest/index.html) describes the specifics of each dataset (e.g. what quality-control filter we apply to each dataset, the procedure to generate the profile numbers, etc.), and get updated every time a new feature is made available.
