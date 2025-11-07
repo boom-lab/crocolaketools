@@ -139,11 +139,11 @@ CrocoLake can be accessed with several programming languages with just a few lin
 \begin{figure}[h!]
     \centering
     \includegraphics[width=\textwidth]{workflow_02.png}
-    \caption{CrocoLake's workflowL `converter`s. `converter`s read the data in their original format, transform it following CrocoLake's conventions, converts it to parquet, and stores it back to disk. Each dataset is converted to its own parquet version. Thanks to the submodule `CrocoLakeLoader`, multiple parquet datasets are merged into a uniform dataframe which is saved to disk as CrocoLake. For each dataset, a version containing only physical variables (`PHY`) or also biogeochemical variables (`BGC`) can be generated. \label{fig:workflow02}}
+    \caption{CrocoLake's workflow: `converter`s. `converter`s read the data in their original format, transform it following CrocoLake's conventions, converts it to parquet, and stores it back to disk. Each dataset is converted to its own parquet version. Thanks to the submodule `CrocoLakeLoader`, multiple parquet datasets are merged into a uniform dataframe which is saved to disk as CrocoLake. For each dataset, a version containing only physical variables (`PHY`) or also biogeochemical variables (`BGC`) can be generated. \label{fig:workflow02}}
 \end{figure}
 
 ### Schema and metadata
-The nomenclature, units and data types are generally based on Argo's (https://vocab.nerc.ac.uk/collection/R03/current/) and are detailed in the online documentation. For CrocoLake's variables that are not present in the Argo program, we provide new names mantaining consistency with Argo's style.
+The nomenclature, units and data types are generally based on Argo's (https://vocab.nerc.ac.uk/collection/R03/current/) and are detailed in the online documentation. For CrocoLake's variables that are not present in the Argo program, we provide new names maintaining consistency with Argo's style.
 
 The parquet format has two different types of metadata: metadata related to storage (e.g. schema, number of rows, etc.) and column attributes. We use the latter type to store information about the units for each variable present in CrocoLake. At the moment we are not including other metadata from the original sources (e.g. information about principal investigator, contact details, comments, etc.), but we are exploring solutions to include some of this in the future, based also on feedback from users.
 
