@@ -79,19 +79,15 @@ Copernicus Marine Service is an initiative of the European Union that provides a
 
 The International Quality-controlled Ocean Database (IQuOD) [@iquod2018international] is an effort by the oceanographic community "with the goal of producing the highest quality and complete single ocean profile repository along with (intelligent) metadata and assigned uncertainties". It includes subsurface ocean profiles of several variables, paying particular attention to temperature measurements. The database is prepared by NCEI, and it is freely available in netCDF format through multiple channels (THREDDS, HTTPS, FTP). 
 
-argopy [@maze2020argopy] is a Python library that facilitates access and manipulation of data from the real-time observing system Argo [@wong2020argo]. The user provides some filters (e.g. coordinate and time ranges, measurement name, etc) and argopy retrieves the relevant data from the Argo Global Data Assembly Center (GDAC). ArgoData.jl[@forget2025argodata] and OceanRobots.jl[@forget2025ocean] are Julia packages that provide similar functionalities to argopy.
-
-Argovis [@tucker2020argovis] is a REST API and web application hosted at the University of Colorado, Boulder (United States) and serving profile data in JSON format from the Argo program, and from ship and drifters missions.
-
-oce [@kelley2022oce] is a package written in R providing multiple functions to access oceanographic observations stored in a variety of formats. It focuses on datasets for physical oceanography with the goal of providing more tools in the future. argoFloats [@kelley2021argofloats] is a derived package that focuses on fetching and manipulating Argo data.
-
 The Ocean Data Platform by the non-profit HUB Ocean is among the youngest projects in the community, and it allows to find and access datasets from a catalog. The user can interact with the platform through different interfaces (SDK, REST API, OQS, JupyterHub workspaces), loading the datasets in tabular format.
+
+Of particular interests to the community has been the data collected by the Argo [@wong2020argo] international program with a growing fleet of robotic floats, and several tools have been developed to handle such data. argopy [@maze2020argopy] is a Python library that facilitates access and manipulation of data from the real-time observing system Argo [@wong2020argo]. The user provides some filters (e.g. coordinate and time ranges, measurement name, etc) and argopy retrieves the relevant data from the Argo Global Data Assembly Center (GDAC). ArgoData.jl[@forget2025argodata] and OceanRobots.jl[@forget2025ocean] are Julia packages that provide similar functionalities to argopy. Argovis [@tucker2020argovis] is a REST API and web application hosted at the University of Colorado, Boulder (United States) and serving profile data in JSON format from the Argo program, and from ship and drifters missions. oce [@kelley2022oce] is a package written in R providing multiple functions to access oceanographic observations stored in a variety of formats. It focuses on datasets for physical oceanography with the goal of providing more tools in the future. argoFloats [@kelley2021argofloats] is a derived package that focuses on fetching and manipulating Argo data.
 
 The above efforts often serve data in ASCII, CSV, JSON, or netCDF formats. For context, netCDF is a binary format that offers the advantage to be compact and efficient when dealing with multidimensional data, while the others have the advantage of being human-readable (but can be very inefficient for large datasets). None of these formats is optimized for cloud object storage, although there are ongoing efforts for netCDF (e.g. Zarr and Icechunk). For this reason, Parquet has been drawing more and more attention from the earth sciences community recently.
 
 Parquet is a cloud-optimized binary format for tidy and large data (i.e. large tables) that is language-agnostic. It is widely used in the data science and corporate worlds, and the software ecosystem around it is sound, mature, and growing. Table 1 presents an overview of the characteristics of Parquet and the other formats. We chose Parquet as the target format for `CrocoLake` because (1) it is optimized for cloud storage and cloud computing, (2) its mature software ecosystem includes packages in multiple coding languages to access it (Python, Julia, MATLAB, web technologies, etc.), and (3) novel users are generally more familiar with tabular data than with specialized oceanographic data formats.
 
-As we aim to make CrocoLake easily accessible from a technical standpoint, the main drawbacks of Parquet at present are that (1) many workflows in ocean modeling are based on multidimensional data structures (not tabular ones) and (2) attaching attributes to the data is not as straightfoward as it could be. However, we see CrocoLake as a major building bloc in workflows that require fast access to sparse in-situ ocean observations, responding to necessities of data storage with fast access both on disk and the cloud, rather than as an end-all solution for ocean observations. For example, array-based storage formats might instead be more relevant to workflows that rely mostly on regular and gridded observations (such as satellite recordings).
+As we aim to make CrocoLake easily accessible from a technical standpoint, the main drawbacks of Parquet at present are that (1) many workflows in ocean modeling are based on multidimensional data structures (not tabular ones) and (2) attaching attributes to the data is not straightfoward (compared to netCDF). However, we see CrocoLake as a major building bloc in workflows that require fast access to sparse in-situ ocean observations, responding to necessities of data storage with fast access both on disk and the cloud, rather than as an end-all solution for ocean observations. For example, array-based storage formats might instead be more relevant to workflows that rely mostly on regular and gridded observations (such as satellite recordings).
 
 Table 1. Comparison between different common file formats for oceanographic datasets.
 
@@ -105,7 +101,7 @@ Table 1. Comparison between different common file formats for oceanographic data
 | MATLAB                  | Yes       | Yes       | Yes         | Yes        | Yes        | Zarr only                    |
 | Attributes descriptors  | Dedicated columns, header | Dictionary, accessed with data | Dictionary, separate access from data | Dedicated column | Dedicated field in object | Dictionary, accessed with data |
 
-Another key feature of CrocoLakeTools is that, unlike most aforementioned projects, it is fully open-source. Anyone can thus use CrocoLakeTools to build their own flavor of CrocoLake. We also welcome new contributors to CrocoLakeTools, for example by adding converters to support new datasets.
+Another key feature of CrocoLakeTools is that it is fully open-source. Anyone can thus use CrocoLakeTools to build their own flavor of CrocoLake. We also welcome new contributors to CrocoLakeTools, for example by adding converters to support new datasets.
 
 # Code architecture
 
@@ -116,14 +112,14 @@ The core task of CrocoLakeTools is to take one or more files from a dataset and 
 ## Workflow
 
 ### Local mirrors
-The first step in our workflow is to retrieve original files from each data provider (\autoref{fig:workflow01}). The original source data follow the format, schema, nomenclature, and conventions defined by their side (project, mission, scientist, etc.) independently of CrocoLake's workflow. Modules to download the original data are optional. They are expected to inherit from the `Downloader` class and be called `downloader<DatasetName>` (e.g. `downloaderArgoGDAC`). At the time of writing CrocoLakeTools is released with a downloader to build a local mirror of the Argo Global Data Assembly Center (GDAC), and we hope to support more data providers in the future. Whether a downloader module exists or the user downloads the data themselves, the original data is stored on disk and this is the starting point for the converter. 
+The first step in our workflow is to retrieve original files from each data provider (\autoref{fig:workflow01}). The original source data follow the format, schema, nomenclature, and conventions defined by their provider (project, mission, scientist, etc.) independently of CrocoLake's workflow. Modules to download the original data are optional. They are expected to inherit from the `Downloader` class and be called `downloader<DatasetName>` (e.g. `downloaderArgoGDAC`). At the time of writing CrocoLakeTools is released with a downloader to build a local mirror of the Argo Global Data Assembly Center (GDAC), and we hope to support more data providers in the future. Whether a downloader module exists or the user downloads the data themselves, the original data is stored on disk and this is the starting point for the converter. 
 
 ### Parquet datasets
 The second step is to convert the data to parquet, and finally merge the datasets into CrocoLake (\autoref{fig:workflow02}). The core of `CrocoLakeTools` are the modules in the `Converter` class and its subclasses. Each original dataset has its own subclass called `converter<DatasetName>`, e.g. `converterGLODAP`; further specifiers can be added as necessary (e.g. at this time there a few different converters for Argo data to prepare different datasets). The need for a dedicated converter for each project despite the usage of common data formats (e.g. netCDF, CSV) is due to differences in schema (e.g. variable names or units).
 Depending on the dataset, multiple converters can be applied. For example, to create CrocoLake, Argo data goes through two converters:
 1. `converterArgoGDAC`, which converts the original Argo GDAC preserving most of its original conventions;
 2. `converterArgoQC`, which takes the output of the previous step and applies some filtering based on Argo's QC flags and makes the data conforming to CrocoLake's schema.
-At this time CrocoLakeTools is released with converters for data from Argo [@wong2020argo], Spray Data (@sherman2002autonomous, @rudnick2016spray) and GLODAP (Global Ocean Data Analysis Project, @lauvset2016new, @olsen2016global).
+At this time CrocoLakeTools is released with converters for data from Argo [@wong2020argo], Spray Data (@sherman2002autonomous, @rudnick2016spray) and GLODAP (Global Ocean Data Analysis Project, @key2015global, @lauvset2016new, @olsen2016global).
 
 ### CrocoLake
 CrocoLake is one parquet dataset that contains all converted datasets merged together. This can be achieved with the script `merge_crocolake.py`. The script first creates a directory containing symbolic links to each converted dataset. It then uses the submodule `CrocoLakeLoader` to seamlessly load all the converted datasets into memory as one dask dataframe with a uniform schema, merges them into CrocoLake, and stores it back to disk.
@@ -157,14 +153,14 @@ CrocoLake contains only quality-controlled (QC) measurements. We rely exclusivel
 Each parameter `<PARAM>` has a corresponding `<PARAM>_ERROR` that indicates a measurement's error as provided in the original dataset. When no error is provided, `<PARAM>_ERROR` is set to null.
 
 ## Benchmarking
-We here present a few examples of the advantages and disadvantages in accessing the generated parquet datasets. We compare access to Argo data in a few different scenarios between CrocoLake `argopy` [@maze2020argopy], which is widely used in the community. For the comparison, we use the parquet Argo data generated by `converterArgoGDAC` (i.e. without applying any filtering based on quality-control flags), as it is the version closest to the data served by `argopy`. The parquet dataset is stored on the cloud in a Amazon Web Services Simple Storage Solution (AWS S3) bucket, and `argopy` is called to access data from the Argo GDAC, so the data is always accessed over the internet.
-The parquet data is accessed with Python for comparison with `argopy`; we use `dask` but other packages exist to access parquet data (e.g. `pyarrow`, `duckDB`) and the choice of package can affect the performance.
+We here present a few examples of the advantages and disadvantages in accessing the generated parquet datasets. We compare access to Argo data in a few different scenarios between CrocoLake and `argopy` [@maze2020argopy], which is widely used in the community. For the comparison, we use the parquet Argo data generated by `converterArgoGDAC` (i.e. without applying any filtering based on quality-control flags), as it is the version closest to the data served by `argopy`. The parquet dataset is stored on the cloud in a Amazon Web Services Simple Storage Solution (AWS S3) bucket, and `argopy` is called to access data from the Argo GDAC, so the data is always accessed over the internet.
+The parquet dataset is accessed with Python for comparison with `argopy`; we use `dask` but other packages exist to access parquet data (e.g. `duckDB`, `polars`) and the choice of package can affect the performance.
 
 The goal of this benchmarking exercise is to provide a ballpark estimate of reading performances in a few different scenarios to showcase the potential of including oceanographic datasets in parquet format in scientific workflows; comparison with an existing tool as `argopy` is qualitative to provide a reference to help evaluate the performance of the parquet-based workflow. More generally, the reading performance of a given dataset depends on multiple factors beyond the dataset format itself (coding language, selection parameters, local vs cloud-based access, network connectivty, storage service, etc.).
 
 Benchmarks were performed on a Lenovo ThinkPad P14s Gen 4 equipped with an AMD Ryzen 7 PRO 7840U processor (8 cores, 16 threads, up to 5.13 GHz) and 26 GiB DDR4 RAM. Network connectivity was provided via Wi-Fi: bandwidth measurements indicated an average download speed of 466.41 Mbit/s (10 runs, range: 363.37–555.70 Mbit/s) and an upload speed of 27.34 Mbit/s (10 runs, range: 26.98–27.48 Mbit/s); latency to google.com averaged 26.2 ms (10 measurements, range: 20.9–27.6 ms). All non-essential applications were closed during benchmarking, and measurements were collected immediately prior to the tests to ensure reproducibility.
 
-The following Tables 2 and 3 summarize data loading times for BGC and PHY Argo datasets from AWS S3 (Parquet) versus the `argopy` Python library. Benchmarks include regional/yearly filtering and loading by float WMO ID.
+The following Tables 2 and 3 summarize data loading times for PHY and BGC Argo datasets from AWS S3 (Parquet) versus the `argopy` Python library. Benchmarks include space and time filtering and loading by float WMO ID.
 
 Table 2 -- North West Atlantic Regional Subsets (2017)
 
@@ -190,7 +186,7 @@ Table 3 -- Loading Full Float Records
 
 Notes:
 
-- All timings are mean ± standard deviation (SD) measured over ten runs, except for the "Large" subsets which are measured over two runs.
+- All timings are mean ± standard deviation measured over ten runs, except for the "Large" subsets in Table 2 which are measured over two runs.
 
 - Large/small regional subsets (Table 2) differ by latitude/longitude bounding boxes (see above).
 
@@ -203,10 +199,12 @@ Notes:
     - BGC, single float: 4902410;
     
     - BGC, 20 floats: 6901754, 6901030, 4902409, 6902810, 6901750, 6902805, 6901182, 6902686, 5904989, 6901603, 4902390, 5904770, 1901217, 6901751, 1901208, 6901752, 6902812, 6901023, 6901758, 6901524.
-
+    
 
 ## Documentation and updates
-The [documentation](https://crocolakedocs.readthedocs.io/en/latest/index.html) describes the specifics of each dataset (e.g. what quality-control filter we apply to each dataset, the procedure to generate the profile numbers, etc.), and get updated every time a new feature is made available.
+The [documentation](https://crocolakedocs.readthedocs.io/en/latest/index.html) describes the specifics of each dataset (e.g. what quality-control filter we apply to each dataset, the procedure to generate the profile numbers, etc.), and is updated every time a new feature is made available.
+
+This document reflects the code at the time of publication. Any future updates and changes to the code will be documented in the code `main` branch, which will contain the most recent and best version available of `CrocoLakeTools`.
 
 ## Citation
 If you use CrocoLakeTools and/or CrocoLake, please do not limit yourself to citing this manuscript but also remember to cite the datasets that you have used as indicated in the documentation. For example, if your work relies on Argo measurements, acknowledge Argo [@wong2020argo]. This is important both for the maintainers of each product to track their impact and to acknowledge their efforts that made your work possible.
@@ -215,7 +213,9 @@ If you use CrocoLakeTools and/or CrocoLake, please do not limit yourself to citi
 
  [NASA ECCO NSC...].
 This material is based upon work supported by the National Science Foundation under Grant No. 2311382, "Collaborative Research: Frameworks: A community platform for accelerating observationally-constrained regional oceanographic modeling."
+
 The Argo data are collected and made freely available by the International Argo Program and the national programs that contribute to it (https://argo.ucsd.edu,  https://www.ocean-ops.org). The Argo Program is part of the Global Ocean Observing System.
+
 
 # References
 
