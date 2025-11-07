@@ -132,13 +132,13 @@ CrocoLake can be accessed with several programming languages with just a few lin
 
 \begin{figure}[h!]
     \centering
-    \includegraphics[width=\textwidth]{workflow_01.png}
+    \includegraphics[width=\textwidth]{workflow_01_highres.png}
     \caption{CrocoLake's workflow: `downloader`s. `CrocoLakeTools` is set up to host modules that are dedicated to download the desired datasets from the web. It currently supports the download only of Argo data (solid line subset), and other datasets require the user to download them manually (dashed border subsets). Argo, Spray Data and GLODAP (Global Ocean Data Analysis Project) are the different data providers supported at the time of submission. \label{fig:workflow01}}
 \end{figure}
 
 \begin{figure}[h!]
     \centering
-    \includegraphics[width=\textwidth]{workflow_02.png}
+    \includegraphics[width=\textwidth]{workflow_02_highres.png}
     \caption{CrocoLake's workflow: `converter`s. `converter`s read the data in their original format, transform it following CrocoLake's conventions, converts it to parquet, and stores it back to disk. Each dataset is converted to its own parquet version. Thanks to the submodule `CrocoLakeLoader`, multiple parquet datasets are merged into a uniform dataframe which is saved to disk as CrocoLake. For each dataset, a version containing only physical variables (`PHY`) or also biogeochemical variables (`BGC`) can be generated. \label{fig:workflow02}}
 \end{figure}
 
