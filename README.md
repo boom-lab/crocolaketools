@@ -10,6 +10,7 @@ It is composed of two submodules, `downloader` and `converter`, which retrieve t
 3. [converter](#converter)
 4. [downloader](#downloader)
 5. [Available sources](#available-sources)
+6. [Running Examples](#running-examples)
 
 ### Installation
 Clone the repository locally with its submodules:
@@ -97,3 +98,100 @@ As of this release, CrocoLake includes all the [Argo](https://argo.ucsd.edu/) ph
 We are always working on including new sources, and we are currently working on importing the [Oleander XBT data](https://www.aoml.noaa.gov/phod/goos/oleander/intro.php) and the [TPOS USV (Saildrones)](https://www.pmel.noaa.gov/ocs/tpos-usv).
 
 If you are interested in a particular dataset to be added, [get in touch](enrico.milanese@whoi.edu)!
+
+### Running Examples
+
+#### Julia Example
+
+The `examples/julia/` directory contains a Jupyter notebook demonstrating how to read and visualize CrocoLake data using Julia.
+
+**Prerequisites:**
+- [juliaup](https://github.com/JuliaLang/juliaup) installed on your system
+- Jupyter Lab or Jupyter Notebook
+
+**Setup:**
+
+1. Install Julia (if not already installed):
+   ```bash
+   juliaup default release
+   ```
+
+2. Navigate to the Julia examples directory:
+   ```bash
+   cd examples/julia
+   ```
+
+3. Install Julia package dependencies:
+   ```bash
+   julia --project=. -e 'using Pkg; Pkg.instantiate()'
+   ```
+
+4. Build IJulia to register the kernel with Jupyter:
+   ```bash
+   julia --project=. -e 'using Pkg; Pkg.build("IJulia")'
+   ```
+
+5. Launch Jupyter Lab:
+   ```bash
+   jupyter lab crocolake_example.ipynb
+   ```
+
+The notebook demonstrates how to:
+- Load CrocoLake parquet data using `ArgoData.jl`
+- Filter data by region and time period
+- Create temperature maps of the North West Atlantic
+- Visualize data from multiple sources (Argo, GLODAP, Spray Gliders)
+
+#### Python Example
+
+The `examples/python/` directory contains a Jupyter notebook demonstrating how to read and visualize CrocoLake data using Python.
+
+**Prerequisites:**
+- Python environment with the packages installed from the root repository (see [Installation](#installation))
+
+**Setup:**
+
+The Python environment created during installation already includes all necessary dependencies (`pandas`, `pyarrow`, `matplotlib`, etc.).
+
+1. Navigate to the Python examples directory:
+   ```bash
+   cd examples/python
+   ```
+
+2. Launch Jupyter Lab:
+   ```bash
+   jupyter lab Example_CrocoLakePHY_Map_Temperature.ipynb
+   ```
+
+The notebook demonstrates how to:
+- Load CrocoLake parquet data using `pandas` and `pyarrow`
+- Apply filters by region, time period, and pressure
+- Create temperature maps of the North West Atlantic
+- Work with data from multiple sources (Argo, GLODAP, Spray Gliders)
+
+#### MATLAB Example
+
+The `examples/matlab/` directory contains a MATLAB script demonstrating how to read and visualize CrocoLake data using MATLAB.
+
+**Prerequisites:**
+- MATLAB R2019a or later (required for native Parquet support)
+
+**Setup:**
+
+1. Navigate to the MATLAB examples directory in MATLAB:
+   ```matlab
+   cd examples/matlab
+   ```
+
+2. Run the example script:
+   ```matlab
+   Example_CROCOLAKE_PHY
+   ```
+
+The script demonstrates how to:
+- Load CrocoLake parquet data using `parquetDatastore`
+- Filter data by region, time period, and pressure
+- Create temperature maps by data source
+- Work with multiple datasets simultaneously
+
+**Note:** MATLAB's native Parquet support was introduced in R2019a. For optimal performance and compatibility, we recommend using R2020b or later.
