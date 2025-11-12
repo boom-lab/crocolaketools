@@ -18,7 +18,7 @@
 % when calling parquetDatastore().
 %
 
-parquetPath = fullfile("../crocolaketools/demo/parquet/demo_CROCOLAKE_PHY/");
+parquetPath = fullfile("../../crocolaketools/demo/parquet/demo_CROCOLAKE_PHY/");
 location = matlab.io.datastore.FileSet(parquetPath,"FileExtensions",".parquet"); % for faster parsing
 selectVariables = [...
     "DB_NAME",...
