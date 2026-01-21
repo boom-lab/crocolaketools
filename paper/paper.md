@@ -1,4 +1,4 @@
----
+<img width="66" height="17" alt="image" src="https://github.com/user-attachments/assets/53b6706f-efc2-4b19-8551-779c32bc93b5" />---
 title: 'CrocoLakeTools: A Python package to convert ocean observations to the parquet format'
 tags:
   - Python
@@ -211,8 +211,7 @@ If you use CrocoLakeTools and/or CrocoLake, please do not limit yourself to citi
 
 # Acknowledgements
 
- [NASA ECCO NSC...].
-This material is based upon work supported by the National Science Foundation under Grant No. 2311382, "Collaborative Research: Frameworks: A community platform for accelerating observationally-constrained regional oceanographic modeling."
+This material is based upon work supported by the National Science Foundation under Grant No. 2311382, "Collaborative Research: Frameworks: A community platform for accelerating observationally-constrained regional oceanographic modeling." G.F. acknowledges funding from NASA award 1686358, NOAA award 035724-00001, and ARIA's POLEMIX award.
 
 The Argo data are collected and made freely available by the International Argo Program and the national programs that contribute to it (https://argo.ucsd.edu,  https://www.ocean-ops.org). The Argo Program is part of the Global Ocean Observing System.
 
