@@ -1,4 +1,4 @@
-<img width="66" height="17" alt="image" src="https://github.com/user-attachments/assets/53b6706f-efc2-4b19-8551-779c32bc93b5" />---
+----
 title: 'CrocoLakeTools: A Python package to convert ocean observations to the parquet format'
 tags:
   - Python
