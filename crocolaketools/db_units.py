@@ -16,7 +16,7 @@ import copy
 #------------------------------------------------------------------------------#
 #
 # List of databases and their folder names
-databases = ["ARGO", "GLODAP", "SprayGliders", "CPR", "Saildrones", "Oleander"]
+databases = ["ARGO", "GLODAP", "SprayGliders", "CPR", "Saildrones", "OleanderXBT"]
 
 databases_codenames = {}
 databases_codenames["ARGO"] = "ARGO" #"ARGO-CLOUD"
@@ -24,7 +24,7 @@ databases_codenames["GLODAP"] = "GLODAP"#"GLODAP-DEV"
 databases_codenames["SprayGliders"] = "SPRAY"#"SPRAY-DEV"
 databases_codenames["CPR"] = "CPR"#"SPRAY-DEV"
 databases_codenames["Saildrones"] = "SAILDRONES"#"SAILDRONES-DEV"
-databases_codenames["Oleander"] = "OLEANDER"#"OLEANDER-DEV"
+databases_codenames["OleanderXBT"] = "OLEANDER"#"OLEANDER-DEV"
 
 params = {}
 units  = {}
@@ -819,12 +819,12 @@ params["Saildrones_depth_map"].update({k.replace("_MEAN", "_STDDEV"): v for k, v
                                        params["Saildrones_depth_map"].items() if "_MEAN" in k})
 
 #------------------------------------------------------------------------------#
-# Oleander
+# OleanderXBT
 #
 # original names of parameters to keep
 #
 
-params["Oleander"] = [
+params["OleanderXBT"] = [
     'trajectory',
     'profile',
     'latitude',
@@ -837,7 +837,7 @@ params["Oleander"] = [
 #
 # dict for renaming parameters to crocolake names
 #
-params["Oleander2CROCOLAKE"] = {
+params["OleanderXBT2CROCOLAKE"] = {
     'trajectory' : 'PLATFORM_NUMBER',
     'profile' : 'CYCLE_NUMBER',
     'latitude' : 'LATITUDE',
