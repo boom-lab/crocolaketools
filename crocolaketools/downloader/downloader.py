@@ -5,6 +5,8 @@
 # Base class for CrocoLakeTools downloaders.
 #
 ## @author Enrico Milanese <enrico.milanese@whoi.edu>
+#         Updated by David Nady <davidnady4yad@gmail.com>
+#         Updated by Mahi Sarwar Anol <anol.mahi@gmail.com>
 #
 ## @date Tue 11 Feb 2025
 
