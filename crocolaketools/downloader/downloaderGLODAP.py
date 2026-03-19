@@ -121,7 +121,7 @@ class DownloaderGLODAP(Downloader):
         if self._is_already_downloaded(local_path):
             print(
                 f"File already present at {local_path}. "
-                "Use overwrite=True to force re-download."
+                "Use overwrite=True or use '--overwrite' flag to force re-download."
             )
             return local_path
 
