@@ -242,14 +242,14 @@ class TestGLODAPDownload:
         d = DownloaderGLODAP()
         d.input_path = str(tmp_path) + "/"
         zip_path = os.path.join(d.input_path, GLODAP_MASTER_FNAME + ".zip")
-
+        expected_path = os.path.join(d.input_path, GLODAP_MASTER_FNAME)
         with patch.object(DownloaderGLODAP, "get_url", return_value=GLODAP_URL_GEOMAR), \
              patch.object(DownloaderGLODAP, "_download_file") as mock_dl, \
              patch.object(DownloaderGLODAP, "unzip_file") as mock_unzip:
-            d.glodap_download()
+            result=d.glodap_download()
             mock_dl.assert_called_once_with(GLODAP_URL_GEOMAR, zip_path)
             mock_unzip.assert_called_once_with(zip_path)
-
+        assert result == expected_path
     def test_overwrite_triggers_redownload(self, tmp_path, mock_base_downloader):
         """Existing file is re-downloaded when overwrite=True."""
         d = DownloaderGLODAP(overwrite=True)
