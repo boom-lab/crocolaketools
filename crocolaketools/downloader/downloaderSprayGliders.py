@@ -173,7 +173,6 @@ class DownloaderSprayGliders(Downloader):
                 url,
                 timeout=5,
                 stream=True,
-                # headers={"User-Agent": "Mozilla/5.0"}, 
             )
             if response.ok:
                 response.close()
