@@ -85,7 +85,7 @@ class TestSaildronesErddapDownload:
         mock_get.return_value = mock_resp
 
         dl = DownloaderSaildrones()
-        dl.saildrones_erddap(save_to=str(tmp_path), dryrun=False, verbose=False)
+        dl.download_from_erddap(save_to=str(tmp_path), dryrun=False, verbose=False)
         
         mock_get.assert_called_once()
         mock_copy.assert_called_once()
@@ -105,7 +105,7 @@ class TestSaildronesErddapDownload:
         mock_get_time.return_value = datetime(1990, 1, 1, tzinfo=timezone.utc)
         
         dl = DownloaderSaildrones()
-        dl.saildrones_erddap(save_to=str(tmp_path), checktime=True, verbose=False)
+        dl.download_from_erddap(save_to=str(tmp_path), checktime=True, verbose=False)
         mock_get.assert_not_called()
 
     @patch.object(DownloaderSaildrones, "get_time_url")
@@ -128,7 +128,7 @@ class TestSaildronesErddapDownload:
         mock_get.return_value = mock_resp
 
         dl = DownloaderSaildrones()
-        dl.saildrones_erddap(save_to=str(tmp_path), checktime=True, verbose=False)
+        dl.download_from_erddap(save_to=str(tmp_path), checktime=True, verbose=False)
         mock_get.assert_called_once()
         mock_copy.assert_called_once()
 
@@ -143,7 +143,7 @@ class TestSaildronesErddapDownload:
         test_file.touch()
         
         dl = DownloaderSaildrones()
-        dl.saildrones_erddap(save_to=str(tmp_path), checktime=False, overwrite=False, verbose=False)
+        dl.download_from_erddap(save_to=str(tmp_path), checktime=False, overwrite=False, verbose=False)
         mock_get.assert_not_called()
 
     @patch("crocolaketools.downloader.downloader_saildrones.shutil.copyfileobj")
@@ -162,7 +162,7 @@ class TestSaildronesErddapDownload:
         mock_get.return_value = mock_resp
 
         dl = DownloaderSaildrones()
-        dl.saildrones_erddap(save_to=str(tmp_path), checktime=False, overwrite=True, verbose=False)
+        dl.download_from_erddap(save_to=str(tmp_path), checktime=False, overwrite=True, verbose=False)
         mock_get.assert_called_once()
         mock_copy.assert_called_once()
 
@@ -173,13 +173,13 @@ class TestSaildronesErddapDownload:
         mock_get_ids.return_value = ["sd_test_data"]
         
         dl = DownloaderSaildrones()
-        dl.saildrones_erddap(save_to=str(tmp_path), dryrun=True, verbose=False)
+        dl.download_from_erddap(save_to=str(tmp_path), dryrun=True, verbose=False)
         mock_get.assert_not_called()
 
 class TestSaildronesDownloadMethod:
     """Testing wrapper call structure inside logic controller DownloaderSaildrones"""
 
-    @patch.object(DownloaderSaildrones, "saildrones_erddap")
+    @patch.object(DownloaderSaildrones, "download_from_erddap")
     def test_saildrones_download_parameter_mapping(self, mock_erddap):
         """Validates parameter propagation directly back into tool chain"""
         downloader = DownloaderSaildrones()

@@ -39,7 +39,7 @@ class DownloaderSaildrones(Downloader):
 
     #------------------------------------------------------------------------------#
     # Saildrones ERDDAP download function
-    def saildrones_erddap(self, save_to='./', dryrun=False, verbose=True, overwrite=False, checktime=True, search_for="TPOS", id_prefix="sd"):
+    def download_from_erddap(self, save_to='./', dryrun=False, verbose=True, overwrite=False, checktime=True, search_for="TPOS", id_prefix="sd"):
         """
         Downloads Saildrones files from ERDDAP
 
@@ -186,7 +186,7 @@ class DownloaderSaildrones(Downloader):
         start_time = time.time()
         print("Downloading Saildrones from ERDDAP...")
         
-        self.saildrones_erddap(
+        self.download_from_erddap(
             save_to=outdir_nc,
             dryrun=dryrun_flag,
             verbose=True,
