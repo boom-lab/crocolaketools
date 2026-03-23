@@ -2,20 +2,27 @@
 
 ## @file downloader.py
 #
+# Base class for CrocoLakeTools downloaders.
 #
 ## @author Enrico Milanese <enrico.milanese@whoi.edu>
 #         Updated by David Nady <davidnady4yad@gmail.com>
+#         Updated by Mahi Sarwar Anol <anol.mahi@gmail.com>
 #
 ## @date Tue 11 Feb 2025
 
 ##########################################################################
-# imports
-##########################################################################
-import os
-import yaml
-import warnings
 import importlib.resources
+import os
+import shutil
+import warnings
+import zipfile
+
+import requests
+import yaml
+from tqdm import tqdm
+
 from crocolakeloader import params
+##########################################################################
 
 
 class Downloader:
@@ -100,6 +107,70 @@ class Downloader:
     # ------------------------------------------------------------------ #
     # Methods                                                            #
     # ------------------------------------------------------------------ #
+
+    def _is_already_downloaded(self, local_path: str) -> bool:
+        """Return True if the file exists on disk and overwrite is False.
+
+        Parameters
+        ----------
+        local_path : absolute path to the expected local file.
+
+        Returns
+        -------
+        bool
+            True if the file should be skipped (exists and overwrite=False).
+        """
+        return (not self.overwrite) and os.path.isfile(local_path)
+
+    @staticmethod
+    def _download_file(url: str, local_path: str) -> None:
+        """Stream url to local_path with a tqdm progress bar.
+
+        Parameters
+        ----------
+        url        : remote URL to fetch.
+        local_path : destination file path (parent directory must exist).
+
+        Raises
+        ------
+        requests.exceptions.RequestException
+            Propagated from requests on any HTTP or connection error.
+        """
+        with requests.get(url, stream=True, timeout=120) as response:
+            response.raise_for_status()
+            total_size = int(response.headers.get("content-length", 0))
+            with open(local_path, "wb") as fh, tqdm(
+                desc=os.path.basename(local_path),
+                total=total_size,
+                unit="iB",
+                unit_scale=True,
+                unit_divisor=1024,
+            ) as bar:
+                for chunk in response.iter_content(chunk_size=8192):
+                    size = fh.write(chunk)
+                    bar.update(size)
+
+    @staticmethod
+    def unzip_file(zip_path: str) -> None:
+        """Extract a zip archive to its parent directory and delete the zip.
+
+        Cleans up any __MACOSX metadata folder that macOS-created archives
+        may include.
+
+        Parameters
+        ----------
+        zip_path : path to the zip file to extract.
+        """
+        extract_dir = os.path.dirname(zip_path)
+        with zipfile.ZipFile(zip_path, "r") as zip_ref:
+            zip_ref.extractall(extract_dir)
+
+        # Remove __MACOSX metadata folder if present
+        macosx_path = os.path.join(extract_dir, "__MACOSX")
+        if os.path.exists(macosx_path) and os.path.isdir(macosx_path):
+            shutil.rmtree(macosx_path)
+
+        os.remove(zip_path)
 
 ##########################################################################
 if __name__ == "__main__":
