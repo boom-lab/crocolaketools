@@ -13,7 +13,7 @@ import argparse
 from crocolaketools.downloader.downloader_saildrones import DownloaderSaildrones
 from datetime import datetime
 
-def download_saildrones(out_dir, search_for="TPOS", id_prefix="sd"):
+def download_saildrones(out_dir, search_for="TPOS", id_prefix="sd", overwrite=False, dryrun=False):
     """Download OCS Saildrones files using Downloader Saildrones Submodule."""
     
     # Resolve the absolute path
@@ -23,13 +23,20 @@ def download_saildrones(out_dir, search_for="TPOS", id_prefix="sd"):
     print(f"Initializing Saildrone downloader...")
     print(f"Target Output Directory: {out_dir}")
 
+    # Initialize leveraging the required Base Class Config Dictionary
+    config = {
+        'db': 'Saildrones',
+        'db_type': 'PHY', 
+        'input_path': out_dir,
+        'overwrite': overwrite,
+        'dryrun': dryrun
+    }
+
     # Instantiate the downloader and start downloading
-    downloader = DownloaderSaildrones()
+    downloader = DownloaderSaildrones(config=config)
     downloader.saildrones_download(
-        outdir_nc=out_dir, 
         search_for=search_for, 
-        id_prefix=id_prefix,
-        dryrun_flag=False
+        id_prefix=id_prefix
     )
 
     return
@@ -55,10 +62,19 @@ def main():
         default="sd",
         help="Dataset ID prefix required"
     )
+    parser.add_argument(
+        "--overwrite", 
+        action="store_true", 
+        help="Overwrite existing files locally."
+    )
+    parser.add_argument(
+        "--dryrun", 
+        action="store_true", 
+        help="Print files without downloading."
+    )
     
     args = parser.parse_args()
-
-    download_saildrones(args.out_dir, args.search_for, args.id_prefix)
+    download_saildrones(args.out_dir, args.search_for, args.id_prefix, args.overwrite, args.dryrun)
 
 ##########################################################################
 

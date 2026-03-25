@@ -12,9 +12,7 @@ import os
 import time
 import requests
 import urllib3
-import shutil
 import pandas as pd
-from pathlib import Path
 from datetime import datetime
 from dateutil.parser import parse as parsedate
 from io import StringIO
@@ -30,8 +28,24 @@ class DownloaderSaildrones(Downloader):
     # Constructors/Destructors                                           #
     # ------------------------------------------------------------------ #
 
-    def __init__(self):
-        return
+    def __init__(self, config=None):
+        """
+        Initialize the Saildrones Downloader inheriting from the base Downloader.
+        """
+        if config is None:
+            # Fallback configuration if not explicitly provided
+            config = {
+                'db': 'Saildrones', 
+                'db_type': 'PHY', 
+                'input_path': 'data/original/Saildrones',
+                'overwrite': False,
+                'dryrun': False
+            }
+            
+        super().__init__(config)
+        # Set attributes required by base class methods (_is_already_downloaded)
+        self.overwrite = config.get('overwrite', False)
+        self.dryrun = config.get('dryrun', False)
 
     # ------------------------------------------------------------------ #
     # Methods                                                            #
@@ -39,25 +53,18 @@ class DownloaderSaildrones(Downloader):
 
     #------------------------------------------------------------------------------#
     # Saildrones ERDDAP download function
-    def download_from_erddap(self, save_to='./', dryrun=False, verbose=True, overwrite=False, checktime=True, search_for="TPOS", id_prefix="sd"):
+    def download_from_erddap(self, verbose=True, checktime=True, search_for="TPOS", id_prefix="sd"):
         """
         Downloads Saildrones files from ERDDAP
 
         Arguments:
-            save_to (str): Local directory to save downloaded NetCDF files.
-            dryrun (bool): If True, only print the files that would be downloaded without actually downloading them.
             verbose (bool): If True, print detailed logs of the download process.
-            overwrite (bool): If True, overwrite existing files (neglected if checktime is true).
             checktime (bool): If True, download file if it is newer than the file on disk.
             search_for (str): ERDDAP search keyword constraint.
             id_prefix (str): Dataset ID prefix required.
         """
         server = "https://data.pmel.noaa.gov/pmel/erddap"
-
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-        
-        # Ensure the save directory exists
-        Path(save_to).mkdir(parents=True, exist_ok=True)
         
         dataset_ids = self.get_dataset_ids(server, search_for=search_for, id_prefix=id_prefix)
         
@@ -68,9 +75,9 @@ class DownloaderSaildrones(Downloader):
             # Construct download URL (netcdf format)
             dataset_url = f"{server}/tabledap/{dataset_id}.nc"
 
-            # Construct local path for the file
+            # Construct local path using the base class input_path
             filename = f"{dataset_id}.nc"
-            localfile = os.path.join(save_to, filename)
+            localfile = os.path.join(self.input_path, filename)
             
             if verbose:
                 print(f">>>> Destination file: {localfile}.")
@@ -91,7 +98,7 @@ class DownloaderSaildrones(Downloader):
                         else:
                             if verbose:
                                 print(f">>> File {filename} has a newer version on ERDDAP. Downloading...")
-                elif not overwrite:
+                elif self._is_already_downloaded(localfile):
                     if verbose:
                         print(f">>> File {filename} already exists. Skipping download.")
                     continue
@@ -101,27 +108,25 @@ class DownloaderSaildrones(Downloader):
             
 
             # Skip actual download if dryrun
-            if dryrun:
+            if self.dryrun:
                 if verbose:
                     print(f">>> (Dry-run) Would download {filename} from {dataset_url}")
                 continue
             
             print(f">>> Downloading {filename} from {dataset_url}...")
             try:
-                response = requests.get(dataset_url, stream=True, verify=False)
-                
-                if response.status_code == 404:
-                    if verbose:
-                        print(f">>> File {filename} returned 404 error during download (requested URL: {dataset_url}).")
-                    continue
-                    
-                with open(localfile, 'wb') as out_file:
-                    shutil.copyfileobj(response.raw, out_file)
-                    del response
-                    
+                self._download_file(dataset_url, localfile)
                 if verbose:
                     print(f">>> Successfully downloaded {filename}.")
-                    
+            except requests.exceptions.HTTPError as e:
+                # Handling status codes natively raised by _download_file's raise_for_status()
+                if e.response.status_code == 404:
+                    if verbose:
+                        print(f">>> File {filename} returned 404 error during download.")
+                else:
+                    print(f"HTTP error occurred: {e}")
+                    if os.path.exists(localfile):
+                        os.remove(localfile)
             except Exception as e:
                 print("The following error occurred:", e)
                 if verbose:
@@ -129,13 +134,11 @@ class DownloaderSaildrones(Downloader):
                     if os.path.exists(localfile):
                         os.remove(localfile)
                     
-        if (not dryrun) and verbose:
+        if (not self.dryrun) and verbose:
             print("All requested files have been downloaded.")
             
         return
 
-    #------------------------------------------------------------------------------#
-    # Get url file modification time
     def get_time_url(self, dataset_id, server="https://data.pmel.noaa.gov/pmel/erddap"):
         """
         Get the most recent modification time of the ERDDAP dataset.
@@ -181,14 +184,11 @@ class DownloaderSaildrones(Downloader):
             print(f"Failed to fetch dataset IDs: {e_msg}")
             return []
 
-    def saildrones_download(self, outdir_nc, search_for, id_prefix, dryrun_flag):
-
+    def saildrones_download(self, search_for="TPOS", id_prefix="sd"):
         start_time = time.time()
         print("Downloading Saildrones from ERDDAP...")
         
         self.download_from_erddap(
-            save_to=outdir_nc,
-            dryrun=dryrun_flag,
             verbose=True,
             checktime=True,
             search_for=search_for,
@@ -204,5 +204,4 @@ class DownloaderSaildrones(Downloader):
 ##########################################################################
 
 if __name__ == "__main__":
-    DownloaderSaildrones().saildrones_download(outdir_nc='.', dryrun_flag=False)
-
+    DownloaderSaildrones().saildrones_download()

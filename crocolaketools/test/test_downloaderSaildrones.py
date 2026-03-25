@@ -15,15 +15,20 @@ import pandas as pd
 from datetime import datetime, timezone
 
 from crocolaketools.downloader.downloader_saildrones import DownloaderSaildrones
+from crocolaketools.downloader.downloader import Downloader
 ##########################################################################
 
+# Mock the base init to bypass config/yaml loading during testing
+@pytest.fixture(autouse=True)
+def mock_base_init():
+    with patch.object(Downloader, '__init__', lambda self, config: None):
+        yield
 
 class TestDownloaderSaildronesInit:
     """Tests for DownloaderSaildrones class inheritance and init method"""
 
     def test_inherits_downloader(self):
         """DownloaderSaildrones is a subclass of Downloader."""
-        from crocolaketools.downloader.downloader import Downloader
         assert issubclass(DownloaderSaildrones, Downloader)
 
 
@@ -72,29 +77,23 @@ class TestSaildronesTools:
 
 class TestSaildronesErddapDownload:
     """Tests for the actual downloading and modification logic sequence"""
-
-    @patch("crocolaketools.downloader.downloader_saildrones.requests.get")
-    @patch("crocolaketools.downloader.downloader_saildrones.shutil.copyfileobj")
+    @patch.object(DownloaderSaildrones, "_download_file")
     @patch.object(DownloaderSaildrones, "get_dataset_ids")
-    def test_saildrones_erddap_fresh_download(self, mock_get_ids, mock_copy, mock_get, tmp_path):
-        """Requests block correctly executes and triggers file copy given no local file present"""
+    def test_saildrones_erddap_fresh_download(self, mock_get_ids, mock_download, tmp_path):
         mock_get_ids.return_value = ["sd_test_data"]
         
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_get.return_value = mock_resp
-
         dl = DownloaderSaildrones()
-        dl.download_from_erddap(save_to=str(tmp_path), dryrun=False, verbose=False)
+        dl.input_path = str(tmp_path)
+        dl.dryrun = False
+        dl.overwrite = False
         
-        mock_get.assert_called_once()
-        mock_copy.assert_called_once()
+        dl.download_from_erddap(verbose=False)
+        mock_download.assert_called_once()
 
     @patch.object(DownloaderSaildrones, "get_time_url")
     @patch.object(DownloaderSaildrones, "get_dataset_ids")
-    @patch("crocolaketools.downloader.downloader_saildrones.requests.get")
-    def test_saildrones_erddap_checktime_skip(self, mock_get, mock_get_ids, mock_get_time, tmp_path):
-        """No download request dispatched if local file modifies date exceeds remote date (skip)"""
+    @patch.object(DownloaderSaildrones, "_download_file")
+    def test_saildrones_erddap_checktime_skip(self, mock_download, mock_get_ids, mock_get_time, tmp_path):
         mock_get_ids.return_value = ["sd_test_data"]
         
         # Simulate local file that already exists natively on the runner
@@ -105,14 +104,17 @@ class TestSaildronesErddapDownload:
         mock_get_time.return_value = datetime(1990, 1, 1, tzinfo=timezone.utc)
         
         dl = DownloaderSaildrones()
-        dl.download_from_erddap(save_to=str(tmp_path), checktime=True, verbose=False)
-        mock_get.assert_not_called()
+        dl.input_path = str(tmp_path)
+        dl.dryrun = False
+        dl.overwrite = False
+        
+        dl.download_from_erddap(checktime=True, verbose=False)
+        mock_download.assert_not_called()
 
     @patch.object(DownloaderSaildrones, "get_time_url")
     @patch.object(DownloaderSaildrones, "get_dataset_ids")
-    @patch("crocolaketools.downloader.downloader_saildrones.requests.get")
-    @patch("crocolaketools.downloader.downloader_saildrones.shutil.copyfileobj")
-    def test_saildrones_erddap_checktime_download_newer(self, mock_copy, mock_get, mock_get_ids, mock_get_time, tmp_path):
+    @patch.object(DownloaderSaildrones, "_download_file")
+    def test_saildrones_erddap_checktime_download_newer(self, mock_download, mock_get_ids, mock_get_time, tmp_path):
         """Download request IS dispatched if remote file modification date exceeds local file date"""
         mock_get_ids.return_value = ["sd_test_data"]
         
@@ -120,21 +122,18 @@ class TestSaildronesErddapDownload:
         test_file = tmp_path / "sd_test_data.nc"
         test_file.touch()
         
-        # Mock remote file as far in the future
-        mock_get_time.return_value = datetime(2099, 1, 1, tzinfo=timezone.utc)
-        
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_get.return_value = mock_resp
-
+        mock_get_time.return_value = datetime(2099, 1, 1, tzinfo=timezone.utc)    
         dl = DownloaderSaildrones()
-        dl.download_from_erddap(save_to=str(tmp_path), checktime=True, verbose=False)
-        mock_get.assert_called_once()
-        mock_copy.assert_called_once()
+        dl.input_path = str(tmp_path)
+        dl.dryrun = False
+        dl.overwrite = False
+        
+        dl.download_from_erddap(checktime=True, verbose=False)
+        mock_download.assert_called_once()
 
     @patch.object(DownloaderSaildrones, "get_dataset_ids")
-    @patch("crocolaketools.downloader.downloader_saildrones.requests.get")
-    def test_saildrones_erddap_overwrite_skip(self, mock_get, mock_get_ids, tmp_path):
+    @patch.object(DownloaderSaildrones, "_download_file")
+    def test_saildrones_erddap_overwrite_skip(self, mock_download, mock_get_ids, tmp_path):
         """Skip download context when checktime is False and overwrite is False"""
         mock_get_ids.return_value = ["sd_test_data"]
         
@@ -143,38 +142,47 @@ class TestSaildronesErddapDownload:
         test_file.touch()
         
         dl = DownloaderSaildrones()
-        dl.download_from_erddap(save_to=str(tmp_path), checktime=False, overwrite=False, verbose=False)
-        mock_get.assert_not_called()
+        dl.input_path = str(tmp_path)
+        dl.overwrite = False
+        dl.dryrun = False
+        # Mock the base method since we don't init properly
+        dl._is_already_downloaded = lambda f: True
+        
+        dl.download_from_erddap(checktime=False, verbose=False)
+        mock_download.assert_not_called()
 
-    @patch("crocolaketools.downloader.downloader_saildrones.shutil.copyfileobj")
     @patch.object(DownloaderSaildrones, "get_dataset_ids")
-    @patch("crocolaketools.downloader.downloader_saildrones.requests.get")
-    def test_saildrones_erddap_overwrite_force(self, mock_get, mock_get_ids, mock_copy, tmp_path):
+    @patch.object(DownloaderSaildrones, "_download_file")
+    def test_saildrones_erddap_overwrite_force(self, mock_download, mock_get_ids, tmp_path):
         """Execute download when checktime is False and overwrite is True"""
         mock_get_ids.return_value = ["sd_test_data"]
         
         # Simulate local file that already exists natively on the runner
         test_file = tmp_path / "sd_test_data.nc"
         test_file.touch()
-        
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_get.return_value = mock_resp
 
         dl = DownloaderSaildrones()
-        dl.download_from_erddap(save_to=str(tmp_path), checktime=False, overwrite=True, verbose=False)
-        mock_get.assert_called_once()
-        mock_copy.assert_called_once()
+        dl.input_path = str(tmp_path)
+        dl.overwrite = True
+        dl.dryrun = False
+        dl._is_already_downloaded = lambda f: False
+        
+        dl.download_from_erddap(checktime=False, verbose=False)
+        mock_download.assert_called_once()
 
-    @patch("crocolaketools.downloader.downloader_saildrones.requests.get")
     @patch.object(DownloaderSaildrones, "get_dataset_ids")
-    def test_saildrones_erddap_dryrun(self, mock_get_ids, mock_get, tmp_path):
+    @patch.object(DownloaderSaildrones, "_download_file")
+    def test_saildrones_erddap_dryrun(self, mock_download, mock_get_ids, tmp_path):
         """Ensure dryrun skips all download blocks and purely prints behavior"""
         mock_get_ids.return_value = ["sd_test_data"]
         
         dl = DownloaderSaildrones()
-        dl.download_from_erddap(save_to=str(tmp_path), dryrun=True, verbose=False)
-        mock_get.assert_not_called()
+        dl.input_path = str(tmp_path)
+        dl.dryrun = True
+        dl.overwrite = False
+        
+        dl.download_from_erddap(verbose=False)
+        mock_download.assert_not_called()
 
 class TestSaildronesDownloadMethod:
     """Testing wrapper call structure inside logic controller DownloaderSaildrones"""
@@ -185,15 +193,11 @@ class TestSaildronesDownloadMethod:
         downloader = DownloaderSaildrones()
         
         downloader.saildrones_download(
-            outdir_nc="./dummy", 
             search_for="TPOS", 
-            id_prefix="sd",
-            dryrun_flag=True
+            id_prefix="sd"
         )
         
         mock_erddap.assert_called_once_with(
-            save_to="./dummy",
-            dryrun=True,
             verbose=True,
             checktime=True,
             search_for="TPOS",
