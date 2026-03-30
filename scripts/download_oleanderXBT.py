@@ -5,144 +5,136 @@
 # CLI for downloading OleanderXBT data.
 #
 ## @author David Nady <davidnady4yad@gmail.com>
+#         Refactored by mahi-anol
 #
 ## @date Wed 23 Jul 2025
 
-############################################################################
+##########################################################################
 import argparse
-import importlib.resources
-import yaml
-from pprint import pprint
-import requests
-import re
-import html
-from crocolaketools.downloader.downloaderOleanderXBT import DownloaderURLList
-############################################################################
+from datetime import datetime
+
+from crocolaketools.downloader.downloaderOleanderXBT import (
+    OLEANDER_BASE_URL,
+    DownloaderURLList,
+)
+##########################################################################
+
 
 def main():
-    parser = argparse.ArgumentParser(description='Download OleanderXBT data from a list of URLs or by specifying years.')
+    parser = argparse.ArgumentParser(
+        description='Download OleanderXBT data from a list of URLs or by specifying years.'
+    )
     parser.add_argument(
-        '-u', 
-        '--url_file', 
+        '-u', '--url_file',
         help='Path to a text file containing a list of URLs to download.'
     )
     parser.add_argument(
-        '--start_year', 
-        type=int, 
+        '--start_year',
+        type=int,
         help='Start year for downloading OleanderXBT data (e.g., 2020).'
     )
     parser.add_argument(
-        '--end_year', 
-        type=int, 
+        '--end_year',
+        type=int,
         help='End year for downloading OleanderXBT data (e.g., 2024).'
     )
     parser.add_argument(
         '--base_url',
         type=str,
-        default="http://erddap.oleander.bios.edu:8080/erddap/files/oleanderXbtNcFiles",
-        help="The base URL for constructing download links for year-based downloads."
+        default=OLEANDER_BASE_URL,
+        help='Base URL for constructing download links (default: ERDDAP OleanderXBT).'
     )
     parser.add_argument(
-        '--save_to', 
+        '--save_to',
         type=str,
-        help="Directory to save downloaded and unzipped files",
-        required=False, default=None
+        default=None,
+        help='Directory to save downloaded and unzipped files.'
     )
     parser.add_argument(
-        '--threads', 
-        type=int, 
-        default=4, 
+        '--threads',
+        type=int,
+        default=4,
         help='Number of threads to use for downloading.'
     )
     parser.add_argument(
-        '--dryrun', 
-        action='store_true', 
+        '--dryrun',
+        action='store_true',
         help='If set, no files are downloaded.'
     )
     parser.add_argument(
-        '--overwrite', 
-        action='store_true', 
+        '--overwrite',
+        action='store_true',
         help='If set, overwrite existing files.'
     )
     parser.add_argument(
         '--log_file',
         type=str,
-        default="oleanderXBT_download.log",
+        default='oleanderXBT_download.log',
         help='Path to log file (default: oleanderXBT_download.log).'
     )
 
     args = parser.parse_args()
 
-    # only pass through when provided
-    save_path = args.save_to
+    # --- Build URL list (OleanderXBT-specific logic stays in the script) ---
 
-    # extract all years to determine min and max years available
-    def extract_available_years(base_url):
-        try:
-            response = requests.get(base_url)
-            response.raise_for_status()
-            html_text = html.unescape(response.text)
-            year_matches = re.findall(r'(\d{4})_xbt_nc\.zip', html_text)
-            years = sorted(set(int(y) for y in year_matches if y.isdigit() and len(y) == 4))
-            return years
-        except requests.RequestException as e:
-            print(f"Error fetching directory listing: {e}")
-            return []
-    
-    min_year = min(extract_available_years(args.base_url))
-    max_year = max(extract_available_years(args.base_url))
+    available_years = DownloaderURLList.get_available_years(args.base_url)
 
-    # enforce minimum start_year
-    start_year = args.start_year
-    if start_year and start_year < min_year:
-        print(f"Warning: Start year {start_year} is before {min_year}. Adjusting to {min_year}.")
-        start_year = min_year
+    if not available_years:
+        print("Could not fetch available years from the server. Exiting.")
+        return
 
-    # determine list of URLs to download
-    if args.url_file: # read URLs from the provided file
+    min_year = min(available_years)
+    max_year = max(available_years)
+
+    if args.url_file:
         with open(args.url_file, 'r') as f:
             urls = [url.strip() for url in f if url.strip()]
 
-    elif start_year and args.end_year: # generate URLs for specified year range
+    elif args.start_year and args.end_year:
+        start_year = max(args.start_year, min_year)
+        if args.start_year < min_year:
+            print(f"Warning: start year {args.start_year} is before {min_year}. Adjusting.")
         years = range(start_year, args.end_year + 1)
-        urls = [f"{args.base_url}/{year}_xbt_nc.zip" for year in years]
+        urls = DownloaderURLList.build_urls(years, args.base_url)
 
-    else: # download all available years
-        print(f"\nWarning: No --url_file or --start_year/--end_year provided. "
-            f"Defaulting to download all OleanderXBT files ({min_year}-{max_year}).")
-
+    else:
+        print(
+            f"\nWarning: No --url_file or --start_year/--end_year provided. "
+            f"Defaulting to all available years ({min_year}-{max_year})."
+        )
         response = input("Do you want to continue? (y/N): ").strip().lower()
         if response != 'y':
             print("Download cancelled.")
             return
+        urls = DownloaderURLList.build_urls(available_years, args.base_url)
 
-        years = extract_available_years(args.base_url)
-        urls = [f"{args.base_url}/{year}_xbt_nc.zip" for year in years]
+    # --- Hand off to the downloader ---
 
-    config = {
-        'urls': urls,
-        'base_dir': save_path,
-        'log_file': args.log_file,
-        'num_threads': args.threads,
-        'overwrite': args.overwrite,
-        'dryrun': args.dryrun,
-    }
+    downloader = DownloaderURLList(
+        urls=urls,
+        log_file=args.log_file,
+        num_threads=args.threads,
+        overwrite=args.overwrite,
+        dryrun=args.dryrun,
+        base_dir=args.save_to,
+    )
 
-    print("Calling OleanderXBT downloader with the following configuration:")
-    pprint(config)
+    print(f"\nAttempting to download {len(urls)} files to: {downloader.base_dir}")
+    completed, failed = downloader.download()
 
-    print(f"\nAttempting to download from {len(urls)} URLs to: {save_path}")
-    
-    downloader = DownloaderURLList( **config )
-    downloader.url_list_download()
-
-    print("\nOleanderXBT download process finished.")
-    if config['dryrun']:
+    print("\nOleanderXBT download finished.")
+    if args.dryrun:
         print("Dry run complete. No files were actually downloaded.")
     else:
-        print(f"Review 'oleanderXBT_download.log' for details on the downloaded files.")
+        print(f"Success: {completed}  Failed: {failed}")
+        print(f"See '{args.log_file}' for details.")
 
 
 ##########################################################################
+
 if __name__ == "__main__":
+    print(datetime.now())
+    print()
     main()
+    print()
+    print(datetime.now())
