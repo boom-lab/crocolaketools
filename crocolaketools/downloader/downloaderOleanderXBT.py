@@ -6,7 +6,7 @@
 #
 ## @author David Nady <davidnady4yad@gmail.com>
 #         Adapted from Enrico Milanese <enrico.milanese@whoi.edu>
-#         Refactored by mahi-anol
+#         Refactored by Mahi Sarwar Anol <anol.mahi@gmail.com>
 #
 ## @date Wed 23 Jul 2025
 
