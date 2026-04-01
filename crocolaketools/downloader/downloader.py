@@ -6,26 +6,25 @@
 #
 ## @author Enrico Milanese <enrico.milanese@whoi.edu>
 #         Updated by David Nady <davidnady4yad@gmail.com>
-#         Updated by Mahi Sarwar Anol <anol.mahi@gmail.com>
+#         Updated by mahi-anol
 #
 ## @date Tue 11 Feb 2025
 
 ##########################################################################
 import importlib.resources
+import logging
 import os
 import shutil
 import warnings
 import zipfile
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from urllib.parse import urlparse
 
 import requests
 import yaml
 from tqdm import tqdm
 
 from crocolakeloader import params
-
-
-import logging
-from concurrent.futures import ThreadPoolExecutor, as_completed
 ##########################################################################
 
 
@@ -175,7 +174,7 @@ class Downloader:
             shutil.rmtree(macosx_path)
 
         os.remove(zip_path)
-    
+
     def download_parallel(
         self,
         url_path_pairs: list,
@@ -183,17 +182,17 @@ class Downloader:
         dryrun: bool = False,
     ) -> tuple:
         """Download multiple (url, local_path) pairs concurrently.
- 
+
         Uses ThreadPoolExecutor to call _download_file() for each pair.
         Logs progress and returns counts of completed and failed downloads.
- 
+
         Parameters
         ----------
         url_path_pairs : list of (url, local_path) tuples to download.
         num_threads    : number of concurrent download threads.
         dryrun         : if True, log what would be downloaded without
                          fetching anything.
- 
+
         Returns
         -------
         tuple
@@ -204,21 +203,21 @@ class Downloader:
             len(url_path_pairs),
             num_threads,
         )
- 
+
         if dryrun:
             for url, local_path in url_path_pairs:
                 logging.info("DRY RUN: Would download %s to %s", url, local_path)
             return len(url_path_pairs), 0
- 
+
         completed = 0
         failed = 0
- 
+
         with ThreadPoolExecutor(max_workers=num_threads) as executor:
             future_to_url = {
                 executor.submit(self._download_file, url, local_path): url
                 for url, local_path in url_path_pairs
             }
- 
+
             for future in as_completed(future_to_url):
                 url = future_to_url[future]
                 try:
@@ -228,11 +227,12 @@ class Downloader:
                 except Exception as exc:
                     failed += 1
                     logging.error("Failed to download %s: %s", url, exc)
- 
+
         logging.info(
             "Download completed. Success: %d, Failed: %d", completed, failed
         )
         return completed, failed
+
 ##########################################################################
 if __name__ == "__main__":
     Downloader()

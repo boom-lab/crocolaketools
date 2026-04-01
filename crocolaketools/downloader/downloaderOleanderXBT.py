@@ -82,7 +82,7 @@ class DownloaderURLList(Downloader):
         super().__init__(config)
 
         self.urls = urls
-        self.base_dir = base_dir if base_dir is not None else self.input_path
+        self.base_dir = base_dir if base_dir is not None else getattr(self, 'input_path', None)
         self.log_file = log_file
         self.num_threads = num_threads
         self.overwrite = overwrite
