@@ -6,7 +6,7 @@
 #
 ## @author David Nady <davidnady4yad@gmail.com>
 #         Adapted from Enrico Milanese <enrico.milanese@whoi.edu>
-#         Refactored by Mahi Sarwar Anol <anol.mahi@gmail.com>
+#         Refactored by mahi-anol
 #
 ## @date Wed 23 Jul 2025
 
@@ -139,6 +139,8 @@ class DownloaderURLList(Downloader):
                 if os.path.isfile(zip_path):
                     try:
                         self.unzip_file(zip_path)
+                        logging.info("Extracted %s", zip_path)
+                        print(f"Extracted {os.path.basename(zip_path)}")
                     except Exception as exc:
                         logging.error(
                             "Failed to extract %s: %s", zip_path, exc
