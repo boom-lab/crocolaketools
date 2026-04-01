@@ -5,7 +5,7 @@
 # CLI for downloading OleanderXBT data.
 #
 ## @author David Nady <davidnady4yad@gmail.com>
-#         Refactored by mahi-anol
+#         Refactored by Mahi Sarwar Anol <anol.mahi@gmail.com>
 #
 ## @date Wed 23 Jul 2025
 

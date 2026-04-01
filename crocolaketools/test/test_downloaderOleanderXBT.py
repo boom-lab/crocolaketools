@@ -3,7 +3,7 @@
 ## @file test_downloaderOleanderXBT.py
 #
 #
-## @author mahi-anol
+## @author Mahi Sarwar Anol <anol.mahi@gmail.com>
 #
 ## @date Mon 30 Mar 2026
 

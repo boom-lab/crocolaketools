@@ -6,7 +6,7 @@
 #
 ## @author Enrico Milanese <enrico.milanese@whoi.edu>
 #         Updated by David Nady <davidnady4yad@gmail.com>
-#         Updated by mahi-anol
+#         Updated by Mahi Sarwar Anol <anol.mahi@gmail.com>
 #
 ## @date Tue 11 Feb 2025
 
@@ -198,10 +198,11 @@ class Downloader:
         tuple
             (completed, failed) counts.
         """
+        actual_threads = min(num_threads, len(url_path_pairs))
         logging.info(
-            "Starting parallel download of %d files with %d threads",
+            "Starting download of %d files with %d threads",
             len(url_path_pairs),
-            num_threads,
+            actual_threads,
         )
 
         if dryrun:
@@ -212,7 +213,7 @@ class Downloader:
         completed = 0
         failed = 0
 
-        with ThreadPoolExecutor(max_workers=num_threads) as executor:
+        with ThreadPoolExecutor(max_workers=actual_threads) as executor:
             future_to_url = {
                 executor.submit(self._download_file, url, local_path): url
                 for url, local_path in url_path_pairs
