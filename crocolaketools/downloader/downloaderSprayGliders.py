@@ -119,17 +119,17 @@ class DownloaderSprayGliders(Downloader):
         URL via get_url(), then downloads using the inherited
         _download_file() method.
 
+        Files whose URLs are unreachable are skipped with a warning
+        rather than raising an error, so a single broken URL does not
+        abort the entire download.
+
         Returns
         -------
         list
-            Absolute paths to all downloaded (or pre-existing) files.
-
-        Raises
-        ------
-        RuntimeError
-            If a file URL is not reachable.
+            Absolute paths to all successfully downloaded (or pre-existing) files.
         """
         downloaded = []
+        skipped = []
 
         for fname, remote_path in self.fnames.items():
             local_path = os.path.join(self.input_path, fname)
@@ -142,11 +142,27 @@ class DownloaderSprayGliders(Downloader):
                 downloaded.append(local_path)
                 continue
 
-            url = self.get_url(fname)
+            try:
+                url = self.get_url(fname)
+            except RuntimeError as e:
+                import warnings
+                warnings.warn(
+                    f"Skipping {fname}: {e}. "
+                    "The file may have been removed/renamed on the server or the server may be temporarily down."
+                )
+                skipped.append(fname)
+                continue
+
             print(f"Downloading {fname} from {url} ...")
             self._download_file(url, local_path)
             print(f"Saved to {local_path}")
             downloaded.append(local_path)
+
+        if skipped:
+            print(
+                f"\nWarning: {len(skipped)} file(s) were skipped due to unreachable URLs: "
+                f"{', '.join(skipped)}"
+            )
 
         return downloaded
 
@@ -173,6 +189,7 @@ class DownloaderSprayGliders(Downloader):
                 url,
                 timeout=5,
                 stream=True,
+                headers={"User-Agent": "Mozilla/5.0"},
             )
             if response.ok:
                 response.close()
