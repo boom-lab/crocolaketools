@@ -199,12 +199,16 @@ class Downloader:
         Uses ThreadPoolExecutor to call _download_file() for each pair.
         Logs progress and returns counts of completed and failed downloads.
  
+        In dryrun mode, sends a HEAD request to each URL to retrieve the
+        expected file size and prints a summary of what would be downloaded
+        and how much disk space it would require.
+ 
         Parameters
         ----------
         url_path_pairs : list of (url, local_path) tuples to download.
         num_threads    : number of concurrent download threads.
-        dryrun         : if True, log what would be downloaded without
-                         fetching anything.
+        dryrun         : if True, print a download summary without
+                         fetching any files.
  
         Returns
         -------
@@ -219,8 +223,31 @@ class Downloader:
         )
  
         if dryrun:
+            total_bytes = 0
+            rows = []
             for url, local_path in url_path_pairs:
-                logging.info("DRY RUN: Would download %s to %s", url, local_path)
+                already = os.path.isfile(local_path)
+                size_bytes = 0
+                size_str = "unknown"
+                try:
+                    head = requests.head(url, timeout=10, allow_redirects=True)
+                    if "content-length" in head.headers:
+                        size_bytes = int(head.headers["content-length"])
+                        size_str = self._format_size(size_bytes)
+                except requests.RequestException:
+                    pass
+ 
+                status = "already exists, would skip" if already else "would download"
+                if not already:
+                    total_bytes += size_bytes
+                rows.append((os.path.basename(local_path), size_str, status))
+ 
+            print("\nDry run summary:")
+            for fname, size, status in rows:
+                print(f"  {fname:<40} {size:>10}   ({status})")
+            print(f"\nTotal to download: {self._format_size(total_bytes)} "
+                  f"across {sum(1 for _, _, s in rows if 'would download' in s)} file(s).")
+            print()
             return len(url_path_pairs), 0
  
         completed = 0
@@ -246,6 +273,27 @@ class Downloader:
             "Download completed. Success: %d, Failed: %d", completed, failed
         )
         return completed, failed
+    
+    @staticmethod
+    def _format_size(size_bytes: int) -> str:
+        """Return a human-readable string for a size in bytes.
+ 
+        Parameters
+        ----------
+        size_bytes : size in bytes.
+ 
+        Returns
+        -------
+        str
+            Human-readable size string (e.g. '1.29 MB', '623 KB').
+        """
+        if size_bytes == 0:
+            return "unknown"
+        for unit in ["B", "KB", "MB", "GB"]:
+            if size_bytes < 1024:
+                return f"{size_bytes:.2f} {unit}"
+            size_bytes /= 1024
+        return f"{size_bytes:.2f} TB"
  
 ##########################################################################
 if __name__ == "__main__":
