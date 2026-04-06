@@ -51,6 +51,9 @@ class Downloader:
         db            -- database name (e.g., 'OleanderXBT')
         db_type       -- 'PHY' or 'BGC'
         input_path    -- destination path where original files are stored
+        overwrite     -- if True, re-download files already present (default: False)
+        dryrun        -- if True, print summary without downloading (default: False)
+        num_threads   -- number of parallel download threads (default: 4)
         """
  
         if config is None:
@@ -106,6 +109,12 @@ class Downloader:
         os.makedirs(input_path, exist_ok=True)
         self.input_path = input_path
         print("Original files will be stored at " + self.input_path)
+ 
+        # Common download options -- subclasses may override these after
+        # calling super().__init__() if they accept them as constructor args.
+        self.overwrite = config.get("overwrite", False)
+        self.dryrun = config.get("dryrun", False)
+        self.num_threads = config.get("num_threads", 4)
  
     # ------------------------------------------------------------------ #
     # Methods                                                            #
@@ -273,7 +282,7 @@ class Downloader:
             "Download completed. Success: %d, Failed: %d", completed, failed
         )
         return completed, failed
-    
+ 
     @staticmethod
     def _format_size(size_bytes: int) -> str:
         """Return a human-readable string for a size in bytes.
