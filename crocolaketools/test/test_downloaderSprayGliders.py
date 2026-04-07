@@ -189,7 +189,7 @@ class TestSprayDownload:
         d.input_path = str(tmp_path) + "/"
  
         with patch.object(
-            DownloaderSprayGliders, "get_url",
+            DownloaderSprayGliders, "_check_url_reachable",
             side_effect=RuntimeError("URL not reachable: ...")
         ):
             with warnings.catch_warnings(record=True) as caught:

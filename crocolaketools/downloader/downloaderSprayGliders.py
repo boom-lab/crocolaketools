@@ -142,8 +142,9 @@ class DownloaderSprayGliders(Downloader):
                 downloaded.append(local_path)
                 continue
 
+            url = f"{self.base_url}/{remote_path}"
             try:
-                url = self.get_url(fname)
+                self._check_url_reachable(url)
             except RuntimeError as e:
                 import warnings
                 warnings.warn(
@@ -184,6 +185,25 @@ class DownloaderSprayGliders(Downloader):
             If the URL is not reachable.
         """
         url = f"{self.base_url}/{self.fnames[fname]}"
+        self._check_url_reachable(url)
+        return url
+
+    def _check_url_reachable(self, url: str) -> None:
+        """Verify that a URL is reachable.
+
+        Uses a streaming GET (not HEAD, because the ERDDAP server does
+        not always respond to HEAD requests) and closes the connection
+        immediately after checking the status code.
+
+        Parameters
+        ----------
+        url : full URL to check.
+
+        Raises
+        ------
+        RuntimeError
+            If the URL is not reachable.
+        """
         try:
             response = requests.get(
                 url,
@@ -193,7 +213,7 @@ class DownloaderSprayGliders(Downloader):
             )
             if response.ok:
                 response.close()
-                return url
+                return
         except requests.RequestException:
             pass
         raise RuntimeError(f"URL not reachable: {url}")
