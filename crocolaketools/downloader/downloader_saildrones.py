@@ -11,195 +11,138 @@
 import os
 import time
 import requests
-import urllib3
-import pandas as pd
-from datetime import datetime
-from dateutil.parser import parse as parsedate
-from io import StringIO
 from crocolaketools.downloader.downloader import Downloader
 ##########################################################################
 
+# PMEL ERDDAP server base URL
+SAILDRONES_SERVER = "https://data.pmel.noaa.gov/pmel/erddap"
+
+# Saildrones TPOS dataset IDs
+SAILDRONES_DATASET_IDS = [
+    "sd1005_2017",
+    "sd1005_2018",
+    "sd1006_2017",
+    "sd1006_2018",
+    "sd1029_2018",
+    "sd1030_2018",
+    "sd1030_tpos_2023",
+    "sd1030_tpos_2023_LWR",
+    "sd1033_tpos_2022",
+    "sd1033_tpos_2022_LWR",
+    "sd1033_tpos_2023",
+    "sd1033_tpos_2024",
+    "sd1052_tpos_2022",
+    "sd1052_tpos_2022_LWR",
+    "sd1065_tpos_2021",
+    "sd1066_2019",
+    "sd1066_tpos_2021",
+    "sd1067_2019",
+    "sd1068_2019",
+    "sd1069_2019",
+    "sd1079_tpos_2023",
+    "sd1079_tpos_2023_LWR",
+    "sd1090_tpos_2024",
+    "sd_tpos_2023_sbe56",
+    "sd_tpos_2024_sbe56",
+]
+
+# Download URLs for each dataset in netCDF format
+SAILDRONES_URLS = [
+    f"{SAILDRONES_SERVER}/tabledap/{did}.nc"
+    for did in SAILDRONES_DATASET_IDS
+]
+##########################################################################
+
+
 class DownloaderSaildrones(Downloader):
-    """class DownloaderSaildrones: methods to generate mirror of Saildrones
-    files (missions 1-7) from ERDDAP
+    """class DownloaderSaildrones: methods to download Saildrones
+    TPOS netCDF files (missions 1-7) from the PMEL ERDDAP server.
     """
 
     # ------------------------------------------------------------------ #
     # Constructors/Destructors                                           #
     # ------------------------------------------------------------------ #
 
-    def __init__(self, config=None):
-        """
-        Initialize the Saildrones Downloader inheriting from the base Downloader.
+    def __init__(
+        self,
+        config: dict = None,
+        overwrite: bool = False,
+    ):
+        """Initialize the Saildrones downloader.
+
+        Arguments:
+        config    -- configuration dictionary (must contain 'db' and 'db_type').
+        overwrite -- if True, re-download files that already exist.
         """
         if config is None:
-            # Fallback configuration if not explicitly provided
             config = {
-                'db': 'Saildrones', 
-                'db_type': 'PHY', 
-                'input_path': 'data/original/Saildrones',
-                'overwrite': False,
-                'dryrun': False
+                'db': 'Saildrones',
+                'db_type': 'PHY',
             }
             
         super().__init__(config)
-        # Set attributes required by base class methods (_is_already_downloaded)
-        self.overwrite = config.get('overwrite', False)
-        self.dryrun = config.get('dryrun', False)
+        self.overwrite = overwrite
 
     # ------------------------------------------------------------------ #
     # Methods                                                            #
     # ------------------------------------------------------------------ #
 
-    #------------------------------------------------------------------------------#
-    # Saildrones ERDDAP download function
-    def download_from_erddap(self, verbose=True, checktime=True, search_for="TPOS", id_prefix="sd"):
+    def saildrones_download(self) -> None:
+        """Loop through the known Saildrones URLs, skip files that
+        are already on disk, and download the rest.
         """
-        Downloads Saildrones files from ERDDAP
-
-        Arguments:
-            verbose (bool): If True, print detailed logs of the download process.
-            checktime (bool): If True, download file if it is newer than the file on disk.
-            search_for (str): ERDDAP search keyword constraint.
-            id_prefix (str): Dataset ID prefix required.
-        """
-        server = "https://data.pmel.noaa.gov/pmel/erddap"
-        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-        
-        dataset_ids = self.get_dataset_ids(server, search_for=search_for, id_prefix=id_prefix)
-        
-        if verbose:
-            print(f"Found {len(dataset_ids)} Saildrone datasets on ERDDAP.")
-            
-        for dataset_id in dataset_ids:
-            # Construct download URL (netcdf format)
-            dataset_url = f"{server}/tabledap/{dataset_id}.nc"
-
-            # Construct local path using the base class input_path
-            filename = f"{dataset_id}.nc"
-            localfile = os.path.join(self.input_path, filename)
-            
-            if verbose:
-                print(f">>>> Destination file: {localfile}.")
-                
-            if os.path.exists(localfile):
-                if checktime:
-                    # Get the modification time of the local file and the file on the server to decide whether to download
-                    current_file_time = datetime.fromtimestamp(os.path.getmtime(localfile))
-                    new_file_time = self.get_time_url(dataset_id, server)
-                    if new_file_time:
-                        tz = new_file_time.tzinfo
-                        current_file_time = current_file_time.replace(tzinfo=tz).astimezone(tz)
-                        # Skip download if the file on the server is not newer than the local file OR keep downloading if it is newer
-                        if not new_file_time > current_file_time:
-                            if verbose:
-                                print(f">>> File {filename} on server is not newer than local file. Skipping.")
-                            continue
-                        else:
-                            if verbose:
-                                print(f">>> File {filename} has a newer version on ERDDAP. Downloading...")
-                elif self._is_already_downloaded(localfile):
-                    if verbose:
-                        print(f">>> File {filename} already exists. Skipping download.")
-                    continue
-                else:
-                    if verbose:
-                        print(f">>> File {filename} already exists. Overwriting.")
-            
-
-            # Skip actual download if dryrun
-            if self.dryrun:
-                if verbose:
-                    print(f">>> (Dry-run) Would download {filename} from {dataset_url}")
-                continue
-            
-            print(f">>> Downloading {filename} from {dataset_url}...")
-            try:
-                self._download_file(dataset_url, localfile)
-                if verbose:
-                    print(f">>> Successfully downloaded {filename}.")
-            except requests.exceptions.HTTPError as e:
-                # Handling status codes natively raised by _download_file's raise_for_status()
-                if e.response.status_code == 404:
-                    if verbose:
-                        print(f">>> File {filename} returned 404 error during download.")
-                else:
-                    print(f"HTTP error occurred: {e}")
-                    if os.path.exists(localfile):
-                        os.remove(localfile)
-            except Exception as e:
-                print("The following error occurred:", e)
-                if verbose:
-                    print(f">>> An error occurred while trying to download {filename} from {dataset_url}.")
-                    if os.path.exists(localfile):
-                        os.remove(localfile)
-                    
-        if (not self.dryrun) and verbose:
-            print("All requested files have been downloaded.")
-            
-        return
-
-    def get_time_url(self, dataset_id, server="https://data.pmel.noaa.gov/pmel/erddap"):
-        """
-        Get the most recent modification time of the ERDDAP dataset.
-        Ask the ERDDAP info.csv for the 'date_modified' global attribute.
-        """
-        try:
-            info_url = f"{server}/info/{dataset_id}/index.csv"
-            df = pd.read_csv(info_url)
-            
-            # Filter to NC_GLOBAL and search for 'date_modified' or 'date_created'
-            global_attrs = df[df['Variable Name'] == 'NC_GLOBAL']
-            
-            mod_row = global_attrs[global_attrs['Attribute Name'] == 'date_modified']
-            if not mod_row.empty:
-                date_str = mod_row.iloc[0]['Value']
-                return parsedate(date_str)
-            
-            creat_row = global_attrs[global_attrs['Attribute Name'] == 'date_created']
-            if not creat_row.empty:
-                date_str = creat_row.iloc[0]['Value']
-                return parsedate(date_str)
-                
-            return None
-            
-        except Exception as e:
-            print(f"Error fetching modification time for {dataset_id}: {e}")
-            return None
-
-    #------------------------------------------------------------------------------#
-    # Function to get dataset IDs from ERDDAP based on search criteria
-    def get_dataset_ids(self, server="https://data.pmel.noaa.gov/pmel/erddap", search_for="TPOS", id_prefix="sd"):
-        """
-        Query the ERDDAP server to get all matching dataset IDs.
-        returns a list of dataset IDs that match the search criteria and start with the specified prefix.
-        """
-        search_url = f"{server}/search/index.csv?page=1&itemsPerPage=100000&searchFor={search_for}"
-        try:
-            response = requests.get(search_url, verify=False)
-            df = pd.read_csv(StringIO(response.text))
-            dataset_ids = [d for d in df["Dataset ID"].tolist() if str(d).startswith(id_prefix)]
-            return dataset_ids
-        except Exception as e_msg:
-            print(f"Failed to fetch dataset IDs: {e_msg}")
-            return []
-
-    def saildrones_download(self, search_for="TPOS", id_prefix="sd"):
         start_time = time.time()
         print("Downloading Saildrones from ERDDAP...")
-        
-        self.download_from_erddap(
-            verbose=True,
-            checktime=True,
-            search_for=search_for,
-            id_prefix=id_prefix
-        )
 
-        print("done.")
+        self.get_url()
+
+        for url in SAILDRONES_URLS:
+            fname = os.path.basename(url)
+            local_path = os.path.join(self.input_path, fname)
+
+
+            if self._is_already_downloaded(local_path):
+                print(
+                    f"File already present at {local_path}. "
+                    "Use overwrite=True or use '--overwrite' flag to force re-download."
+                )
+                continue
+
+            print(f"Downloading from {url} ...")
+
+            try:
+                self._download_file(url, local_path)
+                print(f"Saved to {local_path}")
+            except requests.exceptions.HTTPError as e:
+                if e.response is not None and e.response.status_code == 404:
+                    print(f"File {fname} returned 404 error. Skipping.")
+                else:
+                    print(f"HTTP error occurred for {fname}: {e}")
+                    if os.path.exists(local_path):
+                        os.remove(local_path)
+            except Exception as e:
+                print(f"Error downloading {fname}: {e}")
+                if os.path.exists(local_path):
+                    os.remove(local_path)
+
         elapsed_time = time.time() - start_time
+        print("done.")
         print("Time to download Saildrones database: " + str(elapsed_time))
-        
-        return
+
+    def get_url(self) -> str:
+        """Send a HEAD request to the ERDDAP server to make sure it is
+        up before we start downloading. Returns the server URL or
+        raises RuntimeError if it cannot be reached.
+        """
+        try:
+            response = requests.head(SAILDRONES_SERVER, timeout=10)
+            if response.ok:
+                return SAILDRONES_SERVER
+        except requests.RequestException:
+            pass
+        raise RuntimeError(
+            f"ERDDAP server is unreachable: {SAILDRONES_SERVER}"
+        )
 
 ##########################################################################
 
