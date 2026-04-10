@@ -26,6 +26,7 @@ setup(
             'download_demo_data = scripts.download_demo_data:main',
             'download_glodap = scripts.download_glodap:main',
             'download_oleanderXBT = scripts.download_oleanderXBT:main',
+            'download_saildrones = scripts.download_saildrones:main',
             'glodap2parquet = scripts.glodap2parquet:main',
             'merge_crocolake = scripts.merge_crocolake:main',
             'oleanderXBT2parquet = scripts.oleanderXBT2parquet:main',
