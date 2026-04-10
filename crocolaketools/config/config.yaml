@@ -92,7 +92,7 @@ GLODAP_BGC:
 SprayGliders_PHY:
   db: SprayGliders
   db_type: PHY
-  input_path: ../demo/demo_SPRAY_PHY/
+  input_path: ../demo/demo_SPRAY/
   outdir_pq: ../demo/parquet/demo_SPRAY_PHY/
   outdir_schema: ./schemas/
   fname_pq: demo_SPRAY_PHY
@@ -103,7 +103,7 @@ SprayGliders_PHY:
 SprayGliders_BGC:
   db: SprayGliders
   db_type: BGC
-  input_path: ../demo/demo_SPRAY_BGC/
+  input_path: ../demo/demo_SPRAY/
   outdir_pq: ../demo/parquet/demo_SPRAY_BGC/
   outdir_schema: ./schemas/
   fname_pq: demo_SPRAY_BGC
