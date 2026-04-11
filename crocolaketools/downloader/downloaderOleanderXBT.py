@@ -20,6 +20,7 @@ from urllib.parse import urlparse
 import requests
  
 from crocolaketools.downloader.downloader import Downloader
+from crocolaketools.utils.logger_configurator import configure_logging
 ##########################################################################
  
 # Base ERDDAP URL for OleanderXBT files
@@ -88,7 +89,7 @@ class DownloaderURLList(Downloader):
         self.num_threads = num_threads
         self.overwrite = overwrite
         self.dryrun = dryrun
-        self._configure_logging(self.log_file)
+        configure_logging(self.log_file)
  
     # ------------------------------------------------------------------ #
     # Public interface                                                     #
@@ -171,25 +172,7 @@ class DownloaderURLList(Downloader):
             f.endswith('.nc') and f.startswith(year)
             for f in os.listdir(extract_dir)
         )
- 
-    @staticmethod
-    def _configure_logging(log_file: str) -> None:
-        """Set up logging to both file and console.
- 
-        Parameters
-        ----------
-        log_file : path to the log file.
-        """
-        if not logging.getLogger().handlers:
-            logging.basicConfig(
-                level=logging.INFO,
-                format='%(asctime)s - %(levelname)s - %(message)s',
-                handlers=[
-                    logging.FileHandler(log_file),
-                    logging.StreamHandler(),
-                ],
-            )
- 
+
     # ------------------------------------------------------------------ #
     # Class methods (OleanderXBT-specific URL building)                   #
     # ------------------------------------------------------------------ #
