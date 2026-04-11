@@ -171,9 +171,7 @@ class TestDownload:
                           return_value=(2, 0)) as mock_parallel:
             d.download()
             _, kwargs = mock_parallel.call_args
-            assert mock_parallel.call_args[1].get("dryrun", True) or \
-                   mock_parallel.call_args[0][2] is True or \
-                   d.dryrun is True
+            assert kwargs.get("dryrun") is True
 
     def test_overwrite_downloads_even_if_nc_exists(self, tmp_path, mock_base_downloader):
         """All URLs are queued even if .nc files exist when overwrite=True."""
@@ -209,15 +207,16 @@ class TestDownload:
 
 @pytest.fixture
 def mock_base_downloader():
-    """Patch Downloader.__init__ so tests don't need config.yaml."""
+    """Patch Downloader.__init__ and configure_logging so tests don't need
+    config.yaml or write log files to disk."""
     with patch(
         "crocolaketools.downloader.downloaderOleanderXBT.Downloader.__init__",
         return_value=None,
+    ), patch(
+        "crocolaketools.downloader.downloaderOleanderXBT.configure_logging",
     ):
         # input_path is set by Downloader.__init__ normally.
-        # Since we mock it out, we patch input_path on the instance
-        # via the constructor post-init in each test that needs it.
-        # Tests that need input_path set it manually: d.input_path = ...
+        # Since we mock it out, tests that need it set it manually: d.input_path = ...
         yield
 
 
