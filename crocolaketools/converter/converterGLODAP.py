@@ -296,7 +296,7 @@ class ConverterGLODAP(Converter):
 
         # GLODAP's quality control columns end with "f" (e.g. "nitratef")
         # and good values are 0 or 2
-        condition = df[param].isin([0,2])
+        condition = ~df[param].isin([0, 2])
 
         # Find bad QC values
         df.loc[condition, param] = pd.NA
