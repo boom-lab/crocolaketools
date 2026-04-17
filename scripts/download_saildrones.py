@@ -11,7 +11,7 @@
 import argparse
 from datetime import datetime
 
-from crocolaketools.downloader.downloader_saildrones import DownloaderSaildrones
+from crocolaketools.downloader.downloaderSaildrones import DownloaderSaildrones
 ##########################################################################
 
 

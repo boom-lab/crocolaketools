@@ -12,7 +12,7 @@ import os
 from unittest.mock import MagicMock, patch
 import pytest
 
-from crocolaketools.downloader.downloader_saildrones import DownloaderSaildrones, SAILDRONES_SERVER, SAILDRONES_URLS
+from crocolaketools.downloader.downloaderSaildrones import DownloaderSaildrones, SAILDRONES_SERVER, SAILDRONES_URLS
 from crocolaketools.downloader.downloader import Downloader
 ##########################################################################
 
@@ -37,7 +37,7 @@ class TestDownloaderSaildronesInit:
 class TestSaildronesDownloadMethod:
     """Testing saildrones downloading logic sequence"""
 
-    @patch("crocolaketools.downloader.downloader_saildrones.requests.head")
+    @patch("crocolaketools.downloader.downloaderSaildrones.requests.head")
     @patch.object(DownloaderSaildrones, "_download_file")
     def test_saildrones_download_success(self, mock_download, mock_head, tmp_path):
         """Test full download when files don't exist locally."""
@@ -48,13 +48,13 @@ class TestSaildronesDownloadMethod:
         dl.overwrite = False
         
         # Test only the first url
-        with patch("crocolaketools.downloader.downloader_saildrones.SAILDRONES_URLS", [SAILDRONES_URLS[0]]):
+        with patch("crocolaketools.downloader.downloaderSaildrones.SAILDRONES_URLS", [SAILDRONES_URLS[0]]):
             dl.saildrones_download()
             
         mock_download.assert_called_once()
         mock_head.assert_called_once_with(SAILDRONES_SERVER, timeout=10)
 
-    @patch("crocolaketools.downloader.downloader_saildrones.requests.head")
+    @patch("crocolaketools.downloader.downloaderSaildrones.requests.head")
     @patch.object(DownloaderSaildrones, "_download_file")
     def test_saildrones_download_skip_existing(self, mock_download, mock_head, tmp_path):
         """Test skip of existing files when overwrite is False."""
@@ -68,12 +68,12 @@ class TestSaildronesDownloadMethod:
         test_file = tmp_path / os.path.basename(SAILDRONES_URLS[0])
         test_file.touch()
         
-        with patch("crocolaketools.downloader.downloader_saildrones.SAILDRONES_URLS", [SAILDRONES_URLS[0]]):
+        with patch("crocolaketools.downloader.downloaderSaildrones.SAILDRONES_URLS", [SAILDRONES_URLS[0]]):
             dl.saildrones_download()
             
         mock_download.assert_not_called()
 
-    @patch("crocolaketools.downloader.downloader_saildrones.requests.head")
+    @patch("crocolaketools.downloader.downloaderSaildrones.requests.head")
     @patch.object(DownloaderSaildrones, "_download_file")
     def test_saildrones_download_overwrite(self, mock_download, mock_head, tmp_path):
         """Test overwriting existing files when overwrite is True."""
@@ -87,12 +87,12 @@ class TestSaildronesDownloadMethod:
         test_file = tmp_path / os.path.basename(SAILDRONES_URLS[0])
         test_file.touch()
         
-        with patch("crocolaketools.downloader.downloader_saildrones.SAILDRONES_URLS", [SAILDRONES_URLS[0]]):
+        with patch("crocolaketools.downloader.downloaderSaildrones.SAILDRONES_URLS", [SAILDRONES_URLS[0]]):
             dl.saildrones_download()
             
         mock_download.assert_called_once()
 
-    @patch("crocolaketools.downloader.downloader_saildrones.requests.head")
+    @patch("crocolaketools.downloader.downloaderSaildrones.requests.head")
     def test_saildrones_download_server_down(self, mock_head, tmp_path):
         """Verify error is raised if ERDDAP server is unreachable."""
         import requests
