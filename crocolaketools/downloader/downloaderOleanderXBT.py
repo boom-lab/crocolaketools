@@ -218,6 +218,63 @@ class DownloaderURLList(Downloader):
             One zip URL per year.
         """
         return [f"{base_url}/{year}_xbt_nc.zip" for year in years]
+    
+    @staticmethod
+    def resolve_urls(
+        url_file: str = None,
+        start_year: int = None,
+        end_year: int = None,
+        base_url: str = OLEANDER_BASE_URL,
+    ) -> list:
+        """Resolve the list of URLs to download based on user arguments.
+ 
+        Handles three cases:
+        - url_file provided: read URLs from file
+        - start_year and end_year provided: build URLs for that year range
+        - neither provided: prompt user and download all available years
+ 
+        Parameters
+        ----------
+        url_file   : path to a text file containing one URL per line.
+        start_year : first year to download (inclusive).
+        end_year   : last year to download (inclusive).
+        base_url   : ERDDAP base URL for OleanderXBT.
+ 
+        Returns
+        -------
+        list of str
+            URLs to download, or empty list if cancelled.
+        """
+        available_years = DownloaderURLList.get_available_years(base_url)
+ 
+        if not available_years:
+            print("Could not fetch available years from the server. Exiting.")
+            return []
+ 
+        min_year = min(available_years)
+        max_year = max(available_years)
+ 
+        if url_file:
+            with open(url_file, 'r') as f:
+                return [url.strip() for url in f if url.strip()]
+ 
+        elif start_year and end_year:
+            adjusted = max(start_year, min_year)
+            if start_year < min_year:
+                print(f"Warning: start year {start_year} is before {min_year}. Adjusting.")
+            years = range(adjusted, end_year + 1)
+            return DownloaderURLList.build_urls(years, base_url)
+ 
+        else:
+            print(
+                f"\nWarning: No --url_file or --start_year/--end_year provided. "
+                f"Defaulting to all available years ({min_year}-{max_year})."
+            )
+            response = input("Do you want to continue? (y/N): ").strip().lower()
+            if response != 'y':
+                print("Download cancelled.")
+                return []
+            return DownloaderURLList.build_urls(available_years, base_url)
  
 ##########################################################################
  
