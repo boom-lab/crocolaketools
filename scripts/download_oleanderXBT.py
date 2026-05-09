@@ -21,6 +21,7 @@ from crocolaketools.downloader.downloaderOleanderXBT import (
 
 
 def download_oleanderXBT(
+    config=None,
     url_file=None,
     start_year=None,
     end_year=None,
@@ -35,6 +36,8 @@ def download_oleanderXBT(
  
     Arguments
     ---------
+    config     : configuration dict passed to DownloaderURLList.
+                 If None, uses config.yaml defaults (triggered by --config flag).
     url_file   : path to a text file containing one URL per line.
     start_year : first year to download (inclusive).
     end_year   : last year to download (inclusive).
@@ -61,6 +64,7 @@ def download_oleanderXBT(
         num_threads=threads,
         overwrite=overwrite,
         dryrun=dryrun,
+        config=config,
         base_dir=save_to,
     )
  
@@ -128,10 +132,21 @@ def main():
         help='Path to log file (default: oleanderXBT_download.log).'
     )
 
+    parser.add_argument(
+        '--config',
+        action='store_true',
+        default=False,
+        help=(
+            'Use config.yaml defaults for input_path. '
+            'Can be combined with --start_year and --end_year to filter years.'
+        ),
+    )
     args = parser.parse_args()
 
+    config = None if args.config else {'db': 'OleanderXBT', 'db_type': 'PHY'}
 
     download_oleanderXBT(
+        config=config,
         url_file=args.url_file,
         start_year=args.start_year,
         end_year=args.end_year,
