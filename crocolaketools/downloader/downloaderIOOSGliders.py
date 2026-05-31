@@ -1,14 +1,14 @@
+#!/usr/bin/env python3
+
 import logging
 import os
+from datetime import datetime
+from typing import Optional
 
 from crocolaketools.downloader.downloaderIOOS import DownloaderIOOS
 
-IOOS_GLIDERS_SERVER="https://gliders.ioos.us/erddap"
+_DELAYED_SUFFIX = "-delayed"
 
-_DELAYED_SUFFIX="-delayed"
-
-
-# Target variables that we want to have in our downloaded datasets.
 GLIDER_VARIABLES = [
     "latitude",
     "longitude",
@@ -35,176 +35,191 @@ GLIDER_VARIABLES = [
 
 
 class DownloaderIOOSGliders(DownloaderIOOS):
-
     """
         Download IOOS Glider DAC delayed-mode datasets from ERDDAP.
-        # Incremental sync layer.
-        # Returns (completed,failed) count.
     """
 
-    SERVER_URL=IOOS_GLIDERS_SERVER
-    PROTOCOL="tabledap"
-    RESPONSE_FORMAT="parquet"
-
-    def __init__(self,config:dict=None):
-
+    def __init__(self, config: dict = None):
         if config is None:
-            config={}
-        
-        config.setdefault("db","IOOS_GLIDERS")
-        config.setdefault("db_type","PHY")
+            config = {}
+        config.setdefault("db", "IOOS_GLIDERS")
+        config.setdefault("db_type", "PHY")
         super().__init__(config)
 
-    
-    def get_dataset_url(self, dataset_id:str)->str:
+        # sync=True, comparing server timestamps, download new + updated files
+        # sync=False, download missing files only (no timestamp check)
+        self.sync = config.get("sync", False)
+
+
+    def get_dataset_url(
+        self,
+        dataset_id: str,
+        time_start: Optional[datetime] = None,
+        time_end: Optional[datetime] = None,
+    ) -> str:
         """
-            Returns the download URL for a specific dataset_id.
-            Overridden base class method.
+            Build the tabledap parquet URL with glider variable selection.
         """
-        self._erddap._dataset_id=dataset_id
-        self._erddap.constraints={}
-        self._erddap.variables=GLIDER_VARIABLES
-        return self._erddap.get_download_url(response=self.response_format)
+        self._erddap._dataset_id = dataset_id
+        self._erddap.variables = GLIDER_VARIABLES
+        self._erddap.constraints = {}  
 
-    
-    def download(self)->tuple:
+        constraints = {}
+        if time_start is not None:
+            constraints["time>="] = time_start.strftime("%Y-%m-%dT%H:%M:%SZ")
+        if time_end is not None:
+            constraints["time<="] = time_end.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-        logging.info("Querying IOOS Glider DAC for delayed-mode dataset IDs..!")
+        # Pass constraints explicitly -even empty dict to override
+        # self._erddap.constraints. When constraints is None, erddapy
+        # falls back to self.constraints which may have stale values.
+        return self._erddap.get_download_url(
+            response=self.response_format,
+            constraints=constraints if constraints else {},
+        )
 
+    def download(self) -> tuple:
+        """
+            Run the incremental sync against the IOOS Glider DAC.
+        """
+        logging.info("Querying IOOS Glider DAC for delayed-mode dataset IDs...")
         print("Querying IOOS Glider DAC for delayed-mode dataset IDs...")
 
         try:
-            dataset_ids=self.list_dataset_ids()
-        except Exception as e:
-            logging.error("Failed to fetch dataset catalogue: %s",e)
-            print(f"Error: Could not fetch dataset catalogue: {e}")
-            return 0,0
-        
+            dataset_ids = self.list_dataset_ids()
+        except Exception as exc:
+            logging.error("Failed to fetch dataset catalogue: %s", exc)
+            print(f"ERROR: Could not fetch dataset catalogue: {exc}")
+            return 0, 0
+
         if not dataset_ids:
-            print("No delayed-mode gliders dataset found on the server")
+            print("No delayed-mode glider datasets found on the server.")
+            return 0, 0
 
-        print(f"Found {len(dataset_ids)} delayed-mode datasets(s).")
-        
+        print(f"Found {len(dataset_ids)} delayed-mode dataset(s).")
 
-        # Downloader queue
-        url_path_pairs=[]
-        skipped_current=0 # Skipped dataset counter that is already upto date.
-        skipped_no_ts=0 # Skipped dataset counter that didn't had a server timestamp.
+        # Build list of datasets that need downloading 
+        to_download = []
+        skipped_current = 0
+        skipped_no_ts = 0
 
-        for dataset_id in dataset_ids:
-            ext="parquet" if self.response_format=="parquet" else "nc"
-            local_path=os.path.join(self.input_path,f"{dataset_id}.{ext}")
+        if self.sync:
+            print(
+                f"\nChecking {len(dataset_ids)} dataset(s) against server timestamps..."
+            )
 
-            #  when overwrite=True, always redownload
+        for i, dataset_id in enumerate(dataset_ids, 1):
+            local_path = self._local_path(dataset_id)
 
             if self.overwrite:
-                url=self._safe_get_url(dataset_id)
-                if url:
-                    url_path_pairs.append((url,local_path))
+                to_download.append(dataset_id)
+                if self.sync:
+                    print(f"  [{i}/{len(dataset_ids)}] {dataset_id}: overwrite - queued")
                 continue
 
-            local_ts=self._local_timestamp(local_path)
-            if local_ts is None:
-                # No local file yet.
-                url=self._safe_get_url(dataset_id)
-                if url:
-                    url_path_pairs.append((url,local_path))
+            local_exists = self._local_timestamp(local_path) is not None
+
+            if not local_exists:
+                to_download.append(dataset_id)
+                if self.sync:
+                    print(f"  [{i}/{len(dataset_ids)}] {dataset_id}: not found locally - queued")
                 continue
 
-            server_ts=self.get_server_timestamp(dataset_id)
+            if not self.sync:
+                # File exists, sync disabled - skip silently
+                skipped_current += 1
+                continue
 
+            # sync=True, compare timestamps, print result for every dataset
+            server_ts = self.get_server_timestamp(dataset_id)
             if server_ts is None:
-                logging.warning(
-                    "No server timestamp for %s; skipping.",dataset_id
+                print(
+                    f"  [{i}/{len(dataset_ids)}] {dataset_id}: "
+                    f"no server timestamp - skipped"
                 )
-                skipped_no_ts+=1
+                logging.warning("No server timestamp for %s; skipping.", dataset_id)
+                skipped_no_ts += 1
                 continue
-            
-            if server_ts>local_ts:
-                logging.info(
-                    "%s: server newer (%s > %s), queuing.",
-                    dataset_id,
-                    server_ts.isoformat(),
-                    local_ts.isoformat(),
+
+            local_ts = self._local_timestamp(local_path)
+            if server_ts > local_ts:
+                print(
+                    f"  [{i}/{len(dataset_ids)}] {dataset_id}: "
+                    f"server newer ({server_ts.date()} > {local_ts.date()}) - queued"
                 )
-                url= self._safe_get_url(dataset_id)
-                if url:
-                    url_path_pairs.append((url,local_path))
+                to_download.append(dataset_id)
             else:
-                logging.debug("%s: local copy is current, skipping.",dataset_id)
-                skipped_current+=1
-
-            
-
-            # Dry run branch
-            if self.dryrun:
                 print(
-                    f"\nDry run:\n{len(url_path_pairs)} files(s) would be downloaded."
-                    f"\n{skipped_current} already current. " 
-                    f"\n{skipped_no_ts} skipped due to (no server timestamp). "
+                    f"  [{i}/{len(dataset_ids)}] {dataset_id}: "
+                    f"up to date ({local_ts.date()}) - skipped"
                 )
+                skipped_current += 1
 
-                for _,local_path in url_path_pairs[:10]:
-                    print(f"{os.path.basename(local_path)}")
-                
-                if len(url_path_pairs)>10:
-                    print(f" ... and {len(url_path_pairs)-10} more.")
-
-                return len(url_path_pairs),0
-            
-            # Downloaded.
-            if not url_path_pairs:
-                print(
-                    f"All {skipped_current} local files are current."
-                    "Nothing to download"
-                )
-                return 0, 0
-            
-        
+        # Dry-run branch
+        if self.dryrun:
+            mode = (
+                "sync mode (timestamp check)"
+                if self.sync
+                else "download-only mode (missing files)"
+            )
             print(
-                f"\nDownloading {len(url_path_pairs)} datasets "
-                f"({skipped_current} already current, "
-                f"{skipped_no_ts} skipped due to (no server timestamp)"
+                f"\nDry run [{mode}]: {len(to_download)} file(s) would be "
+                f"downloaded, {skipped_current} already current, "
+                f"{skipped_no_ts} skipped (no server timestamp)."
             )
+            for ds in to_download[:10]:
+                print(f"  {ds}.parquet")
+            if len(to_download) > 10:
+                print(f"  ... and {len(to_download) - 10} more.")
+            return len(to_download), 0
 
-            completed,failed= self.download_parallel(
-                url_path_pairs,
-                num_threads=self.num_threads,
-                dryrun=False
-            )
-
+        if not to_download:
             print(
-                f"\nSync completed. "
-                f"Downloaded: {completed}, Failed: {failed}, "
-                f"Already current: {skipped_current}."
+                f"All {skipped_current} local file(s) are current. "
+                "Nothing to download."
             )
-            
-            return completed,failed
-        
+            return 0, 0
 
-    
-    def _filtered_datasets(self,dataset_ids:list)->list:
-        """Returns dataset IDs which are delayed mode."""
+        print(
+            f"\nDownloading {len(to_download)} dataset(s) "
+            f"({skipped_current} already current, "
+            f"{skipped_no_ts} skipped -no server timestamp)..."
+        )
+
+        # Download one dataset at a time 
+        # Each dataset tries a full download first.
+        # On 413, chunks are downloaded in parallel with staggered starts.
+        completed = 0
+        failed = 0
+
+        for i, dataset_id in enumerate(to_download, 1):
+            local_path = self._local_path(dataset_id)
+            print(f"[{i}/{len(to_download)}] {dataset_id}")
+            ok = self._download_one(dataset_id, local_path)
+            if ok:
+                completed += 1
+            else:
+                failed += 1
+
+        print(
+            f"\nSync complete. "
+            f"Downloaded: {completed}, "
+            f"Failed: {failed}, "
+            f"Already current: {skipped_current}."
+        )
+        return completed, failed
+#
+
+    def _filter_datasets(self, dataset_ids: list) -> list:
+        """Keep only delayed-mode IDs (suffix `-delayed`)."""
         if not self.delayed_only:
             return dataset_ids
-        
         return [d for d in dataset_ids if d.endswith(_DELAYED_SUFFIX)]
-    
-    def _safe_get_url(self,dataset_id:str):
 
-        """
-            Build the download URL for `dataset_id` (completely string based, no network involved).
-
-            Retruns None on failure. 
-        """
-        try:
-            return self.get_dataset_url(dataset_id)
-        except Exception as e:
-            logging.warning(
-                "Could not URL for %s: %s - skipping",dataset_id,e
-            )
-            return None
+    def _local_path(self, dataset_id: str) -> str:
+        """Return the local parquet file path for `dataset_id`."""
+        return os.path.join(self.input_path, f"{dataset_id}.parquet")
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     DownloaderIOOSGliders()

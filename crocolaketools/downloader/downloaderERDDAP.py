@@ -1,0 +1,399 @@
+#!/usr/bin/env python3
+
+import logging
+import os
+import shutil
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime, timedelta, timezone
+from typing import List, Optional, Tuple
+
+import pandas as pd
+import requests
+
+from crocolaketools.downloader.downloader import Downloader
+
+from erddapy import ERDDAP
+from erddapy.core.url import urlopen
+
+
+ERDDAP_TS_FMT = "%Y-%m-%dT%H:%M:%SZ"
+ERDDAP_CONSTRAINT_FMT = "%Y-%m-%dT%H:%M:%SZ"
+TMP_CHUNKS_DIR = "tmp_chunks"
+
+# Retry settings for transient server errors on (503, 429, 500)
+RETRY_STATUS_CODES = {429, 500, 503}
+MAX_RETRIES = 3
+RETRY_BACKOFF = [30, 60, 120]  # seconds to wait before each retry
+
+# Chunk size in hours, tried in order when a chunk gets 413.
+# It is used as constraints in erddap.
+CHUNK_SCHEDULE_HOURS = [24, 12, 6, 3]
+
+
+class DownloaderERDDAP(Downloader):
+
+    SERVER_URL: str = ""
+    PROTOCOL: str = "tabledap"
+    RESPONSE_FORMAT: str = "parquet"
+
+    def __init__(self, config: dict = None):
+        if config is None:
+            raise ValueError("No config argument provided to DownloaderERDDAP.")
+
+        super().__init__(config)
+
+        self.server_url = config.get("server_url", self.SERVER_URL)
+        self.protocol = config.get("protocol", self.PROTOCOL)
+        self.response_format = config.get("response_format", self.RESPONSE_FORMAT)
+
+        self._erddap = ERDDAP(
+            server=self.server_url,
+            protocol=self.protocol,
+        )
+
+    def list_dataset_ids(self) -> list:
+        """Return all dataset IDs from the ERDDAP catalogue."""
+        self._erddap._dataset_id = "allDatasets"
+        self._erddap.constraints = {}
+        self._erddap.variables = None
+
+        df = self._erddap.to_pandas()
+        dataset_ids = df["datasetID"].tolist()
+
+        if "allDatasets" in dataset_ids:
+            dataset_ids.remove("allDatasets")
+
+        return self._filter_datasets(dataset_ids)
+
+    def get_dataset_url(
+        self,
+        dataset_id: str,
+        time_start: Optional[datetime] = None,
+        time_end: Optional[datetime] = None,
+    ) -> str:
+        """
+            This method build the download URL.
+            overriden from base class to add variable selection.
+        """
+        self._erddap._dataset_id = dataset_id
+        self._erddap.variables = None
+        self._erddap.constraints = {}  
+
+        constraints = {}
+        if time_start is not None:
+            constraints["time>="] = time_start.strftime(ERDDAP_CONSTRAINT_FMT)
+        if time_end is not None:
+            constraints["time<="] = time_end.strftime(ERDDAP_CONSTRAINT_FMT)
+
+        return self._erddap.get_download_url(
+            response=self.response_format,
+            constraints=constraints if constraints else {},
+        )
+
+    def get_server_timestamp(self, dataset_id: str) -> Optional[datetime]:
+        """Fetch last-modified timestamp from the ERDDAP info endpoint."""
+        url = self._erddap.get_info_url(dataset_id=dataset_id, response="csv")
+        try:
+            data = urlopen(url)
+            df = pd.read_csv(data)
+        except Exception as exc:
+            logging.warning(
+                "Could not fetch info for %s: %s", dataset_id, exc
+            )
+            return None
+
+        nc_global = df[df["Variable Name"] == "NC_GLOBAL"]
+        for attr in ("date_modified", "date_created", "date_issued"):
+            row = nc_global[nc_global["Attribute Name"] == attr]
+            if not row.empty:
+                raw_ts = row["Value"].iloc[0]
+                try:
+                    dt = datetime.strptime(raw_ts, ERDDAP_TS_FMT)
+                    return dt.replace(tzinfo=timezone.utc)
+                except (ValueError, TypeError):
+                    pass
+        return None
+
+    def download(self) -> tuple:  
+        """Orchestrate the sync. Must be implemented by subclasses."""
+        raise NotImplementedError("Subclasses must implement download().")
+
+    def _download_file_with_retry(self, url: str, local_path: str) -> None:
+
+        from requests.exceptions import ChunkedEncodingError
+        from requests.exceptions import ConnectionError as RequestsConnectionError
+        from requests.exceptions import ReadTimeout
+
+        last_exc = None
+        for attempt in range(MAX_RETRIES + 1):
+            try:
+                self._download_file(url, local_path)
+                return
+
+            except requests.exceptions.HTTPError as exc:
+                status = exc.response.status_code if exc.response is not None else None
+                if status not in RETRY_STATUS_CODES:
+                    raise
+                last_exc = exc
+
+            except (
+                ChunkedEncodingError,   # wraps IncompleteRead
+                RequestsConnectionError,
+                ReadTimeout,
+            ) as exc:
+                # Network-level interruption, always retryable
+                last_exc = exc
+
+            # Retry with backoff
+            if attempt < MAX_RETRIES:
+                wait = RETRY_BACKOFF[attempt]
+                logging.warning(
+                    "%s - retrying in %ds (attempt %d/%d): %s",
+                    type(last_exc).__name__, wait,
+                    attempt + 1, MAX_RETRIES, url,
+                )
+                print(
+                    f"  {type(last_exc).__name__} - waiting {wait}s before retry "
+                    f"({attempt + 1}/{MAX_RETRIES})..."
+                )
+                time.sleep(wait)
+
+        raise last_exc
+
+
+    def _download_one(self, dataset_id: str, local_path: str) -> bool:
+        """Download one dataset to `local_path` using parallel chunking. """
+        time_range = self._get_dataset_time_range(dataset_id)
+        if time_range is None:
+            logging.error(
+                "%s: cannot determine time range for chunking.", dataset_id
+            )
+            return False
+
+        t_start, t_end = time_range
+
+        for chunk_hours in CHUNK_SCHEDULE_HOURS:
+            windows = self._split_window(t_start, t_end, chunk_hours=chunk_hours)
+            logging.info(
+                "%s: %d x %dh chunk(s) (%s - %s).",
+                dataset_id, len(windows), chunk_hours,
+                t_start.date(), t_end.date(),
+            )
+            print(
+                f"  {dataset_id}: {len(windows)} x {chunk_hours}h chunk(s)."
+            )
+
+            tmp_dir = os.path.join(self.input_path, TMP_CHUNKS_DIR, dataset_id)
+            os.makedirs(tmp_dir, exist_ok=True)
+
+            try:
+                ok, got_413 = self._download_chunks_parallel(
+                    dataset_id, windows, tmp_dir, local_path
+                )
+            finally:
+                if os.path.exists(tmp_dir):
+                    shutil.rmtree(tmp_dir)
+
+            if ok:
+                return True
+            if not got_413:
+                return False
+
+            logging.warning(
+                "%s: still getting 413 at %dh chunks, trying smaller.",
+                dataset_id, chunk_hours,
+            )
+
+        logging.error(
+            "%s: 413 at minimum chunk size (%dh). Cannot reduce further.",
+            dataset_id, CHUNK_SCHEDULE_HOURS[-1],
+        )
+        return False
+
+    def _download_chunks_parallel(
+        self,
+        dataset_id: str,
+        windows: List[Tuple[datetime, datetime]],
+        tmp_dir: str,
+        local_path: str,
+    ) -> Tuple[bool, bool]:
+        """
+            Download `windows` as parallel chunks with scheduled starts.
+        """
+        chunk_jobs = []
+        for i, (ws, we) in enumerate(windows):
+            chunk_path = os.path.join(
+                tmp_dir, f"{dataset_id}_chunk_{i:04d}.parquet"
+            )
+            url = self._safe_get_url(dataset_id, time_start=ws, time_end=we)
+            if url is not None:
+                chunk_jobs.append((chunk_path, url))
+
+        if not chunk_jobs:
+            logging.error("%s: no valid chunk URLs.", dataset_id)
+            return False, False
+
+        started = threading.Semaphore(0)
+
+        def _download_and_signal(url: str, path: str) -> None:
+            started.release()
+            self._download_file_with_retry(url, path)
+
+        chunk_files = []
+        failed_chunks = 0
+        got_413 = False
+
+        with ThreadPoolExecutor(max_workers=self.num_threads) as executor:
+            future_to_path = {}
+            for chunk_path, url in chunk_jobs:
+                future = executor.submit(_download_and_signal, url, chunk_path)
+                future_to_path[future] = chunk_path
+                started.acquire()
+
+            for future in as_completed(future_to_path):
+                chunk_path = future_to_path[future]
+                try:
+                    future.result()
+                    chunk_files.append(chunk_path)
+                except requests.exceptions.HTTPError as exc:
+                    status = exc.response.status_code if exc.response is not None else None
+                    if status == 404:
+                        # Empty window - no data for this period, not a failure
+                        logging.debug(
+                            "%s: chunk %s returned 404 (empty window) - skipping.",
+                            dataset_id, os.path.basename(chunk_path),
+                        )
+                    elif status == 413:
+                        got_413 = True
+                        failed_chunks += 1
+                        logging.warning(
+                            "%s: chunk %s returned 413 - need smaller chunks.",
+                            dataset_id, os.path.basename(chunk_path),
+                        )
+                    else:
+                        failed_chunks += 1
+                        logging.error(
+                            "%s: chunk %s failed: %s",
+                            dataset_id, os.path.basename(chunk_path), exc,
+                        )
+                except Exception as exc:
+                    failed_chunks += 1
+                    logging.error(
+                        "%s: chunk %s failed: %s",
+                        dataset_id, os.path.basename(chunk_path), exc,
+                    )
+
+        if not chunk_files:
+            logging.error("%s: no chunks downloaded.", dataset_id)
+            return False, got_413
+
+        if failed_chunks:
+            #  will not merge some data windows (chunks) are missing.
+            # In such scenerio we can try with smaller chunks (if 413) or mark as failed.
+            logging.error(
+                "%s: %d/%d chunk(s) failed - aborting merge. "
+                "No partial file written.",
+                dataset_id, failed_chunks, len(chunk_jobs),
+            )
+            return False, got_413
+
+        chunk_files.sort()
+        print(f"  {dataset_id}: merging {len(chunk_files)} chunk(s)...")
+        try:
+            dfs = [pd.read_parquet(f) for f in chunk_files]
+            merged = pd.concat(dfs, ignore_index=True)
+            if "time" in merged.columns:
+                merged = merged.sort_values("time").reset_index(drop=True)
+            merged.to_parquet(local_path, index=False)
+        except Exception as exc:
+            logging.error("%s: merge failed: %s", dataset_id, exc)
+            return False, got_413
+        
+        return True, got_413
+
+    def _get_dataset_time_range(
+        self,
+        dataset_id: str,
+    ) -> Optional[Tuple[datetime, datetime]]:
+        """Return (min_time, max_time) from NC_GLOBAL of the info endpoint."""
+        url = self._erddap.get_info_url(dataset_id=dataset_id, response="csv")
+        try:
+            data = urlopen(url)
+            df = pd.read_csv(data)
+        except Exception as exc:
+            logging.warning(
+                "Could not fetch time range for %s: %s", dataset_id, exc
+            )
+            return None
+
+        nc_global = df[df["Variable Name"] == "NC_GLOBAL"]
+
+        def _parse(attr: str) -> Optional[datetime]:
+            row = nc_global[nc_global["Attribute Name"] == attr]
+            if row.empty:
+                return None
+            raw = row["Value"].iloc[0]
+            for fmt in (
+                "%Y-%m-%dT%H:%M:%SZ",
+                "%Y-%m-%dT%H:%M:%S.%fZ",
+                "%Y-%m-%d",
+            ):
+                try:
+                    return datetime.strptime(raw, fmt).replace(tzinfo=timezone.utc)
+                except ValueError:
+                    continue
+            return None
+
+        t_start = _parse("time_coverage_start")
+        t_end   = _parse("time_coverage_end")
+
+        if t_start is None or t_end is None:
+            logging.warning("%s: time_coverage_start/end missing.", dataset_id)
+            return None
+
+        return t_start, t_end
+
+    def _filter_datasets(self, dataset_ids: list) -> list:
+        """Return dataset_ids unchanged. overriden from base class."""
+        return dataset_ids
+
+    def _safe_get_url(
+        self,
+        dataset_id: str,
+        time_start: Optional[datetime] = None,
+        time_end: Optional[datetime] = None,
+    ) -> Optional[str]:
+        """Build the download URL, returning None on failure."""
+        try:
+            return self.get_dataset_url(dataset_id, time_start, time_end)
+        except Exception as exc:
+            logging.warning(
+                "Could not build URL for %s: %s - skipping.", dataset_id, exc
+            )
+            return None
+
+    @staticmethod
+    def _split_window(
+        t_start: datetime,
+        t_end: datetime,
+        chunk_hours: int = 24,
+    ) -> List[Tuple[datetime, datetime]]:
+        """Split [t_start, t_end] into windows of *chunk_hours* hours."""
+        windows = []
+        delta = timedelta(hours=chunk_hours)
+        current = t_start
+        while current < t_end:
+            window_end = min(current + delta, t_end)
+            windows.append((current, window_end))
+            current = window_end
+        return windows
+
+    @staticmethod
+    def _local_timestamp(local_path: str) -> Optional[datetime]:
+        """Return filesystem mtime as UTC datetime, or None."""
+        if not os.path.isfile(local_path):
+            return None
+        mtime = os.path.getmtime(local_path)
+        return datetime.fromtimestamp(mtime, tz=timezone.utc)
