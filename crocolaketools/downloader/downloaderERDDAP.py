@@ -7,10 +7,11 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
-from typing import List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple
 
 import pandas as pd
 import requests
+from tqdm import tqdm
 
 from crocolaketools.downloader.downloader import Downloader
 
@@ -29,7 +30,11 @@ RETRY_BACKOFF = [5, 5, 5, 5, 5, 5, 5]  # seconds to wait before each retry
 MAX_RETRIES = len(RETRY_BACKOFF)
 # Chunk size in hours, tried in order when a chunk gets 413.
 # It is used as constraints in erddap.
-CHUNK_SCHEDULE_HOURS = [1,0.5]
+CHUNK_SCHEDULE_HOURS = [1, 0.5]
+
+# Streaming read settings for the first-byte gate.
+HTTP_TIMEOUT = (30, 300)   # (connect_timeout, read_timeout) seconds
+STREAM_CHUNK_SIZE = 65536  # 64 KiB per iter_content block
 
 
 class DownloaderERDDAP(Downloader):
@@ -79,7 +84,7 @@ class DownloaderERDDAP(Downloader):
         """
         self._erddap._dataset_id = dataset_id
         self._erddap.variables = None
-        self._erddap.constraints = {}  
+        self._erddap.constraints = {}
 
         constraints = {}
         if time_start is not None:
@@ -116,11 +121,64 @@ class DownloaderERDDAP(Downloader):
                     pass
         return None
 
-    def download(self) -> tuple:  
+    def download(self) -> tuple:
         """Orchestrate the sync. Must be implemented by subclasses."""
         raise NotImplementedError("Subclasses must implement download().")
 
-    def _download_file_with_retry(self, url: str, local_path: str) -> None:
+    def _download_file(
+        self,
+        url: str,
+        local_path: str,
+        on_first_byte: Optional[Callable[[], None]] = None,
+    ) -> None:
+        """Stream url to local_path, firing on_first_byte once data arrives.
+
+        Overrides the base Downloader._download_file to support the
+        first-byte gate. ERDDAP does its expensive work (reading source
+        files, building the response in memory) BEFORE sending the first
+        byte. Once bytes start flowing, that heavy phase is done, so we
+        invoke on_first_byte() at that moment to release the next chunk.
+
+        Downloads to a temporary file first and renames it only after the
+        download completes successfully, so a failed/interrupted download
+        never leaves a corrupt file on disk.
+        """
+        tmp_path = local_path + ".tmp"
+        try:
+            with requests.get(url, stream=True, timeout=HTTP_TIMEOUT) as response:
+                response.raise_for_status()
+                total_size = int(response.headers.get("content-length", 0))
+                signaled = False
+                with open(tmp_path, "wb") as fh, tqdm(
+                    desc=os.path.basename(local_path),
+                    total=total_size,
+                    unit="iB",
+                    unit_scale=True,
+                    unit_divisor=1024,
+                    leave=False,
+                ) as bar:
+                    for chunk in response.iter_content(chunk_size=STREAM_CHUNK_SIZE):
+                        if not signaled and chunk:
+                            # First byte received: heavy server-side phase is
+                            # done. Release the gate so the next chunk can
+                            # begin its heavy phase.
+                            signaled = True
+                            if on_first_byte is not None:
+                                on_first_byte()
+                        size = fh.write(chunk)
+                        bar.update(size)
+            os.replace(tmp_path, local_path)
+        except Exception:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+            raise
+
+    def _download_file_with_retry(
+        self,
+        url: str,
+        local_path: str,
+        on_first_byte: Optional[Callable[[], None]] = None,
+    ) -> None:
 
         from requests.exceptions import ChunkedEncodingError
         from requests.exceptions import ConnectionError as RequestsConnectionError
@@ -129,7 +187,7 @@ class DownloaderERDDAP(Downloader):
         last_exc = None
         for attempt in range(MAX_RETRIES + 1):
             try:
-                self._download_file(url, local_path)
+                self._download_file(url, local_path, on_first_byte=on_first_byte)
                 return
 
             except requests.exceptions.HTTPError as exc:
@@ -163,7 +221,6 @@ class DownloaderERDDAP(Downloader):
                 time.sleep(wait)
 
         raise last_exc
-
 
     def _download_one(self, dataset_id: str, local_path: str) -> bool:
         """Download one dataset to `local_path` using parallel chunking. """
@@ -222,7 +279,16 @@ class DownloaderERDDAP(Downloader):
         local_path: str,
     ) -> Tuple[bool, bool]:
         """
-            Download `windows` as parallel chunks with scheduled starts.
+            Download `windows` as parallel chunks with a first-byte gate.
+
+            Multiple chunk transfers run in parallel, but only ONE chunk
+            is allowed to be in its server-side "heavy" phase (reading
+            source files + building the response) at a time. The gate for
+            the next chunk is released only when the current chunk receives
+            its first byte — i.e. when its heavy phase is finished and the
+            server is just streaming bytes. This avoids stacking several
+            memory-heavy ERDDAP requests at once, which is what triggers
+            503 (server out of memory) on file-heavy datasets.
         """
         chunk_jobs = []
         for i, (ws, we) in enumerate(windows):
@@ -237,11 +303,30 @@ class DownloaderERDDAP(Downloader):
             logging.error("%s: no valid chunk URLs.", dataset_id)
             return False, False
 
+        # Gate starts at 0; the main loop blocks on acquire() until the
+        # running chunk signals (via first byte, or via the safety release
+        # for empty/0-byte responses) that the next chunk may begin.
         started = threading.Semaphore(0)
 
         def _download_and_signal(url: str, path: str) -> None:
-            started.release()
-            self._download_file_with_retry(url, path)
+            # Each chunk releases the gate at most once: either when its
+            # first byte arrives (heavy phase done) or, as a safety net,
+            # when the call returns having produced no bytes (e.g. an empty
+            # 404 window never triggers on_first_byte, so we must release
+            # here or the main loop would block forever).
+            released = threading.Event()
+
+            def _release_once() -> None:
+                if not released.is_set():
+                    released.set()
+                    started.release()
+
+            try:
+                self._download_file_with_retry(
+                    url, path, on_first_byte=_release_once
+                )
+            finally:
+                _release_once()
 
         chunk_files = []
         failed_chunks = 0
@@ -312,7 +397,7 @@ class DownloaderERDDAP(Downloader):
         except Exception as exc:
             logging.error("%s: merge failed: %s", dataset_id, exc)
             return False, got_413
-        
+
         return True, got_413
 
     def _get_dataset_time_range(
