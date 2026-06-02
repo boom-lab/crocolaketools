@@ -25,11 +25,11 @@ TMP_CHUNKS_DIR = "tmp_chunks"
 # Retry settings for transient server errors on (503, 429, 500)
 RETRY_STATUS_CODES = {429, 500, 503}
 
-RETRY_BACKOFF = [30, 60, 120]  # seconds to wait before each retry
+RETRY_BACKOFF = [5, 5, 5, 5, 5, 5, 5]  # seconds to wait before each retry
 MAX_RETRIES = len(RETRY_BACKOFF)
 # Chunk size in hours, tried in order when a chunk gets 413.
 # It is used as constraints in erddap.
-CHUNK_SCHEDULE_HOURS = [24,12,6]
+CHUNK_SCHEDULE_HOURS = [1,0.5]
 
 
 class DownloaderERDDAP(Downloader):
@@ -149,13 +149,15 @@ class DownloaderERDDAP(Downloader):
             # Retry with backoff
             if attempt < MAX_RETRIES:
                 wait = RETRY_BACKOFF[attempt]
+                status = last_exc.response.status_code if isinstance(last_exc, requests.exceptions.HTTPError) and last_exc.response is not None else None
+                status_str = f" (HTTP {status})" if status else ""
                 logging.warning(
-                    "%s - retrying in %ds (attempt %d/%d): %s",
-                    type(last_exc).__name__, wait,
+                    "%s%s — retrying in %ds (attempt %d/%d): %s",
+                    type(last_exc).__name__, status_str, wait,
                     attempt + 1, MAX_RETRIES, url,
                 )
                 print(
-                    f"  {type(last_exc).__name__} - waiting {wait}s before retry "
+                    f"  {type(last_exc).__name__}{status_str} — waiting {wait}s before retry "
                     f"({attempt + 1}/{MAX_RETRIES})..."
                 )
                 time.sleep(wait)
