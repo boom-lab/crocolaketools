@@ -24,12 +24,12 @@ TMP_CHUNKS_DIR = "tmp_chunks"
 
 # Retry settings for transient server errors on (503, 429, 500)
 RETRY_STATUS_CODES = {429, 500, 503}
-MAX_RETRIES = 3
-RETRY_BACKOFF = [30, 60, 120]  # seconds to wait before each retry
 
+RETRY_BACKOFF = [30, 60, 120]  # seconds to wait before each retry
+MAX_RETRIES = len(RETRY_BACKOFF)
 # Chunk size in hours, tried in order when a chunk gets 413.
 # It is used as constraints in erddap.
-CHUNK_SCHEDULE_HOURS = [24, 12, 6, 3]
+CHUNK_SCHEDULE_HOURS = [24,12,6]
 
 
 class DownloaderERDDAP(Downloader):
