@@ -26,15 +26,15 @@ TMP_CHUNKS_DIR = "tmp_chunks"
 # Retry settings for transient server errors on (503, 429, 500)
 RETRY_STATUS_CODES = {429, 500, 503}
 
-RETRY_BACKOFF = [5, 5, 5, 5, 5, 5, 5]  # seconds to wait before each retry
+RETRY_BACKOFF = [15, 30, 60]  # seconds to wait before each retry
 MAX_RETRIES = len(RETRY_BACKOFF)
 # Chunk size in hours, tried in order when a chunk gets 413.
 # It is used as constraints in erddap.
-CHUNK_SCHEDULE_HOURS = [1, 0.5]
+CHUNK_SCHEDULE_HOURS = [24, 12, 6]
 
 # Streaming read settings for the first-byte gate.
-HTTP_TIMEOUT = (30, 300)   # (connect_timeout, read_timeout) seconds
-STREAM_CHUNK_SIZE = 65536  # 64 KiB per iter_content block
+HTTP_TIMEOUT = (30, 600)   # (connect_timeout, read_timeout) seconds
+STREAM_CHUNK_SIZE = 8192  # 8 KiB per iter_content block
 
 
 class DownloaderERDDAP(Downloader):
@@ -155,7 +155,7 @@ class DownloaderERDDAP(Downloader):
                     unit="iB",
                     unit_scale=True,
                     unit_divisor=1024,
-                    leave=False,
+                    leave=True,
                 ) as bar:
                     for chunk in response.iter_content(chunk_size=STREAM_CHUNK_SIZE):
                         if not signaled and chunk:
@@ -214,7 +214,7 @@ class DownloaderERDDAP(Downloader):
                     type(last_exc).__name__, status_str, wait,
                     attempt + 1, MAX_RETRIES, url,
                 )
-                print(
+                tqdm.write(
                     f"  {type(last_exc).__name__}{status_str} — waiting {wait}s before retry "
                     f"({attempt + 1}/{MAX_RETRIES})..."
                 )
@@ -325,11 +325,22 @@ class DownloaderERDDAP(Downloader):
                 self._download_file_with_retry(
                     url, path, on_first_byte=_release_once
                 )
+            except requests.exceptions.HTTPError as exc:
+                status = exc.response.status_code if exc.response is not None else None
+                if status == 404:
+                    # Report the empty window immediately, where it occurs,
+                    # so it appears live during the download rather than all
+                    # at the end when results are collected.
+                    tqdm.write(
+                        f"  {os.path.basename(path)}: empty window (no data) - skipped"
+                    )
+                raise   # re-raise so the collector loop counts it correctly
             finally:
                 _release_once()
 
         chunk_files = []
         failed_chunks = 0
+        empty_chunks = 0
         got_413 = False
 
         with ThreadPoolExecutor(max_workers=self.num_threads) as executor:
@@ -347,9 +358,12 @@ class DownloaderERDDAP(Downloader):
                 except requests.exceptions.HTTPError as exc:
                     status = exc.response.status_code if exc.response is not None else None
                     if status == 404:
-                        # Empty window - no data for this period, not a failure
-                        logging.debug(
-                            "%s: chunk %s returned 404 (empty window) - skipping.",
+                        # Empty window - no data for this period, not a failure.
+                        # The live "skipped" line is printed by the worker
+                        # (_download_and_signal) at the moment it occurs.
+                        empty_chunks += 1
+                        logging.info(
+                            "%s: chunk %s returned 404 (empty window, no data) - skipping.",
                             dataset_id, os.path.basename(chunk_path),
                         )
                     elif status == 413:
@@ -387,7 +401,17 @@ class DownloaderERDDAP(Downloader):
             return False, got_413
 
         chunk_files.sort()
-        print(f"  {dataset_id}: merging {len(chunk_files)} chunk(s)...")
+        if empty_chunks:
+            logging.info(
+                "%s: %d empty window(s) skipped (404, no data).",
+                dataset_id, empty_chunks,
+            )
+            tqdm.write(
+                f"  {dataset_id}: {empty_chunks} empty window(s) skipped, "
+                f"merging {len(chunk_files)} chunk(s)..."
+            )
+        else:
+            tqdm.write(f"  {dataset_id}: merging {len(chunk_files)} chunk(s)...")
         try:
             dfs = [pd.read_parquet(f) for f in chunk_files]
             merged = pd.concat(dfs, ignore_index=True)

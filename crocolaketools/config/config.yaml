@@ -99,7 +99,7 @@ IOOS_GLIDERS_PHY:
   sync: true        # true  = compare timestamps, re-download updated files # false = download missing files only
   overwrite: false
   dryrun: false
-  num_threads: 32
+  num_threads: 4
 
 # Spray Gliders
 SprayGliders_PHY:
