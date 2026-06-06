@@ -1,11 +1,7 @@
 #!/usr/bin/env python3
 import argparse
-import functools
-from datetime import datetime
 
 from crocolaketools.downloader.downloaderIOOSGliders import DownloaderIOOSGliders
-
-print = functools.partial(print, flush=True)
 
 
 def download_ioos_gliders(
@@ -21,8 +17,8 @@ def download_ioos_gliders(
     if config is None:
         config = {"db": "IOOS_GLIDERS", "db_type": "PHY"}
 
-    # Only override config.yaml values if explicitly passed via CLI/API.
-    # None means "not set, lets config.yaml decide".
+    # only override config.yaml values if explicitly passed via CLI/API;
+    # None means "not set, let config.yaml decide"
     if overwrite is not None:
         config["overwrite"] = overwrite
     if dryrun is not None:
@@ -87,8 +83,8 @@ def main():
 
     config = {"db": "IOOS_GLIDERS", "db_type": "PHY"}
 
-    # Only pass CLI flags that were explicitly set, don't override config.yaml
-    # with argparse defaults.
+    # only pass flags that were explicitly set; don't override config.yaml
+    # with argparse defaults
     download_ioos_gliders(
         config=config,
         overwrite=args.overwrite if args.overwrite else None,
@@ -99,10 +95,4 @@ def main():
 
 
 if __name__ == "__main__":
-    print(datetime.now())
-    print()
     main()
-    print()
-    print("download_ioos_gliders.py executed successfully")
-    print()
-    print(datetime.now())

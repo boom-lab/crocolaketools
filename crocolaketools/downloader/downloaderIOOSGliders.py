@@ -6,8 +6,10 @@ from datetime import datetime
 from typing import Optional
 
 from crocolaketools.downloader.downloaderIOOS import DownloaderIOOS
+from crocolaketools.utils.logger_configurator import configure_logging
 
 _DELAYED_SUFFIX = "-delayed"
+_LOG_FILE = "ioos_gliders_download.log"
 
 GLIDER_VARIABLES = [
     "latitude",
@@ -46,10 +48,11 @@ class DownloaderIOOSGliders(DownloaderIOOS):
         config.setdefault("db_type", "PHY")
         super().__init__(config)
 
-        # sync=True, comparing server timestamps, download new + updated files
-        # sync=False, download missing files only (no timestamp check)
-        self.sync = config.get("sync", False)
+        configure_logging(_LOG_FILE)
 
+        # sync=True: compare server timestamps, download new and updated files
+        # sync=False: download missing files only, no timestamp check
+        self.sync = config.get("sync", False)
 
     def get_dataset_url(
         self,
@@ -62,7 +65,7 @@ class DownloaderIOOSGliders(DownloaderIOOS):
         """
         self._erddap._dataset_id = dataset_id
         self._erddap.variables = GLIDER_VARIABLES
-        self._erddap.constraints = {}  
+        self._erddap.constraints = {}
 
         constraints = {}
         if time_start is not None:
@@ -70,42 +73,94 @@ class DownloaderIOOSGliders(DownloaderIOOS):
         if time_end is not None:
             constraints["time<="] = time_end.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-        # Pass constraints explicitly -even empty dict to override
-        # self._erddap.constraints. When constraints is None, erddapy
-        # falls back to self.constraints which may have stale values.
+        # pass constraints explicitly, even as an empty dict, to avoid erddapy
+        # falling back to self.constraints which may hold stale values from a
+        # previous call
         return self._erddap.get_download_url(
             response=self.response_format,
             constraints=constraints if constraints else {},
         )
 
     def download(self) -> tuple:
-        """
-            Run the incremental sync against the IOOS Glider DAC.
-        """
+        """Run the incremental sync against the IOOS Glider DAC."""
         logging.info("Querying IOOS Glider DAC for delayed-mode dataset IDs...")
-        print("Querying IOOS Glider DAC for delayed-mode dataset IDs...")
 
         try:
             dataset_ids = self.list_dataset_ids()
         except Exception as exc:
             logging.error("Failed to fetch dataset catalogue: %s", exc)
-            print(f"ERROR: Could not fetch dataset catalogue: {exc}")
             return 0, 0
 
         if not dataset_ids:
-            print("No delayed-mode glider datasets found on the server.")
+            logging.info("No delayed-mode glider datasets found on the server.")
             return 0, 0
 
-        print(f"Found {len(dataset_ids)} delayed-mode dataset(s).")
+        logging.info("Found %d delayed-mode dataset(s).", len(dataset_ids))
 
-        # Build list of datasets that need downloading 
+        to_download, skipped_current, skipped_no_ts = self._build_download_queue(dataset_ids)
+
+        if self.dryrun:
+            mode = (
+                "sync mode (timestamp check)"
+                if self.sync
+                else "download-only mode (missing files)"
+            )
+            logging.info(
+                "Dry run [%s]: %d file(s) would be downloaded, "
+                "%d already current, %d skipped (no server timestamp).",
+                mode, len(to_download), skipped_current, skipped_no_ts,
+            )
+            for ds in to_download[:10]:
+                logging.info("  %s.parquet", ds)
+            if len(to_download) > 10:
+                logging.info("  ... and %d more.", len(to_download) - 10)
+            return len(to_download), 0
+
+        if not to_download:
+            logging.info(
+                "All %d local file(s) are current. Nothing to download.",
+                skipped_current,
+            )
+            return 0, 0
+
+        logging.info(
+            "Downloading %d dataset(s) (%d already current, "
+            "%d skipped - no server timestamp)...",
+            len(to_download), skipped_current, skipped_no_ts,
+        )
+
+        # _download_one handles chunking and retries with smaller windows on 413
+        completed = 0
+        failed = 0
+
+        for i, dataset_id in enumerate(to_download, 1):
+            local_path = self._local_path(dataset_id)
+            logging.info("[%d/%d] %s", i, len(to_download), dataset_id)
+            ok = self._download_one(dataset_id, local_path)
+            if ok:
+                completed += 1
+            else:
+                failed += 1
+
+        logging.info(
+            "Sync complete. Downloaded: %d, Failed: %d, Already current: %d.",
+            completed, failed, skipped_current,
+        )
+        return completed, failed
+
+    def _build_download_queue(self, dataset_ids: list) -> tuple:
+        """Decide which datasets need downloading.
+
+        Returns (to_download, skipped_current, skipped_no_ts).
+        """
         to_download = []
         skipped_current = 0
         skipped_no_ts = 0
 
         if self.sync:
-            print(
-                f"\nChecking {len(dataset_ids)} dataset(s) against server timestamps..."
+            logging.info(
+                "Checking %d dataset(s) against server timestamps...",
+                len(dataset_ids),
             )
 
         for i, dataset_id in enumerate(dataset_ids, 1):
@@ -114,7 +169,10 @@ class DownloaderIOOSGliders(DownloaderIOOS):
             if self.overwrite:
                 to_download.append(dataset_id)
                 if self.sync:
-                    print(f"  [{i}/{len(dataset_ids)}] {dataset_id}: overwrite - queued")
+                    logging.info(
+                        "  [%d/%d] %s: overwrite - queued",
+                        i, len(dataset_ids), dataset_id,
+                    )
                 continue
 
             local_exists = self._local_timestamp(local_path) is not None
@@ -122,96 +180,45 @@ class DownloaderIOOSGliders(DownloaderIOOS):
             if not local_exists:
                 to_download.append(dataset_id)
                 if self.sync:
-                    print(f"  [{i}/{len(dataset_ids)}] {dataset_id}: not found locally - queued")
+                    logging.info(
+                        "  [%d/%d] %s: not found locally - queued",
+                        i, len(dataset_ids), dataset_id,
+                    )
                 continue
 
             if not self.sync:
-                # File exists, sync disabled - skip silently
                 skipped_current += 1
                 continue
 
-            # sync=True, compare timestamps, print result for every dataset
+            # sync=True: compare timestamps and log the result for every dataset
             server_ts = self.get_server_timestamp(dataset_id)
             if server_ts is None:
-                print(
-                    f"  [{i}/{len(dataset_ids)}] {dataset_id}: "
-                    f"no server timestamp - skipped"
+                logging.warning(
+                    "  [%d/%d] %s: no server timestamp - skipped",
+                    i, len(dataset_ids), dataset_id,
                 )
-                logging.warning("No server timestamp for %s; skipping.", dataset_id)
                 skipped_no_ts += 1
                 continue
 
             local_ts = self._local_timestamp(local_path)
             if server_ts > local_ts:
-                print(
-                    f"  [{i}/{len(dataset_ids)}] {dataset_id}: "
-                    f"server newer ({server_ts.date()} > {local_ts.date()}) - queued"
+                logging.info(
+                    "  [%d/%d] %s: server newer (%s > %s) - queued",
+                    i, len(dataset_ids), dataset_id,
+                    server_ts.date(), local_ts.date(),
                 )
                 to_download.append(dataset_id)
             else:
-                print(
-                    f"  [{i}/{len(dataset_ids)}] {dataset_id}: "
-                    f"up to date ({local_ts.date()}) - skipped"
+                logging.info(
+                    "  [%d/%d] %s: up to date (%s) - skipped",
+                    i, len(dataset_ids), dataset_id, local_ts.date(),
                 )
                 skipped_current += 1
 
-        # Dry-run branch
-        if self.dryrun:
-            mode = (
-                "sync mode (timestamp check)"
-                if self.sync
-                else "download-only mode (missing files)"
-            )
-            print(
-                f"\nDry run [{mode}]: {len(to_download)} file(s) would be "
-                f"downloaded, {skipped_current} already current, "
-                f"{skipped_no_ts} skipped (no server timestamp)."
-            )
-            for ds in to_download[:10]:
-                print(f"  {ds}.parquet")
-            if len(to_download) > 10:
-                print(f"  ... and {len(to_download) - 10} more.")
-            return len(to_download), 0
-
-        if not to_download:
-            print(
-                f"All {skipped_current} local file(s) are current. "
-                "Nothing to download."
-            )
-            return 0, 0
-
-        print(
-            f"\nDownloading {len(to_download)} dataset(s) "
-            f"({skipped_current} already current, "
-            f"{skipped_no_ts} skipped -no server timestamp)..."
-        )
-
-        # Download one dataset at a time 
-        # Each dataset tries a full download first.
-        # On 413, chunks are downloaded in parallel with staggered starts.
-        completed = 0
-        failed = 0
-
-        for i, dataset_id in enumerate(to_download, 1):
-            local_path = self._local_path(dataset_id)
-            print(f"[{i}/{len(to_download)}] {dataset_id}")
-            ok = self._download_one(dataset_id, local_path)
-            if ok:
-                completed += 1
-            else:
-                failed += 1
-
-        print(
-            f"\nSync complete. "
-            f"Downloaded: {completed}, "
-            f"Failed: {failed}, "
-            f"Already current: {skipped_current}."
-        )
-        return completed, failed
-#
+        return to_download, skipped_current, skipped_no_ts
 
     def _filter_datasets(self, dataset_ids: list) -> list:
-        """Keep only delayed-mode IDs (suffix `-delayed`)."""
+        """Keep only delayed-mode dataset IDs (those ending with '-delayed')."""
         if not self.delayed_only:
             return dataset_ids
         return [d for d in dataset_ids if d.endswith(_DELAYED_SUFFIX)]
