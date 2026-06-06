@@ -156,7 +156,7 @@ class Downloader:
         """
         tmp_path = local_path + ".tmp"
         try:
-            with requests.get(url, stream=True, timeout=(300,2000)) as response:
+            with requests.get(url, stream=True, timeout=120) as response:
                 response.raise_for_status()
                 total_size = int(response.headers.get("content-length", 0))
                 with open(tmp_path, "wb") as fh, tqdm(
