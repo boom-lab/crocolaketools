@@ -1,5 +1,15 @@
 #!/usr/bin/env python3
 
+## @file downloaderERDDAP.py
+#
+# Contains base class for Interacting with ERDDAP servers
+# (uses erddapy package internally and inherited from base downloader class).
+#
+## @author Mahi Sarwar Anol <anol.mahi@gmail.com>
+#
+## @date Sunday 26 June, 2026
+
+################################################################################################
 import logging
 import os
 import shutil
@@ -23,7 +33,6 @@ from erddapy.core.url import urlopen
 
 
 ERDDAP_TS_FMT = "%Y-%m-%dT%H:%M:%SZ"
-ERDDAP_CONSTRAINT_FMT = "%Y-%m-%dT%H:%M:%SZ"
 TMP_CHUNKS_DIR = "tmp_chunks"
 
 # Retry settings for transient server errors on (503, 429, 500)
@@ -39,12 +48,12 @@ STREAM_CHUNK_SIZE = 8192  # 8 KiB per iter_content block
 
 
 class FirstByteGate:
-    """Limits how many chunk requests can be in ERDDAP's build phase at once.
+    """
+        Limits how many chunk requests can be in ERDDAP's build phase at once.
 
-    ERDDAP loads all source files into memory before sending the first byte,
-    so overlapping requests hit memory limits fast and cause 503s, sometimes even cause server downtime.
-      Once a
-    chunk starts streaming, the next one can begin its build phase.
+        ERDDAP loads all source files into memory before sending the first byte,
+        so overlapping requests hit memory limits fast and cause 503s.
+        Once a chunk starts streaming, the next one can begin its build phase.
     """
 
     def __init__(self):
@@ -52,14 +61,18 @@ class FirstByteGate:
         self._sem = threading.Semaphore(0)
 
     def wait(self):
-        """Block until the current chunk signals it has started streaming."""
+        """
+            Block until the current chunk signals it has started streaming.
+        """
         self._sem.acquire()
 
     def release(self):
         self._sem.release()
 
     def make_callback(self) -> Callable:
-        """Return a callable that releases the gate exactly once."""
+        """
+            Return a callable that releases the gate exactly once.
+        """
         released = threading.Event()
 
         def _once():
@@ -92,7 +105,9 @@ class DownloaderERDDAP(Downloader):
         )
 
     def list_dataset_ids(self) -> list:
-        """Return all dataset IDs from the ERDDAP catalogue."""
+        """
+            Return all dataset IDs from the ERDDAP catalogue.
+        """
         self._erddap._dataset_id = "allDatasets"
         self._erddap.constraints = {}
         self._erddap.variables = None
@@ -111,16 +126,18 @@ class DownloaderERDDAP(Downloader):
         time_start: Optional[datetime] = None,
         time_end: Optional[datetime] = None,
     ) -> str:
-        """Build the download URL for a dataset with optional time constraints."""
+        """
+            Build the download URL for a dataset with optional time constraints.
+        """
         self._erddap._dataset_id = dataset_id
         self._erddap.variables = None
         self._erddap.constraints = {}
 
         constraints = {}
         if time_start is not None:
-            constraints["time>="] = time_start.strftime(ERDDAP_CONSTRAINT_FMT)
+            constraints["time>="] = time_start.strftime(ERDDAP_TS_FMT)
         if time_end is not None:
-            constraints["time<="] = time_end.strftime(ERDDAP_CONSTRAINT_FMT)
+            constraints["time<="] = time_end.strftime(ERDDAP_TS_FMT)
 
         return self._erddap.get_download_url(
             response=self.response_format,
@@ -128,7 +145,9 @@ class DownloaderERDDAP(Downloader):
         )
 
     def get_server_timestamp(self, dataset_id: str) -> Optional[datetime]:
-        """Fetch last-modified timestamp from the ERDDAP info endpoint."""
+        """
+            Fetch last-modified timestamp from the ERDDAP info endpoint.
+        """
         url = self._erddap.get_info_url(dataset_id=dataset_id, response="csv")
         try:
             data = urlopen(url)
@@ -152,7 +171,9 @@ class DownloaderERDDAP(Downloader):
         return None
 
     def download(self) -> tuple:
-        """Orchestrate the sync. Must be implemented by subclasses."""
+        """
+            Orchestrate the sync. Must be implemented by subclasses.
+        """
         raise NotImplementedError("Subclasses must implement download().")
 
     def _download_file(
@@ -161,11 +182,12 @@ class DownloaderERDDAP(Downloader):
         local_path: str,
         on_first_byte: Optional[Callable[[], None]] = None,
     ) -> None:
-        """Stream url to local_path, calling on_first_byte once the first data chunk arrives.
+        """
+            Stream url to local_path, calling on_first_byte once the first data chunk arrives.
 
-        ERDDAP builds the full response in memory before sending anything, so the
-        first byte means the heavy work is done and the next chunk can start its
-        build. Uses a .tmp file so an interrupted download never corrupts the output.
+            ERDDAP builds the full response in memory before sending anything, so the
+            first byte means the heavy work is done and the next chunk can start its
+            build. Uses a .tmp file so an interrupted download never corrupts the output.
         """
         tmp_path = local_path + ".tmp"
         try:
@@ -202,6 +224,9 @@ class DownloaderERDDAP(Downloader):
         local_path: str,
         on_first_byte: Optional[Callable[[], None]] = None,
     ) -> None:
+        """
+            Wraps _download_file with retry logic for transient HTTP and network errors.
+        """
         last_exc = None
         for attempt in range(MAX_RETRIES + 1):
             try:
@@ -240,7 +265,9 @@ class DownloaderERDDAP(Downloader):
         raise last_exc
 
     def _download_one(self, dataset_id: str, local_path: str) -> bool:
-        """Download one dataset to `local_path` using parallel chunking."""
+        """
+            Download one dataset to `local_path` using parallel chunking.
+        """
         time_range = self._get_dataset_time_range(dataset_id)
         if time_range is None:
             logging.error(
@@ -292,10 +319,11 @@ class DownloaderERDDAP(Downloader):
         tmp_dir: str,
         local_path: str,
     ) -> Tuple[bool, bool]:
-        """Download `windows` as parallel chunks using a first-byte gate.
+        """
+            Download `windows` as parallel chunks using a first-byte gate.
 
-        Multiple chunks stream in parallel, but only one is in ERDDAP's heavy
-        build phase at a time. See FirstByteGate.
+            Multiple chunks stream in parallel, but only one is in ERDDAP's heavy
+            build phase at a time. See FirstByteGate.
         """
         chunk_jobs = []
         for i, (ws, we) in enumerate(windows):
@@ -408,7 +436,9 @@ class DownloaderERDDAP(Downloader):
         local_path: str,
         dataset_id: str,
     ) -> bool:
-        """Concatenate sorted chunk parquet files into a single output file."""
+        """
+            Concatenate sorted chunk parquet files into a single output file.
+        """
         try:
             dfs = [pd.read_parquet(f) for f in chunk_files]
             merged = pd.concat(dfs, ignore_index=True)
@@ -424,7 +454,9 @@ class DownloaderERDDAP(Downloader):
         self,
         dataset_id: str,
     ) -> Optional[Tuple[datetime, datetime]]:
-        """Return (min_time, max_time) from NC_GLOBAL of the info endpoint."""
+        """
+            Return (min_time, max_time) from NC_GLOBAL of the info endpoint.
+        """
         url = self._erddap.get_info_url(dataset_id=dataset_id, response="csv")
         try:
             data = urlopen(url)
@@ -463,7 +495,9 @@ class DownloaderERDDAP(Downloader):
         return t_start, t_end
 
     def _filter_datasets(self, dataset_ids: list) -> list:
-        """Return dataset_ids unchanged. overriden from base class."""
+        """
+            Default is no operation. Subclasses override this to filter the list.
+        """
         return dataset_ids
 
     def _safe_get_url(
@@ -472,7 +506,9 @@ class DownloaderERDDAP(Downloader):
         time_start: Optional[datetime] = None,
         time_end: Optional[datetime] = None,
     ) -> Optional[str]:
-        """Build the download URL, returning None on failure."""
+        """
+            Build the download URL, returning None on failure.
+        """
         try:
             return self.get_dataset_url(dataset_id, time_start, time_end)
         except Exception as exc:
@@ -487,7 +523,9 @@ class DownloaderERDDAP(Downloader):
         t_end: datetime,
         chunk_hours: int = 24,
     ) -> List[Tuple[datetime, datetime]]:
-        """Split [t_start, t_end] into windows of *chunk_hours* hours."""
+        """
+            Split [t_start, t_end] into windows of *chunk_hours* hours.
+        """
         windows = []
         delta = timedelta(hours=chunk_hours)
         current = t_start
@@ -499,8 +537,12 @@ class DownloaderERDDAP(Downloader):
 
     @staticmethod
     def _local_timestamp(local_path: str) -> Optional[datetime]:
-        """Return filesystem mtime as UTC datetime, or None."""
+        """
+            Return filesystem mtime as UTC datetime, or None.
+        """
         if not os.path.isfile(local_path):
             return None
         mtime = os.path.getmtime(local_path)
         return datetime.fromtimestamp(mtime, tz=timezone.utc)
+    
+################################################################################################

@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
 
+## @file downloaderIOOSGliders.py
+#
+# Contains source code for interacting with the IOOS glider data ERDDAP SERVER..
+#
+## @author Mahi Sarwar Anol <anol.mahi@gmail.com>
+#
+## @date Sunday 26 June, 2026
+
+################################################################################################
 import logging
 import os
 from datetime import datetime
@@ -82,7 +91,9 @@ class DownloaderIOOSGliders(DownloaderIOOS):
         )
 
     def download(self) -> tuple:
-        """Run the incremental sync against the IOOS Glider DAC."""
+        """
+            Run the incremental sync against the IOOS Glider DAC.
+        """
         logging.info("Querying IOOS Glider DAC for delayed-mode dataset IDs...")
 
         try:
@@ -149,9 +160,10 @@ class DownloaderIOOSGliders(DownloaderIOOS):
         return completed, failed
 
     def _build_download_queue(self, dataset_ids: list) -> tuple:
-        """Decide which datasets need downloading.
+        """
+            Decide which datasets need downloading.
 
-        Returns (to_download, skipped_current, skipped_no_ts).
+            Returns (to_download, skipped_current, skipped_no_ts).
         """
         to_download = []
         skipped_current = 0
@@ -218,15 +230,19 @@ class DownloaderIOOSGliders(DownloaderIOOS):
         return to_download, skipped_current, skipped_no_ts
 
     def _filter_datasets(self, dataset_ids: list) -> list:
-        """Keep only delayed-mode dataset IDs (those ending with '-delayed')."""
+        """
+            Keep only delayed-mode dataset IDs (those ending with '-delayed').
+        """
         if not self.delayed_only:
             return dataset_ids
         return [d for d in dataset_ids if d.endswith(_DELAYED_SUFFIX)]
 
     def _local_path(self, dataset_id: str) -> str:
-        """Return the local parquet file path for `dataset_id`."""
+        """
+            Return the local parquet file path for `dataset_id`.
+        """
         return os.path.join(self.input_path, f"{dataset_id}.parquet")
 
-
+################################################################################################
 if __name__ == "__main__":
     DownloaderIOOSGliders()

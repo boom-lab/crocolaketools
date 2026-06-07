@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
 
+## @file downloaderIOOS.py
+#
+# Parent class for IOOS source, inherited from downloaderERDDAP super class.
+#
+## @author Mahi Sarwar Anol <anol.mahi@gmail.com>
+#
+## @date Sunday 26 June, 2026
+
+################################################################################################
 from crocolaketools.downloader.downloaderERDDAP import DownloaderERDDAP
 
 IOOS_SERVER_URL = "https://gliders.ioos.us/erddap"
@@ -16,3 +25,4 @@ class DownloaderIOOS(DownloaderERDDAP):
         super().__init__(config)
 
         self.delayed_only = config.get("delayed_only", True)
+###############################################################################################
