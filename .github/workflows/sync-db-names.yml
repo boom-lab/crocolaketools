@@ -1,0 +1,58 @@
+name: Sync db_names to CrocoLakeLoader
+
+# Opens a PR on boom-lab/crocolakeloader whenever the canonical database-name
+# list (crocolaketools/db_names.py) changes on main.
+# Implements the CI/CD part of boom-lab/crocolaketools#52.
+#
+# NOTE: the automatic `push` trigger below is intentionally DISABLED for now through commenting.
+# Planning to enable it only After crocolakeloader pr is created and merged (so the loader already has a
+# db_names.py for the sync to update). Until then, run this manually from the
+# Actions tab via "Run workflow" (workflow_dispatch) to test it.
+
+on:
+  ## Will be enable after the PRs are merged as discussed on issue #52 comments
+  # push:
+  #   branches: [main]
+  #   paths:
+  #     - "crocolaketools/db_names.py"
+  workflow_dispatch: {}   # manual run button (always available)
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout CrocoLakeTools (source)
+        uses: actions/checkout@v4
+        with:
+          path: crocolaketools
+
+      - name: Checkout CrocoLakeLoader (target)
+        uses: actions/checkout@v4
+        with:
+          repository: boom-lab/crocolakeloader
+          token: ${{ secrets.CROCOLAKELOADER_SYNC_TOKEN }}
+          path: crocolakeloader
+
+      - name: Copy db_names.py into CrocoLakeLoader
+        run: |
+          cp crocolaketools/crocolaketools/db_names.py \
+             crocolakeloader/crocolakeloader/db_names.py
+
+      - name: Open / update sync PR on CrocoLakeLoader
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.CROCOLAKELOADER_SYNC_TOKEN }}
+          path: crocolakeloader
+          branch: sync/db-names
+          delete-branch: true
+          commit-message: "update: sync db_names.py from CrocoLakeTools"
+          title: "Sync db_names.py from CrocoLakeTools"
+          body: |
+            Automated sync of `crocolakeloader/db_names.py` from
+            **boom-lab/crocolaketools** (`crocolaketools/db_names.py`).
+
+            Triggered because the canonical database-name list changed there.
+            `db_names.py` is auto-synced.
