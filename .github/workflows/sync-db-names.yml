@@ -1,10 +1,14 @@
+## @file sync-db-names.yml
+#
+## Implements the CI/CD part of boom-lab/crocolaketools#52.
+#
+## @author Mahi Sarwar Anol <anol.mahi@gmail.com> 
+
 name: Sync db_names to CrocoLakeLoader
 
 # Opens a PR on boom-lab/crocolakeloader whenever the canonical database-name
 # list (crocolaketools/db_names.py) changes on main.
-# Implements the CI/CD part of boom-lab/crocolaketools#52.
-#
-# NOTE: the automatic `push` trigger below is intentionally DISABLED for now through commenting.
+# N.B: The automatic `push` trigger below is intentionally DISABLED for now through commenting.
 # Planning to enable it only After crocolakeloader pr is created and merged (so the loader already has a
 # db_names.py for the sync to update). Until then, run this manually from the
 # Actions tab via "Run workflow" (workflow_dispatch) to test it.
@@ -33,7 +37,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: boom-lab/crocolakeloader
-          token: ${{ secrets.CROCOLAKELOADER_SYNC_TOKEN }}
+          token: ${{ secrets.CROCOLAKELOADER_SYNC_TOKEN }} # needs secret key setup so that both repo can have authorized communication.
           path: crocolakeloader
 
       - name: Copy db_names.py into CrocoLakeLoader
