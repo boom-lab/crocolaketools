@@ -21,7 +21,7 @@ import requests
 import yaml
 from tqdm import tqdm
 
-from crocolakeloader import params
+from crocolaketools import db_names
 ##########################################################################
 
 
@@ -77,11 +77,11 @@ class Downloader:
 
         # Basic validation and assignments
         if isinstance(db,str):
-            if db in params.databases:
+            if db in db_names.databases:
                 self.db = db
                 print("Setting up downloader for " + self.db + " database.")
             else:
-                raise ValueError("Database db must be one of " + str(params.databases))
+                raise ValueError("Database db must be one of " + str(db_names.databases))
         elif db is not None:
             raise ValueError("Database db not a string.")
         else:

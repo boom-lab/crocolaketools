@@ -12,7 +12,7 @@ import os
 import warnings
 import logging
 import pandas as pd
-from crocolakeloader import params
+from crocolaketools import db_params
 from crocolaketools.converter.converter import Converter
 ##########################################################################
 
@@ -79,7 +79,7 @@ class ConverterCPR(Converter):
         """
 
         # Rename columns using CPR2CROCOLAKE mapping
-        df = df.rename(columns=params.params["CPR2CROCOLAKE"])
+        df = df.rename(columns=db_params.params["CPR2CROCOLAKE"])
 
         # Convert CPR date column to datetime
         logger.info("Converting CPR date column to datetime")

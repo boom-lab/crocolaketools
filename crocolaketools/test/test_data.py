@@ -16,7 +16,7 @@ import pytest
 import yaml
 import xarray as xr
 
-from crocolakeloader import params
+from crocolaketools import db_params
 from crocolaketools.utils.logger_configurator import configure_logging
 
 ####################################################################################################
@@ -174,7 +174,7 @@ class TestData:
         logging.info(f"nc_path: {nc_path}")
         logging.info(f"Files found: {nc_files}")
 
-        params_db2crocolake = params.params[db_name + "2CROCOLAKE"]
+        params_db2crocolake = db_params.params[db_name + "2CROCOLAKE"]
         # remove PLATFORM_NUMBER from params_db2crocolake because it needs to be dealt with separately
         # (in general it is not unique given lat, lon, profile)
 
@@ -190,7 +190,7 @@ class TestData:
         else:
             params_in_crocolake = params_db2crocolake.keys()
 
-        params_crocolake2db = params.params[ "CROCOLAKE2" + db_name]
+        params_crocolake2db = db_params.params[ "CROCOLAKE2" + db_name]
         lat_name = params_crocolake2db["LATITUDE"]
         lon_name = params_crocolake2db["LONGITUDE"]
 
@@ -265,7 +265,7 @@ class TestData:
                         nc_depth = self._get_scalar_from_ds(ds["depth"].isel(**indices))
                         indices_pq[ "DEPTH" ] = nc_depth
                     elif db_name == "Saildrones":
-                        depth_map = params.params["Saildrones_depth_map"]
+                        depth_map = db_params.params["Saildrones_depth_map"]
                         nc_depth = depth_map[random_var]
                         nc_juld = self._get_scalar_from_ds(ds["time"].isel(**indices))
                         indices_pq[ "DEPTH" ] = np.float32(nc_depth)

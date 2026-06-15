@@ -30,7 +30,7 @@ from crocolaketools.converter.converterArgoQC import ConverterArgoQC
 from crocolaketools.converter.converterGLODAP import ConverterGLODAP
 from crocolaketools.converter.converterCPR import ConverterCPR
 from crocolaketools.converter.converterSaildrones import ConverterSaildrones
-from crocolakeloader import params
+from crocolaketools import db_names,db_params
 
 ##########################################################################
 class TestConverter:
@@ -89,7 +89,7 @@ class TestConverter:
         print(ddf.head())
         assert not ddf.head().empty
 
-        for var in params.params["CROCOLAKE_BGC_QC"]:
+        for var in db_params.params["CROCOLAKE_BGC_QC"]:
             if var in ddf.columns:
                 print(var)
                 if var in ["PLATFORM_NUMBER","CYCLE_NUMBER"]:
@@ -220,7 +220,7 @@ class TestConverter:
             elif "QC" in param:
                 sol_df[ param ] = sol_df[ param ].astype("uint8[pyarrow]")
             elif param == "DB_NAME":
-                categories = pd.Series(params.databases, dtype='string[pyarrow]')
+                categories = pd.Series(db_names.databases, dtype='string[pyarrow]')
                 sol_df[ param ] = sol_df[ param ].astype(pd.CategoricalDtype(categories=categories, ordered=False))
             elif "DATA_MODE" in param:
                 categories = pd.Series(["R", "A", "D"], dtype='string[pyarrow]')
@@ -598,7 +598,7 @@ class TestConverter:
         ddf = converterBGC.read_pq(filename=fname)
         ddf = converterBGC.update_cols(ddf)
 
-        for var in params.params["CROCOLAKE_BGC_QC"]:
+        for var in db_params.params["CROCOLAKE_BGC_QC"]:
             if var in ddf.columns:
                 print(var)
                 if var in ["PLATFORM_NUMBER","CYCLE_NUMBER"]:
