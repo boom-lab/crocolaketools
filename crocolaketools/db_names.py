@@ -14,4 +14,12 @@
 #  Originally written by enrico <enrico.milanese@whoi.edu>
 
 
-databases = ["ARGO", "GLODAP", "SprayGliders", "CPR", "Saildrones", "OleanderXBT", "IOOS_GLIDERS"]
+databases = [
+    "ARGO", 
+    "GLODAP", 
+    "SprayGliders", 
+    "CPR", 
+    "Saildrones", 
+    "OleanderXBT", 
+    "IOOS_GLIDERS"
+]
