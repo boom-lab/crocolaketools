@@ -3,10 +3,10 @@
 ## @file db_params.py
 #
 #
-## @author Mahi Sarwar Anol <anol.mahi@gmail.com> 
+## Adapted by @author Mahi Sarwar Anol <anol.mahi@gmail.com> 
 #
 ## Everything is Adapted from params.py in crocolakeloader (https://github.com/boom-lab/crocolakeloader.git)
-#  Originally written by enrico <enrico.milanese@whoi.edu>
+#  Originally written by @author enrico <enrico.milanese@whoi.edu>
 #
 ## @date sunday 15 June, 2026
 
