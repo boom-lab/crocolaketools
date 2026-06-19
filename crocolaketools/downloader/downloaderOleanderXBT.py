@@ -2,46 +2,78 @@
 
 ## @file downloaderOleanderXBT.py
 #
-# Downloader for OleanderXBT netCDF files
+# Downloader for OleanderXBT netCDF files.
 #
 ## @author David Nady <davidnady4yad@gmail.com>
 #         Adapted from Enrico Milanese <enrico.milanese@whoi.edu>
+#         Refactored by Mahi Sarwar Anol <anol.mahi@gmail.com>
 #
 ## @date Wed 23 Jul 2025
 
 ##########################################################################
-import os
-import requests
 import logging
-import zipfile
-import shutil
-import time
+import os
+import re
+import html as html_module
 from urllib.parse import urlparse
-from concurrent.futures import ThreadPoolExecutor, as_completed
+ 
+import requests
+ 
 from crocolaketools.downloader.downloader import Downloader
+from crocolaketools.utils.logger_configurator import configure_logging
 ##########################################################################
-
+ 
+# Base ERDDAP URL for OleanderXBT files
+OLEANDER_BASE_URL = (
+    "http://erddap.oleander.bios.edu:8080/erddap/files/oleanderXbtNcFiles"
+)
+##########################################################################
+ 
+ 
 class DownloaderURLList(Downloader):
-    """class DownloaderURLList: methods to download files from a URL list"""
-
+    """class DownloaderURLList: build and download a list of OleanderXBT URLs.
+ 
+    This class handles OleanderXBT-specific logic: resolving which years
+    are available on the ERDDAP server, constructing the zip URLs for
+    each year, and calling the shared download_parallel() and unzip_file()
+    methods from the Downloader base class.
+ 
+    The base class provides all shared tools: _download_file(), unzip_file(),
+    _is_already_downloaded(), and download_parallel().
+ 
+    Typical usage
+    -------------
+    >>> downloader = DownloaderURLList(urls=urls, num_threads=4)
+    >>> downloader.download()
+    """
+ 
     # ------------------------------------------------------------------ #
     # Constructors/Destructors                                           #
     # ------------------------------------------------------------------ #
-
-    def __init__(self, urls, log_file="oleanderXBT_download.log", num_threads=4, overwrite=False, dryrun=False, config=None, base_dir=None):
-        """Initialize the DownloaderURLList instance with configuration.
-
-        Args:
-            urls (list[str]): URLs to download.
-            log_file (str): Log file path.
-            num_threads (int): Number of download threads.
-            overwrite (bool): Overwrite existing extracted files.
-            dryrun (bool): If True, don't download.
-            config (dict): Optional config with at least {'db','db_type'} and
-                           optionally 'input_path'. If not provided, defaults
-                           to OleanderXBT PHY using package config.yaml.
-            base_dir (str): Optional explicit destination directory; if None,
-                            uses resolved input_path from base class.
+ 
+    def __init__(
+        self,
+        urls: list,
+        log_file: str = "oleanderXBT_download.log",
+        num_threads: int = 4,
+        overwrite: bool = False,
+        dryrun: bool = False,
+        config: dict = None,
+        base_dir: str = None,
+    ):
+        """Constructor.
+ 
+        Arguments
+        ---------
+        urls        : list of zip file URLs to download.
+        log_file    : path to log file.
+        num_threads : number of concurrent download threads.
+        overwrite   : if True, re-download files even if already present.
+        dryrun      : if True, log what would be downloaded without fetching.
+        config      : optional config dict with at least {'db', 'db_type'}.
+                      Defaults to OleanderXBT PHY from config.yaml.
+        base_dir    : optional destination directory. If None, uses the
+                      input_path resolved by the base Downloader.
         """
         if config is None:
             config = {
@@ -49,136 +81,202 @@ class DownloaderURLList(Downloader):
                 'db_type': 'PHY',
             }
         super().__init__(config)
+ 
         self.urls = urls
-        self.base_dir = base_dir if base_dir is not None else self.input_path
+        self.base_dir = base_dir if base_dir is not None else getattr(self, 'input_path', None)
         self.log_file = log_file
+        # Override base class defaults with subclass-specific values
         self.num_threads = num_threads
         self.overwrite = overwrite
         self.dryrun = dryrun
-        self.configure_logging(self.log_file)
-
+        configure_logging(self.log_file)
+ 
     # ------------------------------------------------------------------ #
-    # Methods                                                            #
+    # Public interface                                                     #
     # ------------------------------------------------------------------ #
-
-#------------------------------------------------------------------------------#
-## Set up logging to file and console
-    def configure_logging(self, log_file):
-        """Configure logging to both file and console.
-
-        Args:
-            log_file (str): Path to the log file.
+ 
+    def download(self) -> tuple:
+        """Download all URLs, unzip each archive, and return (completed, failed).
+ 
+        For each URL, the zip is downloaded to base_dir, then extracted
+        via the inherited unzip_file() method (which also deletes the zip
+        and cleans up __MACOSX folders).
+ 
+        Files whose corresponding NetCDF output already exists on disk are
+        skipped unless overwrite=True.
+ 
+        Returns
+        -------
+        tuple
+            (completed, failed) counts.
         """
-        # Avoid adding handlers multiple times if called repeatedly
-        if not logging.getLogger().handlers:
-            logging.basicConfig(
-                level=logging.INFO,
-                format='%(asctime)s - %(levelname)s - %(message)s',
-                handlers=[
-                    logging.FileHandler(log_file),
-                    logging.StreamHandler()
-                ]
-            )
-
-#------------------------------------------------------------------------------#
-## Unzip file and delete the original zip
-    def unzip_file(self, zip_path):
-        """Unzip a file and delete the original zip file, and clean up __MACOSX folders.
-
-        Args:
-            zip_path (str): Path to the zip file.
+        # Build (url, local_zip_path) pairs, skipping already-present files
+        url_path_pairs = []
+        for url in self.urls:
+            zip_fname = os.path.basename(urlparse(url).path)
+            zip_path  = os.path.join(self.base_dir, zip_fname)
+ 
+            if not self.overwrite and self._nc_files_exist(zip_path):
+                logging.info(
+                    "NetCDF files for %s already exist, skipping.", zip_fname
+                )
+                continue
+ 
+            url_path_pairs.append((url, zip_path))
+ 
+        if not url_path_pairs:
+            logging.info("Nothing to download.")
+            return 0, 0
+ 
+        # Download all zips in parallel using the base class method
+        completed, failed = self.download_parallel(
+            url_path_pairs,
+            num_threads=self.num_threads,
+            dryrun=self.dryrun,
+        )
+ 
+        # Extract each downloaded zip
+        if not self.dryrun:
+            for _url, zip_path in url_path_pairs:
+                if os.path.isfile(zip_path):
+                    try:
+                        self.unzip_file(zip_path)
+                        logging.info("Extracted %s", zip_path)
+                        print(f"Extracted {os.path.basename(zip_path)}")
+                    except Exception as exc:
+                        logging.error(
+                            "Failed to extract %s: %s", zip_path, exc
+                        )
+ 
+        return completed, failed
+ 
+    # ------------------------------------------------------------------ #
+    # Private helpers                                                      #
+    # ------------------------------------------------------------------ #
+ 
+    def _nc_files_exist(self, zip_path: str) -> bool:
+        """Return True if NetCDF files for this zip already exist locally.
+ 
+        Checks the destination directory for .nc files whose names start
+        with the same year prefix as the zip filename.
+ 
+        Parameters
+        ----------
+        zip_path : expected local path of the zip archive.
         """
         extract_dir = os.path.dirname(zip_path)
-        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-            zip_ref.extractall(extract_dir)
+        year = os.path.basename(zip_path)[:4]
+        if not os.path.exists(extract_dir):
+            return False
+        return any(
+            f.endswith('.nc') and f.startswith(year)
+            for f in os.listdir(extract_dir)
+        )
 
-        # Remove the __MACOSX directory if it exists
-        macosx_path = os.path.join(extract_dir, "__MACOSX")
-        if os.path.exists(macosx_path) and os.path.isdir(macosx_path):
-            shutil.rmtree(macosx_path)
-
-        os.remove(zip_path)
-
-#------------------------------------------------------------------------------#
-## Download, save and unzip files
-    def download_file(self, url, output_path):
-        """Download a file, save it, then unzip and delete the zip.
-
-        Args:
-            url (str): URL of the file to download.
-            output_path (str): Path where the file will be saved.
-
-        Returns:
-            bool: True if download and unzip succeeded, False otherwise.
+    # ------------------------------------------------------------------ #
+    # Class methods (OleanderXBT-specific URL building)                   #
+    # ------------------------------------------------------------------ #
+ 
+    @staticmethod
+    def get_available_years(base_url: str = OLEANDER_BASE_URL) -> list:
+        """Query the ERDDAP directory listing and return available years.
+ 
+        Parameters
+        ----------
+        base_url : ERDDAP files base URL for OleanderXBT.
+ 
+        Returns
+        -------
+        list of int
+            Sorted list of years for which zip files are available.
         """
-        if self.dryrun:
-            logging.info("DRY RUN: Would download %s to %s", url, output_path)
-            return True
-
-        # Check if .nc files from this zip already exist
-        if not self.overwrite:
-            extract_dir = os.path.dirname(output_path)
-            year = os.path.basename(output_path)[:4]  # Extract year from zip filename
-            if os.path.exists(extract_dir) and any(f.endswith('.nc') and f.startswith(year) for f in os.listdir(extract_dir)):
-                logging.info("NetCDF files from %s already exist and overwrite is False. Skipping.", output_path)
-                return True
-
         try:
-            response = requests.get(url, stream=True)
-            response.raise_for_status()  # Will raise an exception for HTTP errors
-
-            # Check content type to ensure it's not an HTML error page (indicating file not found)
-            content_type = response.headers.get('Content-Type', '').lower()
-            if 'text/html' in content_type:
-                logging.info("File not found (returned HTML), skipping %s", url)
-                return False
-
-            with open(output_path, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    f.write(chunk)
-
-            logging.info("Downloaded %s to %s", url, output_path)
-
-            # Unzip and delete the zip file
-            self.unzip_file(output_path)
-            return True
-        
-        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError, requests.exceptions.RequestException) as e:
-            logging.error("Error downloading %s: %s", url, str(e))
-            return False
-        
-        except Exception as e:
-            logging.error("Unexpected error downloading %s: %s", url, str(e))
-            return False
-
-#------------------------------------------------------------------------------#
-## Download files from URL list using multithreading
-    def url_list_download(self):
-        """Download files from a list of URLs."""
-        logging.info("Starting download of %d files with %d threads", len(self.urls), self.num_threads)
-
-        with ThreadPoolExecutor(max_workers=self.num_threads) as executor:
-            future_to_url = {
-                executor.submit(
-                    self.download_file, 
-                    url, 
-                    os.path.join(self.base_dir, os.path.basename(urlparse(url).path))
-                ): url
-                for url in self.urls
-            }
-
-            completed = 0
-            failed = 0
-            for future in as_completed(future_to_url):
-                url = future_to_url[future]
-                try:
-                    if future.result():
-                        completed += 1
-                    else:
-                        failed += 1
-                except Exception as e:
-                    failed += 1
-                    logging.error("Error processing %s: %s", url, e)
-
-        logging.info("Download completed. Success: %d, Failed: %d", completed, failed)
-        return failed == 0
+            response = requests.get(base_url, timeout=30)
+            response.raise_for_status()
+            html_text = html_module.unescape(response.text)
+            year_matches = re.findall(r'(\d{4})_xbt_nc\.zip', html_text)
+            return sorted(set(int(y) for y in year_matches if y.isdigit() and len(y) == 4))
+        except requests.RequestException as exc:
+            logging.error("Error fetching directory listing: %s", exc)
+            return []
+ 
+    @staticmethod
+    def build_urls(
+        years: list,
+        base_url: str = OLEANDER_BASE_URL,
+    ) -> list:
+        """Build download URLs for the given list of years.
+ 
+        Parameters
+        ----------
+        years    : list of years to build URLs for.
+        base_url : ERDDAP files base URL for OleanderXBT.
+ 
+        Returns
+        -------
+        list of str
+            One zip URL per year.
+        """
+        return [f"{base_url}/{year}_xbt_nc.zip" for year in years]
+    
+    @staticmethod
+    def resolve_urls(
+        url_file: str = None,
+        start_year: int = None,
+        end_year: int = None,
+        base_url: str = OLEANDER_BASE_URL,
+    ) -> list:
+        """Resolve the list of URLs to download based on user arguments.
+ 
+        Handles three cases:
+        - url_file provided: read URLs from file
+        - start_year and end_year provided: build URLs for that year range
+        - neither provided: prompt user and download all available years
+ 
+        Parameters
+        ----------
+        url_file   : path to a text file containing one URL per line.
+        start_year : first year to download (inclusive).
+        end_year   : last year to download (inclusive).
+        base_url   : ERDDAP base URL for OleanderXBT.
+ 
+        Returns
+        -------
+        list of str
+            URLs to download, or empty list if cancelled.
+        """
+        available_years = DownloaderURLList.get_available_years(base_url)
+ 
+        if not available_years:
+            print("Could not fetch available years from the server. Exiting.")
+            return []
+ 
+        min_year = min(available_years)
+        max_year = max(available_years)
+ 
+        if url_file:
+            with open(url_file, 'r') as f:
+                return [url.strip() for url in f if url.strip()]
+ 
+        elif start_year and end_year:
+            adjusted = max(start_year, min_year)
+            if start_year < min_year:
+                print(f"Warning: start year {start_year} is before {min_year}. Adjusting.")
+            years = range(adjusted, end_year + 1)
+            return DownloaderURLList.build_urls(years, base_url)
+ 
+        else:
+            print(
+                f"\nWarning: No --url_file or --start_year/--end_year provided. "
+                f"Defaulting to all available years ({min_year}-{max_year})."
+            )
+            response = input("Do you want to continue? (y/N): ").strip().lower()
+            if response != 'y':
+                print("Download cancelled.")
+                return []
+            return DownloaderURLList.build_urls(available_years, base_url)
+ 
+##########################################################################
+ 
+if __name__ == "__main__":
+    DownloaderURLList(urls=[])
