@@ -1,0 +1,60 @@
+## @file sync-db-names.yml
+#
+## Implements the CI/CD part of boom-lab/crocolaketools#52.
+#
+## @author Mahi Sarwar Anol <anol.mahi@gmail.com>
+
+name: Sync db_names to CrocoLakeLoader
+
+# Opens a PR on boom-lab/crocolakeloader's `develop` branch whenever the
+# canonical database-name list (crocolaketools/db_names.py) changes on
+# crocolaketools' `develop` branch (i.e. when a PR is merged into develop).
+
+on:
+  push:
+    branches: [develop]
+    paths:
+      - "crocolaketools/db_names.py"
+  workflow_dispatch: {}   # manual run button (always available)
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout CrocoLakeTools (source)
+        uses: actions/checkout@v4
+        with:
+          path: crocolaketools
+
+      - name: Checkout CrocoLakeLoader (target)
+        uses: actions/checkout@v4
+        with:
+          repository: boom-lab/crocolakeloader
+          ref: develop          # <- target the loader's develop branch
+          token: ${{ secrets.CROCOLAKELOADER_SYNC_TOKEN }}
+          path: crocolakeloader
+
+      - name: Copy db_names.py into CrocoLakeLoader
+        run: |
+          cp crocolaketools/crocolaketools/db_names.py \
+             crocolakeloader/crocolakeloader/db_names.py
+
+      - name: Open / update sync PR on CrocoLakeLoader
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.CROCOLAKELOADER_SYNC_TOKEN }}
+          path: crocolakeloader
+          branch: sync/db-names
+          base: develop         # <- PR merges INTO develop
+          delete-branch: true
+          commit-message: "update: sync db_names.py from CrocoLakeTools"
+          title: "Sync db_names.py from CrocoLakeTools"
+          body: |
+            Automated sync of `crocolakeloader/db_names.py` from
+            **boom-lab/crocolaketools** (`crocolaketools/db_names.py`).
+
+            Triggered because the canonical database-name list changed on
+            crocolaketools' `develop`. `db_names.py` is auto-synced.
