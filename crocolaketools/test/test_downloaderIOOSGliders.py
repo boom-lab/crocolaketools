@@ -5,10 +5,11 @@
 #
 ## @author Mahi Sarwar Anol <anol.mahi@gmail.com>
 #
-## @date Thu 14 Jun 2026
+## @date Thu 30 Jun 2026
 
 ##########################################################################
 import os
+import threading
 from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
@@ -16,9 +17,10 @@ import pytest
 
 from crocolaketools.downloader.downloaderIOOSGliders import (
     GLIDER_VARIABLES,
+    IOOS_GLIDERS_SERVER_URL,
     DownloaderIOOSGliders,
 )
-from crocolaketools.downloader.downloaderIOOS import DownloaderIOOS
+from crocolaketools.downloader.downloaderERDDAP import DownloaderERDDAP
 ##########################################################################
 
 DUMMY_CONFIG = {'db': 'IOOS_GLIDERS', 'db_type': 'PHY'}
@@ -27,10 +29,25 @@ DUMMY_CONFIG = {'db': 'IOOS_GLIDERS', 'db_type': 'PHY'}
 class TestDownloaderIOOSGlidersInit:
     """Tests for DownloaderIOOSGliders.__init__"""
 
-    def test_defaults(self, mock_base_downloader):
-        """sync defaults to False and delayed_only to True."""
+    def test_requires_no_config_uses_defaults(self, mock_base_downloader):
+        """No config falls back to IOOS_GLIDERS/PHY."""
+        with patch(
+            "crocolaketools.downloader.downloaderIOOSGliders.DownloaderERDDAP.__init__"
+        ) as mock_super:
+            mock_super.return_value = None
+            DownloaderIOOSGliders()
+            cfg = mock_super.call_args[0][0]
+            assert cfg['db'] == 'IOOS_GLIDERS'
+            assert cfg['db_type'] == 'PHY'
+
+    def test_sync_defaults_false(self, mock_base_downloader):
+        """sync defaults to False."""
         d = DownloaderIOOSGliders(config=dict(DUMMY_CONFIG))
         assert d.sync is False
+
+    def test_delayed_only_defaults_true(self, mock_base_downloader):
+        """delayed_only defaults to True."""
+        d = DownloaderIOOSGliders(config=dict(DUMMY_CONFIG))
         assert d.delayed_only is True
 
     def test_sync_from_config(self, mock_base_downloader):
@@ -38,20 +55,28 @@ class TestDownloaderIOOSGlidersInit:
         d = DownloaderIOOSGliders(config=dict(DUMMY_CONFIG, sync=True))
         assert d.sync is True
 
-    def test_inherits_ioos(self):
-        """DownloaderIOOSGliders is a subclass of DownloaderIOOS."""
-        assert issubclass(DownloaderIOOSGliders, DownloaderIOOS)
+    def test_delayed_only_from_config(self, mock_base_downloader):
+        """delayed_only takes the value from config."""
+        d = DownloaderIOOSGliders(config=dict(DUMMY_CONFIG, delayed_only=False))
+        assert d.delayed_only is False
 
-    def test_default_config(self, mock_base_downloader):
-        """No config falls back to IOOS_GLIDERS/PHY."""
-        with patch(
-            "crocolaketools.downloader.downloaderIOOSGliders.DownloaderIOOS.__init__"
-        ) as mock_super:
-            mock_super.return_value = None
-            DownloaderIOOSGliders()
-            cfg = mock_super.call_args[0][0]
-            assert cfg['db'] == 'IOOS_GLIDERS'
-            assert cfg['db_type'] == 'PHY'
+    def test_inherits_erddap(self):
+        """DownloaderIOOSGliders is a subclass of DownloaderERDDAP."""
+        assert issubclass(DownloaderIOOSGliders, DownloaderERDDAP)
+
+    def test_server_url(self, mock_base_downloader):
+        """CLASS-level SERVER_URL points at the IOOS Glider DAC."""
+        assert DownloaderIOOSGliders.SERVER_URL == IOOS_GLIDERS_SERVER_URL
+
+    def test_gated_parallel_download_defaults_true(self, mock_base_downloader):
+        """gated_parallel_download defaults to True (first-byte gate active)."""
+        d = DownloaderIOOSGliders(config=dict(DUMMY_CONFIG))
+        assert d.gated_parallel_download is True
+
+    def test_gated_parallel_download_from_config(self, mock_base_downloader):
+        """gated_parallel_download takes the value from config."""
+        d = DownloaderIOOSGliders(config=dict(DUMMY_CONFIG, gated_parallel_download=False))
+        assert d.gated_parallel_download is False
 
 
 class TestFilterDatasets:
@@ -64,7 +89,7 @@ class TestFilterDatasets:
     ]
 
     def test_delayed_only(self, mock_base_downloader):
-        """Only the -delayed ids are kept when delayed_only is True."""
+        """Only -delayed ids are kept when delayed_only is True."""
         d = DownloaderIOOSGliders(config=dict(DUMMY_CONFIG, delayed_only=True))
         assert d._filter_datasets(self.DATASETS) == [
             "bios_anna-20220101T0000-delayed",
@@ -81,7 +106,7 @@ class TestLocalPath:
     """Tests for DownloaderIOOSGliders._local_path"""
 
     def test_path(self, tmp_path, mock_base_downloader):
-        """Local path is input_path plus dataset id plus .parquet."""
+        """Local path is input_path / dataset_id.parquet."""
         d = DownloaderIOOSGliders(config=dict(DUMMY_CONFIG))
         d.input_path = str(tmp_path) + "/"
         ds = "ru29-20210601T1200-delayed"
@@ -91,21 +116,45 @@ class TestLocalPath:
 class TestGetDatasetUrl:
     """Tests for DownloaderIOOSGliders.get_dataset_url"""
 
-    def test_uses_glider_variables(self, mock_base_downloader):
-        """The glider variable list is set on the erddapy client."""
+    def test_filters_to_available_variables(self, mock_base_downloader):
+        """Only variables present in the dataset are requested."""
         d = DownloaderIOOSGliders(config=dict(DUMMY_CONFIG))
         d.response_format = "parquet"
         d._erddap = MagicMock()
-        d.get_dataset_url("ru29-delayed")
+
+        # simulate a PHY-only dataset
+        available = {"latitude", "longitude", "pressure", "time",
+                     "temperature", "salinity", "trajectory", "profile_id"}
+        with patch.object(DownloaderIOOSGliders, "get_dataset_variables",
+                          return_value=available):
+            d.get_dataset_url("ru29-delayed")
+
+        requested = d._erddap.variables
+        assert all(v in available for v in requested)
+        # BGC variables not in this dataset must be absent
+        assert "dissolved_oxygen" not in requested
+        assert "chlorophyll_a" not in requested
+
+    def test_fallback_when_info_fails(self, mock_base_downloader):
+        """Falls back to full GLIDER_VARIABLES when info endpoint returns empty set."""
+        d = DownloaderIOOSGliders(config=dict(DUMMY_CONFIG))
+        d.response_format = "parquet"
+        d._erddap = MagicMock()
+
+        with patch.object(DownloaderIOOSGliders, "get_dataset_variables",
+                          return_value=set()):
+            d.get_dataset_url("ru29-delayed")
+
         assert d._erddap.variables == GLIDER_VARIABLES
-        assert d._erddap._dataset_id == "ru29-delayed"
 
     def test_no_time_constraints(self, mock_base_downloader):
         """No constraints are passed when start and end are missing."""
         d = DownloaderIOOSGliders(config=dict(DUMMY_CONFIG))
         d.response_format = "parquet"
         d._erddap = MagicMock()
-        d.get_dataset_url("ru29-delayed")
+        with patch.object(DownloaderIOOSGliders, "get_dataset_variables",
+                          return_value=set()):
+            d.get_dataset_url("ru29-delayed")
         assert d._erddap.get_download_url.call_args[1]["constraints"] == {}
 
     def test_time_constraints(self, mock_base_downloader):
@@ -113,11 +162,13 @@ class TestGetDatasetUrl:
         d = DownloaderIOOSGliders(config=dict(DUMMY_CONFIG))
         d.response_format = "parquet"
         d._erddap = MagicMock()
-        d.get_dataset_url(
-            "ru29-delayed",
-            time_start=datetime(2021, 6, 1, 12, 0, 0),
-            time_end=datetime(2021, 6, 2, 12, 0, 0),
-        )
+        with patch.object(DownloaderIOOSGliders, "get_dataset_variables",
+                          return_value=set()):
+            d.get_dataset_url(
+                "ru29-delayed",
+                time_start=datetime(2021, 6, 1, 12, 0, 0),
+                time_end=datetime(2021, 6, 2, 12, 0, 0),
+            )
         assert d._erddap.get_download_url.call_args[1]["constraints"] == {
             "time>=": "2021-06-01T12:00:00Z",
             "time<=": "2021-06-02T12:00:00Z",
@@ -125,7 +176,7 @@ class TestGetDatasetUrl:
 
 
 class TestBuildDownloadQueue:
-    """Tests for DownloaderIOOSGliders._build_download_queue"""
+    """Tests for _build_download_queue (now in DownloaderERDDAP, exercised here)."""
 
     def test_overwrite_queues_all(self, tmp_path, mock_base_downloader):
         """overwrite queues every dataset."""
@@ -230,13 +281,85 @@ class TestDownload:
         assert failed == 1
 
 
+class TestGatedParallelDownload:
+    """Tests that gated_parallel_download controls which gate class is used."""
+
+    def test_gate_class_selected_by_flag(self, mock_base_downloader, tmp_path):
+        """_download_chunks_parallel constructs FirstByteGate when the flag is
+        True and NoOpGate when False, for the same chunk job."""
+        from crocolaketools.downloader import downloaderERDDAP as mod
+
+        for flag, expected_name in ((True, "FirstByteGate"), (False, "NoOpGate")):
+            d = DownloaderIOOSGliders(config=dict(DUMMY_CONFIG, gated_parallel_download=flag))
+            d.num_threads = 1
+            d.input_path = str(tmp_path) + "/"
+            local_path = str(tmp_path / "a-delayed.parquet")
+
+            calls = []
+            real_first_byte_gate = mod.FirstByteGate
+            real_noop_gate = mod.NoOpGate
+
+            def _track_first_byte(*a, **kw):
+                calls.append("FirstByteGate")
+                return real_first_byte_gate(*a, **kw)
+
+            def _track_noop(*a, **kw):
+                calls.append("NoOpGate")
+                return real_noop_gate(*a, **kw)
+
+            with patch.object(d, "_safe_get_url", return_value="http://example.com/data"), \
+                 patch.object(d, "_download_file_with_retry"), \
+                 patch.object(d, "_merge_chunks", return_value=True), \
+                 patch.object(mod, "FirstByteGate", side_effect=_track_first_byte), \
+                 patch.object(mod, "NoOpGate", side_effect=_track_noop):
+                d._download_chunks_parallel(
+                    "a-delayed", [(0, 1)], str(tmp_path / "chunks"), local_path
+                )
+
+            assert calls == [expected_name], (
+                f"gated_parallel_download={flag} should construct {expected_name}, got {calls}"
+            )
+
+    def test_noop_gate_never_blocks(self):
+        """NoOpGate.wait() returns immediately and make_callback() is harmless to call."""
+        from crocolaketools.downloader.downloaderERDDAP import NoOpGate
+
+        gate = NoOpGate()
+        gate.wait()  # must not raise or block
+        cb = gate.make_callback()
+        cb()  # must not raise
+        cb()  # calling twice must also not raise (no "already released" semantics)
+
+    def test_first_byte_gate_blocks_until_released(self):
+        """FirstByteGate.wait() blocks until the callback fires (sanity check
+        that the two gate classes have matching but distinct behavior)."""
+        from crocolaketools.downloader.downloaderERDDAP import FirstByteGate
+
+        gate = FirstByteGate()
+        cb = gate.make_callback()
+        released = threading.Event()
+
+        def waiter():
+            gate.wait()
+            released.set()
+
+        t = threading.Thread(target=waiter)
+        t.start()
+        t.join(timeout=0.2)
+        assert not released.is_set(), "gate.wait() should still be blocking"
+
+        cb()
+        t.join(timeout=1)
+        assert released.is_set(), "gate.wait() should unblock after callback fires"
+
+
 ##########################################################################
 # Fixtures
 ##########################################################################
 
 @pytest.fixture
 def mock_base_downloader():
-    """Patch the base Downloader.__init__ and configure_logging so tests don't
+    """Patch Downloader.__init__ and configure_logging so tests don't
     need config.yaml or write a log file."""
     with patch(
         "crocolaketools.downloader.downloaderERDDAP.Downloader.__init__",

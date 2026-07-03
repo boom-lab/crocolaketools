@@ -83,6 +83,23 @@ class FirstByteGate:
         return _once
 
 
+class NoOpGate:
+    """
+        Drop-in replacement for FirstByteGate that never blocks.
+
+        Used when gated_parallel_download=False: all chunk requests fire
+        immediately, with concurrency bounded only by num_threads.
+    """
+
+    def wait(self):
+        pass
+
+    def make_callback(self) -> Callable:
+        def _noop():
+            pass
+        return _noop
+
+
 class DownloaderERDDAP(Downloader):
 
     SERVER_URL: str = ""
@@ -98,6 +115,8 @@ class DownloaderERDDAP(Downloader):
         self.server_url = config.get("server_url", self.SERVER_URL)
         self.protocol = config.get("protocol", self.PROTOCOL)
         self.response_format = config.get("response_format", self.RESPONSE_FORMAT)
+        # if False, chunk requests fire without the first-byte gate (see NoOpGate)
+        self.gated_parallel_download = config.get("gated_parallel_download", True)
 
         self._erddap = ERDDAP(
             server=self.server_url,
@@ -128,6 +147,7 @@ class DownloaderERDDAP(Downloader):
     ) -> str:
         """
             Build the download URL for a dataset with optional time constraints.
+            Subclasses override this to add variable selection or extra constraints.
         """
         self._erddap._dataset_id = dataset_id
         self._erddap.variables = None
@@ -170,11 +190,104 @@ class DownloaderERDDAP(Downloader):
                     pass
         return None
 
+    def get_dataset_variables(self, dataset_id: str) -> set:
+        """
+            Return the set of variable names available in `dataset_id` by
+            querying the ERDDAP info endpoint.
+            
+            It will return empty set on failure so callers can decide whether
+            to proceed or skip.
+        """
+        url = self._erddap.get_info_url(dataset_id=dataset_id, response="csv")
+        try:
+            data = urlopen(url)
+            df = pd.read_csv(data)
+            return set(df[df["Row Type"] == "variable"]["Variable Name"].tolist())
+        except Exception as exc:
+            logging.warning(
+                "%s: could not fetch variable list: %s", dataset_id, exc
+            )
+            return set()
+
     def download(self) -> tuple:
         """
             Orchestrate the sync. Must be implemented by subclasses.
         """
         raise NotImplementedError("Subclasses must implement download().")
+
+    def _build_download_queue(self, dataset_ids: list) -> tuple:
+        """
+            Decide which datasets need downloading.
+            Returns (to_download, skipped_current, skipped_no_ts).
+            Subclasses may override this if they need different queue-building logic.
+            default implementation covers the common case:
+            - overwrite=True -> queue everything
+            - sync=False   ->   queue only files missing locally
+            - sync=True    ->   compare server vs local timestamps
+        """
+        to_download = []
+        skipped_current = 0
+        skipped_no_ts = 0
+
+        if self.sync:
+            logging.info(
+                "Checking %d dataset(s) against server timestamps...",
+                len(dataset_ids),
+            )
+
+        for i, dataset_id in enumerate(dataset_ids, 1):
+            local_path = self._local_path(dataset_id)
+
+            if self.overwrite:
+                to_download.append(dataset_id)
+                if self.sync:
+                    logging.info(
+                        "  [%d/%d] %s: overwrite - queued",
+                        i, len(dataset_ids), dataset_id,
+                    )
+                continue
+
+            local_exists = self._local_timestamp(local_path) is not None
+
+            if not local_exists:
+                to_download.append(dataset_id)
+                if self.sync:
+                    logging.info(
+                        "  [%d/%d] %s: not found locally - queued",
+                        i, len(dataset_ids), dataset_id,
+                    )
+                continue
+
+            if not self.sync:
+                skipped_current += 1
+                continue
+
+            # sync=True: compare timestamps
+            server_ts = self.get_server_timestamp(dataset_id)
+            if server_ts is None:
+                logging.warning(
+                    "  [%d/%d] %s: no server timestamp - skipped",
+                    i, len(dataset_ids), dataset_id,
+                )
+                skipped_no_ts += 1
+                continue
+
+            local_ts = self._local_timestamp(local_path)
+            if server_ts > local_ts:
+                logging.info(
+                    "  [%d/%d] %s: server newer (%s > %s) - queued",
+                    i, len(dataset_ids), dataset_id,
+                    server_ts.date(), local_ts.date(),
+                )
+                to_download.append(dataset_id)
+            else:
+                logging.info(
+                    "  [%d/%d] %s: up to date (%s) - skipped",
+                    i, len(dataset_ids), dataset_id, local_ts.date(),
+                )
+                skipped_current += 1
+
+        return to_download, skipped_current, skipped_no_ts
 
     def _download_file(
         self,
@@ -205,8 +318,6 @@ class DownloaderERDDAP(Downloader):
                 ) as bar:
                     for chunk in response.iter_content(chunk_size=STREAM_CHUNK_SIZE):
                         if not signaled and chunk:
-                            # first byte received: heavy server-side phase is
-                            # done, release the gate so the next chunk can send the request and start server side heavy phase.
                             signaled = True
                             if on_first_byte is not None:
                                 on_first_byte()
@@ -240,11 +351,10 @@ class DownloaderERDDAP(Downloader):
                 last_exc = exc
 
             except (
-                ChunkedEncodingError,   # wraps IncompleteRead
+                ChunkedEncodingError,
                 RequestsConnectionError,
                 ReadTimeout,
             ) as exc:
-                # network-level interruption, always retryable
                 last_exc = exc
 
             if attempt < MAX_RETRIES:
@@ -252,12 +362,12 @@ class DownloaderERDDAP(Downloader):
                 status = last_exc.response.status_code if isinstance(last_exc, requests.exceptions.HTTPError) and last_exc.response is not None else None
                 status_str = f" (HTTP {status})" if status else ""
                 logging.warning(
-                    "%s%s — retrying in %ds (attempt %d/%d): %s",
+                    "%s%s - retrying in %ds (attempt %d/%d): %s",
                     type(last_exc).__name__, status_str, wait,
                     attempt + 1, MAX_RETRIES, url,
                 )
                 tqdm.write(
-                    f"  {type(last_exc).__name__}{status_str} — waiting {wait}s before retry "
+                    f"  {type(last_exc).__name__}{status_str} - waiting {wait}s before retry "
                     f"({attempt + 1}/{MAX_RETRIES})..."
                 )
                 time.sleep(wait)
@@ -338,11 +448,16 @@ class DownloaderERDDAP(Downloader):
             logging.error("%s: no valid chunk URLs.", dataset_id)
             return False, False
 
-        gate = FirstByteGate()
+        if self.gated_parallel_download:
+            gate = FirstByteGate()
+        else:
+            gate = NoOpGate()
+            logging.info(
+                "%s: gated_parallel_download=False - chunks requested without "
+                "the first-byte gate.", dataset_id,
+            )
 
         def _worker(url: str, path: str, on_gate_release: Callable) -> None:
-            # 404 windows never emit bytes so on_gate_release may not fire naturally;
-            # finally makes sure the gate is always released
             try:
                 self._download_file_with_retry(
                     url, path, on_first_byte=on_gate_release
@@ -517,6 +632,13 @@ class DownloaderERDDAP(Downloader):
             )
             return None
 
+    def _local_path(self, dataset_id: str) -> str:
+        """
+            Return the local file path for `dataset_id`.
+            Subclasses override to set filename and extension.
+        """
+        raise NotImplementedError("Subclasses must implement _local_path().")
+
     @staticmethod
     def _split_window(
         t_start: datetime,
@@ -544,5 +666,5 @@ class DownloaderERDDAP(Downloader):
             return None
         mtime = os.path.getmtime(local_path)
         return datetime.fromtimestamp(mtime, tz=timezone.utc)
-    
+
 ################################################################################################

@@ -2,7 +2,9 @@
 
 ## @file downloaderIOOSGliders.py
 #
-# Contains source code for interacting with the IOOS glider data ERDDAP SERVER..
+# Downloader for IOOS Glider DAC datasets from ERDDAP.
+#
+# Inherits directly from DownloaderERDDAP
 #
 ## @author Mahi Sarwar Anol <anol.mahi@gmail.com>
 #
@@ -14,13 +16,23 @@ import os
 from datetime import datetime
 from typing import Optional
 
-from crocolaketools.downloader.downloaderIOOS import DownloaderIOOS
+from crocolaketools.downloader.downloaderERDDAP import DownloaderERDDAP
 from crocolaketools.utils.logger_configurator import configure_logging
 
 _DELAYED_SUFFIX = "-delayed"
 _LOG_FILE = "ioos_gliders_download.log"
 
+IOOS_GLIDERS_SERVER_URL = "https://gliders.ioos.us/erddap"
+
+# Full list of variables to request from ERDDAP.
+# ref: https://crocolakedocs.readthedocs.io/en/latest/crocolake.html#crocolake-s-conventions
+
+# Not added (absent from the IOOS glider catalogue):
+# DOWN_IRRADIANCE wavelength channels, UP_RADIANCE wavelength channels,
+# TCO2, BISULFIDE, CFC11/12/113, SILICATE, PHOSPHATE, CCL4, SF6.
+
 GLIDER_VARIABLES = [
+    # --- Navigation ---
     "latitude",
     "longitude",
     "precise_lat",
@@ -29,26 +41,77 @@ GLIDER_VARIABLES = [
     "pressure",
     "time",
     "precise_time",
-    "temperature",
-    "salinity",
-    "conductivity",
-    "density",
+    "profile_id",
+    "trajectory",
+    "wmo_id",
+    "instrument_ctd",
     "u",
     "v",
     "lat_uv",
     "lon_uv",
     "time_uv",
-    "profile_id",
-    "trajectory",
-    "wmo_id",
-    "instrument_ctd",
+    # --- PHY ---
+    "temperature",              # TEMP
+    "salinity",                 # PSAL
+    "conductivity",
+    "density",
+    # --- BGC ---
+    # - DOXY - dissolved oxygen
+    "dissolved_oxygen",         # DOXY
+    "oxygen",                   # DOXY (alternate name)
+    "oxygen_concentration",     # DOXY (alternate name)
+    # - BBP470 
+    "beta_470nm",               # BBP470
+    "backscatter_470",          # BBP470 (alternate name)
+    "optical_backscatter_470",  # BBP470 (alternate name)
+    # - BBP532 
+    "beta_532nm",               # BBP532
+    "backscatter_532",          # BBP532 (alternate name)
+    "backscatter532",           # BBP532 (alternate name)
+    # - BBP700
+    "beta_700nm",               # BBP700
+    "backscatter",              # BBP700 (alternate name)
+    "backscatter_700",          # BBP700 (alternate name)
+    "optical_backscatter_700",  # BBP700 (alternate name)
+    "VBSC",                     # BBP700 (RBR glider name)
+    "backscatter700",           # BBP700 (alternate name)
+    # - TURBIDITY 
+    "turbidity",                # TURBIDITY
+    # - CHLA - chlorophyll-a
+    "chlorophyll",              # CHLA
+    "chlorophyll_a",            # CHLA (alternate name)
+    "fluorescence",             # CHLA (alternate name)
+    "CPHL",                     # CHLA (RBR glider name)
+    # - CDOM
+    "CDOM",                     # CDOM
+    "cdom",                     # CDOM (alternate name)
+    # - PH_IN_SITU_TOTAL
+    "pH",                       # PH_IN_SITU_TOTAL
+    "pHtot",                    # PH_IN_SITU_TOTAL (alternate name)
+    # - DOWNWELLING_PAR
+    "PAR",                      # DOWNWELLING_PAR
+    "par",                      # DOWNWELLING_PAR (alternate name)
+    # - TOT_ALKALINITY
+    "total_alkalinity",         # TOT_ALKALINITY
+    # - NITRATE
+    "suna_nitrate_concentratio" 
+    "nitrate",                  # NITRATE
+    "sci_suna_nitrate_um",      # NITRATE 
+    "sci_suna_nitrate_mg",      # NITRATE
 ]
 
+class DownloaderIOOSGliders(DownloaderERDDAP):
+    """
+    Download IOOS Glider DAC delayed-mode datasets from ERDDAP.
 
-class DownloaderIOOSGliders(DownloaderIOOS):
+    To add a downloader for another IOOS ERDDAP source (e.g. ATN),
+    we need to create a new subclass of DownloaderERDDAP and set its own
+    SERVER_URL, variable list, and get_dataset_url() constraints.
     """
-        Download IOOS Glider DAC delayed-mode datasets from ERDDAP.
-    """
+
+    SERVER_URL: str = IOOS_GLIDERS_SERVER_URL
+    PROTOCOL: str = "tabledap"
+    RESPONSE_FORMAT: str = "parquet"
 
     def __init__(self, config: dict = None):
         if config is None:
@@ -59,7 +122,8 @@ class DownloaderIOOSGliders(DownloaderIOOS):
 
         configure_logging(_LOG_FILE)
 
-        # sync=True: compare server timestamps, download new and updated files
+        self.delayed_only = config.get("delayed_only", True)
+        # sync=True: compare server timestamps, re-download updated files
         # sync=False: download missing files only, no timestamp check
         self.sync = config.get("sync", False)
 
@@ -70,10 +134,28 @@ class DownloaderIOOSGliders(DownloaderIOOS):
         time_end: Optional[datetime] = None,
     ) -> str:
         """
-            Build the tabledap parquet URL with glider variable selection.
+        Build the tabledap parquet URL with per-dataset variable filtering.
+
+        Queries the ERDDAP info endpoint first to find which variables this
+        specific dataset actually carries, then intersects with GLIDER_VARIABLES.
+        prevents 400 errors on datasets that lack some specific variables.
+        Falls back to the full GLIDER_VARIABLES list if the info call fails.
         """
+        available = self.get_dataset_variables(dataset_id)
+        if available:
+            requested = [v for v in GLIDER_VARIABLES if v in available]
+            if not requested:
+                logging.warning(
+                    "%s: no GLIDER_VARIABLES overlap with dataset variables - "
+                    "falling back to full list.", dataset_id
+                )
+                requested = GLIDER_VARIABLES
+        else:
+            # info endpoint failed; let ERDDAP decide (may 400 on missing vars)
+            requested = GLIDER_VARIABLES
+
         self._erddap._dataset_id = dataset_id
-        self._erddap.variables = GLIDER_VARIABLES
+        self._erddap.variables = requested
         self._erddap.constraints = {}
 
         constraints = {}
@@ -92,7 +174,7 @@ class DownloaderIOOSGliders(DownloaderIOOS):
 
     def download(self) -> tuple:
         """
-            Run the incremental sync against the IOOS Glider DAC.
+            Runs the incremental sync against the IOOS Glider DAC.
         """
         logging.info("Querying IOOS Glider DAC for delayed-mode dataset IDs...")
 
@@ -140,7 +222,6 @@ class DownloaderIOOSGliders(DownloaderIOOS):
             len(to_download), skipped_current, skipped_no_ts,
         )
 
-        # _download_one handles chunking and retries with smaller windows on 413
         completed = 0
         failed = 0
 
@@ -159,79 +240,9 @@ class DownloaderIOOSGliders(DownloaderIOOS):
         )
         return completed, failed
 
-    def _build_download_queue(self, dataset_ids: list) -> tuple:
-        """
-            Decide which datasets need downloading.
-
-            Returns (to_download, skipped_current, skipped_no_ts).
-        """
-        to_download = []
-        skipped_current = 0
-        skipped_no_ts = 0
-
-        if self.sync:
-            logging.info(
-                "Checking %d dataset(s) against server timestamps...",
-                len(dataset_ids),
-            )
-
-        for i, dataset_id in enumerate(dataset_ids, 1):
-            local_path = self._local_path(dataset_id)
-
-            if self.overwrite:
-                to_download.append(dataset_id)
-                if self.sync:
-                    logging.info(
-                        "  [%d/%d] %s: overwrite - queued",
-                        i, len(dataset_ids), dataset_id,
-                    )
-                continue
-
-            local_exists = self._local_timestamp(local_path) is not None
-
-            if not local_exists:
-                to_download.append(dataset_id)
-                if self.sync:
-                    logging.info(
-                        "  [%d/%d] %s: not found locally - queued",
-                        i, len(dataset_ids), dataset_id,
-                    )
-                continue
-
-            if not self.sync:
-                skipped_current += 1
-                continue
-
-            # sync=True: compare timestamps and log the result for every dataset
-            server_ts = self.get_server_timestamp(dataset_id)
-            if server_ts is None:
-                logging.warning(
-                    "  [%d/%d] %s: no server timestamp - skipped",
-                    i, len(dataset_ids), dataset_id,
-                )
-                skipped_no_ts += 1
-                continue
-
-            local_ts = self._local_timestamp(local_path)
-            if server_ts > local_ts:
-                logging.info(
-                    "  [%d/%d] %s: server newer (%s > %s) - queued",
-                    i, len(dataset_ids), dataset_id,
-                    server_ts.date(), local_ts.date(),
-                )
-                to_download.append(dataset_id)
-            else:
-                logging.info(
-                    "  [%d/%d] %s: up to date (%s) - skipped",
-                    i, len(dataset_ids), dataset_id, local_ts.date(),
-                )
-                skipped_current += 1
-
-        return to_download, skipped_current, skipped_no_ts
-
     def _filter_datasets(self, dataset_ids: list) -> list:
         """
-            Keep only delayed-mode dataset IDs (those ending with '-delayed').
+            filtering only delayed-mode dataset IDs (those ending with '-delayed').
         """
         if not self.delayed_only:
             return dataset_ids
