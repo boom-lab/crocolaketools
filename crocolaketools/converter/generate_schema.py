@@ -18,7 +18,7 @@ from pprint import pprint
 import pyarrow as pa
 import pyarrow.parquet as pq
 import xarray as xr
-import crocolakeloader.params as params
+from crocolaketools import db_params
 ##########################################################################
 
 class generateSchema():
@@ -85,7 +85,7 @@ class generateSchema():
 ## Generate schema
     def generate_schema(self,db):
 
-        params_schema = params.params["Argo"+db].copy()
+        params_schema = db_params.params["Argo"+db].copy()
 
         fields = []
         for p in params_schema:

@@ -17,7 +17,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 import xarray as xr
-from crocolakeloader import params
+from crocolaketools import db_params
 from crocolaketools.converter.converter import Converter
 ##########################################################################
 
@@ -129,7 +129,7 @@ class ConverterGLODAP(Converter):
 
         # keep only good QC values
         params_to_check = []
-        for param in params.params["GLODAP2CROCOLAKE"].keys():
+        for param in db_params.params["GLODAP2CROCOLAKE"].keys():
             if param.startswith("G2") and param.endswith("f") and param in ddf.columns:
                 ddf = ddf.map_partitions(
                     self.keep_best_values, param

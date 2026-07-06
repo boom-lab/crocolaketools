@@ -22,7 +22,7 @@ from pandas import ArrowDtype
 import pyarrow as pa
 import xarray as xr
 from collections import defaultdict
-from crocolakeloader import params
+from crocolaketools import db_params
 from crocolaketools.converter.converter import Converter
 ##########################################################################
 
@@ -120,7 +120,7 @@ class ConverterSaildrones(Converter):
             try:          
                 ds = xr.open_dataset(input_fname, engine="netcdf4", cache=False)
                 try:
-                    invars = list(set(params.params["Saildrones"]) & set(ds.data_vars))
+                    invars = list(set(db_params.params["Saildrones"]) & set(ds.data_vars))
                     data = {var: ds[var].values for var in invars}
                     df = pd.DataFrame(data)
                     wmo_id = ds.attrs["wmo_id"] # use wmo_id as a PLATFORM_NUMBER
@@ -199,7 +199,7 @@ class ConverterSaildrones(Converter):
 
         # Group source columns by target variable
         reverse_map = defaultdict(list)
-        for sensor_var, croco_var in params.params["Saildrones2CROCOLAKE"].items():
+        for sensor_var, croco_var in db_params.params["Saildrones2CROCOLAKE"].items():
             reverse_map[croco_var].append(sensor_var)
 
         # Merge reads from multiple source (sensors) columns into a single croco column
@@ -226,7 +226,7 @@ class ConverterSaildrones(Converter):
     def assign_depths(self, df):
         """Assign depths to variables based on known sensor installation depths"""
 
-        depth_map = params.params["Saildrones_depth_map"]
+        depth_map = db_params.params["Saildrones_depth_map"]
 
         id_vars = ["time", "latitude", "longitude", "wmo_id", "CYCLE_NUMBER"]
         value_vars = [var for var in depth_map if var in df.columns]
