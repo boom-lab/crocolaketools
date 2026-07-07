@@ -26,13 +26,12 @@ IOOS_GLIDERS_SERVER_URL = "https://gliders.ioos.us/erddap"
 
 # Full list of variables to request from ERDDAP.
 # ref: https://crocolakedocs.readthedocs.io/en/latest/crocolake.html#crocolake-s-conventions
-
-# Not added (absent from the IOOS glider catalogue):
-# DOWN_IRRADIANCE wavelength channels, UP_RADIANCE wavelength channels,
-# TCO2, BISULFIDE, CFC11/12/113, SILICATE, PHOSPHATE, CCL4, SF6.
+# These  variables were selected from avaiable variables in erddap server till date (7-7-26)
+# Look at the variable_frequency.json refered to at PR #50,
+# (https://github.com/boom-lab/crocolaketools/pull/50)
 
 GLIDER_VARIABLES = [
-    # --- Navigation ---
+    # --- Navigation / metadata ---
     "latitude",
     "longitude",
     "precise_lat",
@@ -51,53 +50,94 @@ GLIDER_VARIABLES = [
     "lon_uv",
     "time_uv",
     # --- PHY ---
-    "temperature",              # TEMP
-    "salinity",                 # PSAL
+    "temperature",                  # TEMP
+    "salinity",                     # PSAL
     "conductivity",
     "density",
     # --- BGC ---
-    # - DOXY - dissolved oxygen
-    "dissolved_oxygen",         # DOXY
-    "oxygen",                   # DOXY (alternate name)
-    "oxygen_concentration",     # DOXY (alternate name)
-    # - BBP470 
-    "beta_470nm",               # BBP470
-    "backscatter_470",          # BBP470 (alternate name)
-    "optical_backscatter_470",  # BBP470 (alternate name)
-    # - BBP532 
-    "beta_532nm",               # BBP532
-    "backscatter_532",          # BBP532 (alternate name)
-    "backscatter532",           # BBP532 (alternate name)
-    # - BBP700
-    "beta_700nm",               # BBP700
-    "backscatter",              # BBP700 (alternate name)
-    "backscatter_700",          # BBP700 (alternate name)
-    "optical_backscatter_700",  # BBP700 (alternate name)
-    "VBSC",                     # BBP700 (RBR glider name)
-    "backscatter700",           # BBP700 (alternate name)
-    # - TURBIDITY 
-    "turbidity",                # TURBIDITY
-    # - CHLA - chlorophyll-a
-    "chlorophyll",              # CHLA
-    "chlorophyll_a",            # CHLA (alternate name)
-    "fluorescence",             # CHLA (alternate name)
-    "CPHL",                     # CHLA (RBR glider name)
-    # - CDOM
-    "CDOM",                     # CDOM
-    "cdom",                     # CDOM (alternate name)
-    # - PH_IN_SITU_TOTAL
-    "pH",                       # PH_IN_SITU_TOTAL
-    "pHtot",                    # PH_IN_SITU_TOTAL (alternate name)
-    # - DOWNWELLING_PAR
-    "PAR",                      # DOWNWELLING_PAR
-    "par",                      # DOWNWELLING_PAR (alternate name)
-    # - TOT_ALKALINITY
-    "total_alkalinity",         # TOT_ALKALINITY
-    # - NITRATE
-    "suna_nitrate_concentratio" 
-    "nitrate",                  # NITRATE
-    "sci_suna_nitrate_um",      # NITRATE 
-    "sci_suna_nitrate_mg",      # NITRATE
+    # DOXY - dissolved oxygen 
+    "dissolved_oxygen",             # DOXY
+    "oxy4_oxygen",                  # DOXY (Aanderaa Optode 4 raw output)
+    "oxygen",                       # DOXY (alternate name)
+    "oxygen_concentration",         # DOXY (alternate name)
+    "oxy3835_wphase_oxygen",        # DOXY (Aanderaa Optode 3835 wphase)
+    "sci_oxy4_oxygen",              # DOXY (Slocum glider internal name)
+    "oxy3835_oxygen",               # DOXY (Aanderaa Optode 3835)
+    "sci_oxy3835_oxygen",           # DOXY (Slocum glider internal name)
+    "sci_oxy4330f_oxygen",          # DOXY (Slocum glider internal name)
+    "sci_rinkoII_DO",               # DOXY (JFE Advantech RinkoII sensor)
+    # BBP470 - 470 nm particle backscattering 
+    "beta_470nm",                   # BBP470
+    "backscatter_470",              # BBP470 (alternate name)
+    "optical_backscatter_470",      # BBP470 (alternate name)
+    # BBP532 - 532 nm particle backscattering 
+    "beta_532nm",                   # BBP532
+    "backscatter_532",              # BBP532 (alternate name)
+    "backscatter532",               # BBP532 (alternate name)
+    # BBP700 - 700 nm particle backscattering
+    "backscatter",                  # BBP700
+    "beta_700nm",                   # BBP700 (alternate name)
+    "backscatter_700",              # BBP700 (alternate name)
+    "optical_backscatter_700",      # BBP700 (alternate name)
+    "VBSC",                         # BBP700 (RBR glider name)
+    "backscatter700",               # BBP700 (alternate name)
+    # TURBIDITY
+    "turbidity",                    # TURBIDITY
+    "sci_c3sfl_turbidity",          # TURBIDITY (Slocum WET Labs C3 sensor)
+    "sci_c3sfl_turbidty",           # TURBIDITY (typo variant in source data)
+    # CHLA - chlorophyll-a 
+    "chlorophyll",                  # CHLA
+    "chlorophyll_a",                # CHLA (alternate name)
+    "fluorescence",                 # CHLA (alternate name)
+    "sci_c3sfl_chlorophyll",        # CHLA (Slocum WET Labs C3 sensor)
+    "CPHL",                         # CHLA (RBR glider name)
+    # CDOM 
+    "CDOM",                         # CDOM
+    "cdom",                         # CDOM (alternate name)
+    "sci_flbbcd_cdom_units",        # CDOM (Slocum WET Labs ECO FLBBCD sensor)
+    # PH_IN_SITU_TOTAL 
+    "pH",                           # PH_IN_SITU_TOTAL
+    "pHtot",                        # PH_IN_SITU_TOTAL (alternate name)
+    # DOWN_IRRADIANCE 
+    # OCR-504: channels 1-4 map to 380/412/443/490 nm (info source google)
+    # OCR-507: channels 1-7, wavelength varies by instrument configuration
+    "sci_ocr504I_irrad1",           # DOWN_IRRADIANCE380
+    "sci_ocr504I_irrad2",           # DOWN_IRRADIANCE412
+    "sci_ocr504I_irrad3",           # DOWN_IRRADIANCE443
+    "sci_ocr504I_irrad4",           # DOWN_IRRADIANCE490
+    "sci_ocr507i_irrad1",           # DOWN_IRRADIANCE 
+    "sci_ocr507i_irrad2",           # DOWN_IRRADIANCE 
+    "sci_ocr507i_irrad3",           # DOWN_IRRADIANCE 
+    "sci_ocr507i_irrad4",           # DOWN_IRRADIANCE 
+    # UP_RADIANCE
+    # OCR-504R: channels 1-4 map to 380/412/443/490 nm
+    "sci_ocr504R_rad1",             # UP_RADIANCE380
+    "sci_ocr504R_rad2",             # UP_RADIANCE412
+    "sci_ocr504R_rad3",             # UP_RADIANCE443
+    "sci_ocr504R_rad4",             # UP_RADIANCE490
+    # DOWNWELLING_PAR
+    "PAR",                          # DOWNWELLING_PAR
+    "bsipar_par",                   # DOWNWELLING_PAR (Biospherical/Licor sensor)
+    "sci_bsipar_par",               # DOWNWELLING_PAR (Slocum internal name)
+    "sci_FIRe_par",                 # DOWNWELLING_PAR (Satlantic FIRe sensor)
+    "par",                          # DOWNWELLING_PAR (alternate name)
+    "sci_whpar_par",                # DOWNWELLING_PAR (WET Labs sensor)
+    "sci_satpar_par",               # DOWNWELLING_PAR (Satlantic sensor)
+    # TOT_ALKALINITY
+    "total_alkalinity",             # TOT_ALKALINITY
+    # NITRATE
+    "nitrate",                      # NITRATE
+    "sci_suna_nitrate_um",          # NITRATE (raw SUNA sensor, µmol/L)
+    "sci_suna_nitrate_mg",          # NITRATE (raw SUNA sensor, mg/L)
+    "suna_nitrate_concentration",   # NITRATE (alternate name)
+
+    # Not added (absent from the IOOS glider catalogue):
+    # BISULFIDE, TCO2, SILICATE, PHOSPHATE, CCL4, SF6, CFC11/12/113,
+    # DOWN_IRRADIANCE555, UP_RADIANCE555.
+    #
+    # DOWN_IRRADIANCE and UP_RADIANCE at other wavelengths ARE present via OCR
+    # sensor channel variables (sci_ocr504I_irrad*, sci_ocr504R_rad*,
+    # sci_ocr507i_irrad*) and are included.
 ]
 
 class DownloaderIOOSGliders(DownloaderERDDAP):
