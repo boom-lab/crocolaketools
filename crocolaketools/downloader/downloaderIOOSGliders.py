@@ -31,6 +31,7 @@ IOOS_GLIDERS_SERVER_URL = "https://gliders.ioos.us/erddap"
 # (https://github.com/boom-lab/crocolaketools/pull/50)
 
 GLIDER_VARIABLES = [
+    # *--- PARAM flags <PARAM> ---*
     # --- Navigation / metadata ---
     "latitude",
     "longitude",
@@ -138,6 +139,56 @@ GLIDER_VARIABLES = [
     # DOWN_IRRADIANCE and UP_RADIANCE at other wavelengths ARE present via OCR
     # sensor channel variables (sci_ocr504I_irrad*, sci_ocr504R_rad*,
     # sci_ocr507i_irrad*) and are included.
+
+    #------------------------------------------------------------------------
+
+    # *--- QC flags <PARAM>_QC ---*
+    # Navigation / metadata QC
+    "depth_qc",                     # PRES_QC
+    "pressure_qc",                  # PRES_QC (alternate name)
+    "time_qc",                      # JULD_QC
+    "lat_qc",                       # LATITUDE_QC
+    "lon_qc",                       # LONGITUDE_QC
+    "u_qc",                         # u_QC
+    "v_qc",                         # v_QC
+    "lat_uv_qc",                    # lat_uv_QC
+    "lon_uv_qc",                    # lon_uv_QC
+    "time_uv_qc",                   # time_uv_QC
+    "profile_time_qc",              # JULD_QC 
+    "profile_lat_qc",               # LATITUDE_QC 
+    "profile_lon_qc",               # LONGITUDE_QC 
+    # PHY QC
+    "temperature_qc",               # TEMP_QC
+    "salinity_qc",                  # PSAL_QC
+    "conductivity_qc",              # conductivity_QC
+    "density_qc",                   # density_QC
+    # DOXY QC 
+    "dissolved_oxygen_qc",          # DOXY_QC
+    "oxygen_qc",                    # DOXY_QC (alternate name)
+    "doxy_qc",                      # DOXY_QC (alternate name)
+    "DO_qc",                        # DOXY_QC (alternate name)
+    # BBP470 QC 
+    "optical_backscatter_470_qc",   # BBP470_QC
+    # BBP532 QC 
+    "backscatter532_qc",            # BBP532_QC
+    # BBP700 QC
+    "backscatter_qc",               # BBP700_QC
+    "optical_backscatter_700_qc",   # BBP700_QC (alternate name)
+    "backscatter700_qc",            # BBP700_QC (alternate name)
+    # CHLA QC 
+    "chlorophyll_a_qc",             # CHLA_QC
+    "chlorophyll_qc",               # CHLA_QC (alternate name)
+    "fluorescence_qc",              # CHLA_QC (alternate name)
+    # CDOM QC 
+    "cdom_qc",                      # CDOM_QC
+    "CDOM_qc",                      # CDOM_QC (alternate name)
+    # PH_IN_SITU_TOTAL QC 
+    "pHtot_qc",                     # PH_IN_SITU_TOTAL_QC
+    # DOWNWELLING_PAR QC 
+    "par_qc",                       # DOWNWELLING_PAR_QC
+    # NITRATE QC 
+    "nitrate_qc",                   # NITRATE_QC
+
 ]
 
 class DownloaderIOOSGliders(DownloaderERDDAP):
