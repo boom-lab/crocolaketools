@@ -88,6 +88,21 @@ GLODAP_BGC:
   overwrite: True
   tmp_path:
 
+# IOOS Glider DAC (delayed-mode)
+IOOS_GLIDERS_PHY:
+  db: IOOS_GLIDERS
+  db_type: PHY
+  server_url: https://gliders.ioos.us/erddap
+  response_format: parquet   # parquet, tabledap protocol (variable selection + time constraints)
+  input_path: ../demo/demo_IOOSGliders/
+  delayed_only: true
+  sync: true        # true  = compare timestamps, re-download updated files, false = download missing files only
+  overwrite: false
+  dryrun: false
+  num_threads: 4
+  gated_parallel_download: True   # true = only one chunk in ERDDAP's heavy build phase at a time (avoids 503s)
+                                   # false = all chunks fire immediately, bounded only by num_threads
+
 # Spray Gliders
 SprayGliders_PHY:
   db: SprayGliders
