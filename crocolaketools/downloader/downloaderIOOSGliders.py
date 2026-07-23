@@ -226,7 +226,6 @@ class DownloaderIOOSGliders(DownloaderERDDAP):
     ) -> str:
         """
         Build the tabledap parquet URL with per-dataset variable filtering.
-
         Queries the ERDDAP info endpoint first to find which variables this
         specific dataset actually carries, then intersects with GLIDER_VARIABLES.
         prevents 400 errors on datasets that lack some specific variables.
@@ -255,6 +254,9 @@ class DownloaderIOOSGliders(DownloaderERDDAP):
         if time_end is not None:
             constraints["time<="] = time_end.strftime("%Y-%m-%dT%H:%M:%SZ")
 
+        # merge in any extra constraints from config (spatial, variable-level, etc.)
+        constraints.update(self.extra_constraints)
+        
         # pass constraints explicitly, even as an empty dict, to avoid erddapy
         # falling back to self.constraints which may hold stale values from a
         # previous call

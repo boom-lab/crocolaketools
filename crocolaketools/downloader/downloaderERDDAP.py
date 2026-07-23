@@ -118,6 +118,15 @@ class DownloaderERDDAP(Downloader):
         # if False, chunk requests fire without the first-byte gate (see NoOpGate)
         self.gated_parallel_download = config.get("gated_parallel_download", True)
 
+        # Optional user-defined constraints from config.yaml.
+        # Supports all 7 ERDDAP tabledap operators: =, !=, =~, <, <=, >, >=
+        # time>= / time<= clamp the chunking window in _download_one.
+        # All other constraints are passed to ERDDAP on every chunk request.
+        _c = config.get("constraints", {})
+        self.time_start        = _c.pop("time>=", None)
+        self.time_end          = _c.pop("time<=", None)
+        self.extra_constraints = _c
+
         self._erddap = ERDDAP(
             server=self.server_url,
             protocol=self.protocol,
@@ -158,6 +167,8 @@ class DownloaderERDDAP(Downloader):
             constraints["time>="] = time_start.strftime(ERDDAP_TS_FMT)
         if time_end is not None:
             constraints["time<="] = time_end.strftime(ERDDAP_TS_FMT)
+
+        constraints.update(self.extra_constraints)
 
         return self._erddap.get_download_url(
             response=self.response_format,
@@ -386,6 +397,21 @@ class DownloaderERDDAP(Downloader):
             return False
 
         t_start, t_end = time_range
+
+        if self.time_start is not None:
+            user_t_start = datetime.strptime(self.time_start, ERDDAP_TS_FMT).replace(tzinfo=timezone.utc)
+            t_start = max(t_start, user_t_start)
+        if self.time_end is not None:
+            user_t_end = datetime.strptime(self.time_end, ERDDAP_TS_FMT).replace(tzinfo=timezone.utc)
+            t_end = min(t_end, user_t_end)
+
+        if t_start >= t_end:
+            logging.info(
+                "%s: dataset time range is outside the requested "
+                "constraint window - skipping.",
+                dataset_id,
+            )
+            return True
 
         for chunk_hours in CHUNK_SCHEDULE_HOURS:
             windows = self._split_window(t_start, t_end, chunk_hours=chunk_hours)

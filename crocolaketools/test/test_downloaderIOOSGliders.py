@@ -353,6 +353,116 @@ class TestGatedParallelDownload:
         assert released.is_set(), "gate.wait() should unblock after callback fires"
 
 
+
+
+class TestConstraints:
+    """Tests for config.yaml constraint support in DownloaderERDDAP."""
+
+    def test_no_constraints_by_default(self, mock_base_downloader):
+        """time_start, time_end, extra_constraints are all None/empty by default."""
+        d = DownloaderIOOSGliders(config=dict(DUMMY_CONFIG))
+        assert d.time_start is None
+        assert d.time_end is None
+        assert d.extra_constraints == {}
+
+    def test_time_constraints_read_from_config(self, mock_base_downloader):
+        """time>= and time<= are parsed out of the constraints block."""
+        d = DownloaderIOOSGliders(config=dict(DUMMY_CONFIG, constraints={
+            "time>=": "2015-01-01T00:00:00Z",
+            "time<=": "2026-01-01T00:00:00Z",
+        }))
+        assert d.time_start == "2015-01-01T00:00:00Z"
+        assert d.time_end   == "2026-01-01T00:00:00Z"
+        assert d.extra_constraints == {}
+
+    def test_spatial_constraints_in_extra(self, mock_base_downloader):
+        """Spatial constraints land in extra_constraints."""
+        d = DownloaderIOOSGliders(config=dict(DUMMY_CONFIG, constraints={
+            "latitude>=":  -60.0,
+            "latitude<=":   60.0,
+            "longitude>=": -180.0,
+            "longitude<=":  180.0,
+        }))
+        assert d.extra_constraints == {
+            "latitude>=":  -60.0,
+            "latitude<=":   60.0,
+            "longitude>=": -180.0,
+            "longitude<=":  180.0,
+        }
+
+    def test_mixed_constraints_split_correctly(self, mock_base_downloader):
+        """time>=/time<= go to time_start/time_end; the rest go to extra_constraints."""
+        d = DownloaderIOOSGliders(config=dict(DUMMY_CONFIG, constraints={
+            "time>=":      "2020-01-01T00:00:00Z",
+            "latitude>=":  30.0,
+            "longitude<=": 10.0,
+        }))
+        assert d.time_start == "2020-01-01T00:00:00Z"
+        assert d.time_end is None
+        assert d.extra_constraints == {"latitude>=": 30.0, "longitude<=": 10.0}
+
+    def test_extra_constraints_merged_into_url(self, mock_base_downloader):
+        """extra_constraints are merged into the URL constraints dict."""
+        d = DownloaderIOOSGliders(config=dict(DUMMY_CONFIG, constraints={
+            "latitude>=": -60.0,
+            "latitude<=":  60.0,
+        }))
+        d.response_format = "parquet"
+        d._erddap = MagicMock()
+        with patch.object(DownloaderIOOSGliders, "get_dataset_variables",
+                          return_value=set()):
+            d.get_dataset_url("ru29-delayed")
+
+        called_constraints = d._erddap.get_download_url.call_args[1]["constraints"]
+        assert called_constraints["latitude>="] == -60.0
+        assert called_constraints["latitude<="] ==  60.0
+
+    def test_dataset_outside_time_window_skipped(self, tmp_path, mock_base_downloader):
+        """_download_one returns True (skip, not failure) when dataset is outside window."""
+        d = DownloaderIOOSGliders(config=dict(DUMMY_CONFIG, constraints={
+            "time>=": "2025-01-01T00:00:00Z",
+            "time<=": "2026-01-01T00:00:00Z",
+        }))
+        d.input_path = str(tmp_path) + "/"
+
+        # dataset range is entirely before the requested window
+        with patch.object(DownloaderIOOSGliders, "_get_dataset_time_range",
+                          return_value=(
+                              datetime(2010, 1, 1, tzinfo=timezone.utc),
+                              datetime(2012, 1, 1, tzinfo=timezone.utc),
+                          )), \
+             patch.object(DownloaderIOOSGliders, "_download_chunks_parallel") as mock_dl:
+            result = d._download_one("old-dataset-delayed", str(tmp_path / "out.parquet"))
+
+        assert result is True          # skipped, not failed
+        mock_dl.assert_not_called()    # nothing was downloaded
+
+    def test_dataset_partially_in_window_clamped(self, tmp_path, mock_base_downloader):
+        """_download_one clamps t_start/t_end to the requested window."""
+        d = DownloaderIOOSGliders(config=dict(DUMMY_CONFIG, constraints={
+            "time>=": "2021-06-01T00:00:00Z",
+        }))
+        d.input_path = str(tmp_path) + "/"
+
+        captured = {}
+
+        def fake_chunks(dataset_id, windows, tmp_dir, local_path):
+            captured["windows"] = windows
+            return True, False
+
+        with patch.object(DownloaderIOOSGliders, "_get_dataset_time_range",
+                          return_value=(
+                              datetime(2021, 1, 1, tzinfo=timezone.utc),
+                              datetime(2021, 12, 31, tzinfo=timezone.utc),
+                          )), \
+             patch.object(DownloaderIOOSGliders, "_download_chunks_parallel",
+                          side_effect=fake_chunks):
+            d._download_one("partial-delayed", str(tmp_path / "out.parquet"))
+
+        # first window must start at the clamped time_start, not the dataset start
+        assert captured["windows"][0][0] == datetime(2021, 6, 1, tzinfo=timezone.utc)
+
+
 ##########################################################################
 # Fixtures
 ##########################################################################
