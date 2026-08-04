@@ -2,13 +2,13 @@
 
 ## @file db_params.py
 #
-#
+## Adapted by @author Kalea Holdren <kalea.holdren@whoi.edu>
 ## Adapted by @author Mahi Sarwar Anol <anol.mahi@gmail.com> 
 #
 ## Everything is Adapted from params.py in crocolakeloader (https://github.com/boom-lab/crocolakeloader.git)
 #  Originally written by @author enrico <enrico.milanese@whoi.edu>
 #
-## @date sunday 15 June, 2026
+## @date Monday 4 August 2026
 
 ##########################################################################
 import copy
@@ -769,6 +769,85 @@ params["OleanderXBT2CROCOLAKE"] = {
     'temp' : 'TEMP',
 }
 
+#------------------------------------------------------------------------------#
+# SPOTS
+#
+# original names of parameters to keep
+
+params["SPOTS"] = [
+    'TimeSeriesSite',
+    'DATE',
+    'TIME',
+    'LATITUDE',
+    'LONGITUDE',
+    'CTDPRS',
+    'CTDTEMP',
+    'SALNTY',
+    'OXYGEN',
+    'NITRAT',
+    'PHSPHT',
+    'SILCAT',
+    'ALKALI',
+    'PH_TOT',
+    'SALNTY_P',
+    'SALNTY_A',
+    'SALNTY_FLAG_W',
+    'OXYGEN_P',
+    'OXYGEN_A',
+    'OXYGEN_FLAG_W',
+    'NITRAT_P',
+    'NITRAT_A',
+    'NITRAT_FLAG_W',
+    'PHSPHT_P',
+    'PHSPHT_A',
+    'PHSPHT_FLAG_W',
+    'SILCAT_P',
+    'SILCAT_A',
+    'SILCAT_FLAG_W',
+    'ALKALI_P',
+    'ALKALI_A',
+    'ALKALI_FLAG_W',
+    'PH_TOT_P',
+    'PH_TOT_A',
+    'PH_TOT_FLAG_W',
+]
+
+#
+# dict for renaming parameters to crocolake names
+#
+params["SPOTS2CROCOLAKE"] = {
+    'TimeSeriesSite' : 'PLATFORM_NUMBER',
+    'LATITUDE' : 'LATITUDE',
+    'LONGITUDE' : 'LONGITUDE',
+    'CTDPRS' : 'PRES',
+    'CTDTMP' : 'TEMP',
+    'SALNTY' : 'PSAL',
+    'OXYGEN' : 'DOXY',
+    'NITRAT' : 'NITRATE',
+    'SILCAT' : 'SILICATE',
+    'PHSPHT' : 'PHOSPHATE',
+    'ALKALI' : 'TOT_ALKALINITY',
+    'PH_TOT' : 'PH_IN_SITU_TOTAL',
+    'SALNTY_FLAG_W' : 'PSAL_QC',
+    'OXYGEN_FLAG_W' : 'DOXY_QC',
+    'NITRAT_FLAG_W' : 'NITRATE_QC',
+    'SILCAT_FLAG_W' : 'SILICATE_QC',
+    'PHSPHT_FLAG_W' : 'PHOSPHATE_QC',
+    'ALKALI_FLAG_W' : 'TOT_ALKALINITY_QC',
+    'PH_TOT_FLAG_W' : 'PH_IN_SITU_TOTAL_QC',
+    'SALNTY_ERROR' : 'PSAL_ERROR',
+    'OXYGEN_ERROR' : 'DOXY_ERROR',
+    'NITRAT_ERROR' : 'NITRATE_ERROR',
+    'SILCAT_ERROR' : 'SILICATE_ERROR',
+    'PHSPHT_ERROR' : 'PHOSPHATE_ERROR',
+    'ALKALI_ERROR' : 'TOT_ALKALINITY_ERROR',
+    'PH_TOT_ERROR' : 'PH_IN_SITU_TOTAL_ERROR',
+    
+    'profile_nb' : 'CYCLE_NUMBER', # temporary name for profile ID, this is 
+                                   # created in the converter, it is not in the
+                                   # original csv file
+    'date_update' : 'DATE_UPDATE', # temporary name for date update
+}
 
 #------------------------------------------------------------------------------#
 # Argo
