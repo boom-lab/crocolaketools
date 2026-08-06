@@ -114,25 +114,11 @@ class ConverterGLODAP(Converter):
         ddf -- homogenized (dask) dataframe
         """
 
-        ### Adding profile number
-        # GLODAP has no profile number, so we create a temporary one. For each
-        # expocode, it is unique given (cruise, station, region, cast). For each
-        # group of these values, the profile number is a progressive integer
-        # number
-        ddf = self.add_profile_id(ddf)
-
         # convert GLODAP multiple time columns to one datetime
         print("Converting GLODAP multiple time columns to one datetime")
-        rename_datetime = {
-            "year": "year",
-            "month": "month",
-            "day": "day",
-            "hour": "hour",
-            "minute": "minute"
-        }
-        ddf = ddf.rename(columns=rename_datetime)
-        ddf["JULD"] = dd.to_datetime(ddf[["year", "month", "day", "hour", "minute"]])
-        ddf = ddf.drop(columns=rename_datetime.values())
+        datetime_cols = ["year", "month", "day", "hour", "minute"]
+        ddf["JULD"] = dd.to_datetime(ddf[ datetime_cols ])
+        ddf = ddf.drop(columns=datetime_cols)
         ddf = ddf.persist()
 
         # keep only good QC values
@@ -150,6 +136,14 @@ class ConverterGLODAP(Converter):
             super().remove_all_NAs, params_to_check
         )
         ddf = ddf.persist()
+
+
+        ### Adding profile number
+        # GLODAP has no profile number, so we create a temporary one. For each
+        # expocode, it is unique given (cruise, station, region, cast). For each
+        # group of these values, the profile number is a progressive integer
+        # number
+        ddf = self.add_profile_id(ddf)
 
         ddf['date_update'] = np.datetime64('2023-10-18T13:01:04.000000000')
 
