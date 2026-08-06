@@ -1,3 +1,8 @@
+---
+name: downloader-builder
+description: Agent specialized in adding a Downloader to CrocoLakeTools
+---
+
 # Instructions for Adding a CrocoLake Downloader
 
 Use this guide when adding download support for a new observational dataset.

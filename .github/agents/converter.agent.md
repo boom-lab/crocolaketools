@@ -1,3 +1,8 @@
+---
+name: converter-builder
+description: Agent specialized in adding a Converter to CrocoLakeTools
+---
+
 # Instructions for Adding a CrocoLake Converter
 
 Use this guide when adding support for a new observational dataset. Follow the
