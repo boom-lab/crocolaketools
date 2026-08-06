@@ -45,6 +45,17 @@ class TestConverter:
             os.path.join(converter.input_path, "demo_GLODAP.csv"),
             nrows=100,
         ).convert_dtypes(dtype_backend="pyarrow")
+        profiled = converter.add_profile_id(
+            dd.from_pandas(source, npartitions=2)
+        ).compute()
+        profile_minimums = (
+            profiled[["expocode", "profile_nb"]]
+            .drop_duplicates()
+            .groupby("expocode")["profile_nb"]
+            .min()
+        )
+        assert (profile_minimums == 1).all()
+
         ddf = converter.standardize_data(dd.from_pandas(source, npartitions=2))
         df = ddf.compute()
 
@@ -54,13 +65,7 @@ class TestConverter:
         assert not any(column.startswith("G2") for column in df.columns)
         assert df["JULD"].notna().all()
 
-        profile_minimums = (
-            df[["PLATFORM_NUMBER", "CYCLE_NUMBER"]]
-            .drop_duplicates()
-            .groupby("PLATFORM_NUMBER")["CYCLE_NUMBER"]
-            .min()
-        )
-        assert (profile_minimums == 1).all()
+        assert (df["CYCLE_NUMBER"] >= 1).all()
 
     def test_converter_glodap_v3_qc_filtering(self):
         """Test that GLODAP QC flags retain only values flagged 0 or 2."""

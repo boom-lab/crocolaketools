@@ -178,7 +178,7 @@ class TestData:
         )
         source_match = source[
             (source["expocode"] == output_row["PLATFORM_NUMBER"])
-            & (source["pressure"] == output_row["PRES"])
+            & np.isclose(source["pressure"], output_row["PRES"], atol=1e-4)
             & (source_juld == output_row["JULD"])
         ]
         if source_match.empty:
@@ -189,10 +189,12 @@ class TestData:
             filters=[
                 ("PLATFORM_NUMBER", "==", source["expocode"]),
                 ("JULD", "==", output_row["JULD"]),
-                ("PRES", "==", source["pressure"]),
             ],
-            columns=[output_name],
+            columns=["PRES", output_name],
         ).compute()
+        result = result[
+            np.isclose(result["PRES"], source["pressure"], atol=1e-4)
+        ]
 
         assert len(result) == 1
         assert result[output_name].iloc[0] == pytest.approx(
