@@ -15,13 +15,13 @@ import requests
 from crocolaketools.downloader.downloader import Downloader
 ##########################################################################
 
-# GLODAPv2.2023 master file constants
-GLODAP_VERSION      = "2.2023"
+# GLODAPv3.2026 master file constants
+GLODAP_VERSION      = "3"
 GLODAP_MASTER_FNAME = f"GLODAPv{GLODAP_VERSION}_Merged_Master_File.csv"
 
 # Primary source: NOAA NCEI / OCADS (plain CSV)
 GLODAP_URL_NCEI = (
-    "https://www.ncei.noaa.gov/data/oceans/ncei/ocads/data/0283442/"
+    "https://www.ncei.noaa.gov/data/oceans/ncei/ocads/data/0315582/"
     + GLODAP_MASTER_FNAME
 )
 
