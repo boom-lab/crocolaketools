@@ -38,6 +38,47 @@ class TestConverter:
 #------------------------------------------------------------------------------#
 ## Set of tests for the Converter class constructor
 
+    def test_converter_glodap_v3_read_and_standardize(self):
+        """Test reading the unprefixed GLODAPv3 demo CSV."""
+        converter = ConverterGLODAP(db_type="PHY")
+        source = pd.read_csv(
+            os.path.join(converter.input_path, "demo_GLODAP.csv"),
+            nrows=100,
+        ).convert_dtypes(dtype_backend="pyarrow")
+        ddf = converter.standardize_data(dd.from_pandas(source, npartitions=2))
+        df = ddf.compute()
+
+        assert not df.empty
+        assert {"PLATFORM_NUMBER", "CYCLE_NUMBER", "JULD", "PRES",
+                "TEMP", "PSAL"}.issubset(df.columns)
+        assert not any(column.startswith("G2") for column in df.columns)
+        assert df["JULD"].notna().all()
+
+        profile_minimums = (
+            df[["PLATFORM_NUMBER", "CYCLE_NUMBER"]]
+            .drop_duplicates()
+            .groupby("PLATFORM_NUMBER")["CYCLE_NUMBER"]
+            .min()
+        )
+        assert (profile_minimums == 1).all()
+
+    def test_converter_glodap_v3_qc_filtering(self):
+        """Test that GLODAP QC flags retain only values flagged 0 or 2."""
+        converter = ConverterGLODAP(db_type="BGC")
+        source = pd.read_csv(
+            os.path.join(converter.input_path, "demo_GLODAP.csv"),
+            nrows=100,
+        ).convert_dtypes(dtype_backend="pyarrow")
+        df = converter.standardize_data(
+            dd.from_pandas(source, npartitions=2)
+        ).compute()
+
+        for value, flag in [("PSAL", "PSAL_QC"), ("DOXY", "DOXY_QC"),
+                            ("NITRATE", "NITRATE_QC")]:
+            valid = df[flag].notna()
+            assert df.loc[valid, flag].isin([0, 2]).all()
+            assert not (df.loc[valid, value] == -9999).any()
+
     def test_converter_argoqc_read_pq_dtypes_phy(self):
         """
         Test that the data types of the columns in the ARGO QC dataframe are as expected
