@@ -574,7 +574,6 @@ class Converter:
         """
 
         if isinstance(df,pd.DataFrame):
-            ddf = dd.from_pandas(df, npartitions=1)
             flag_pd = True
             flag_dd = False
         elif isinstance(df,dd.DataFrame):
@@ -587,12 +586,19 @@ class Converter:
                 "wrap longitude values"
             )
 
+        if flag_pd:
+            lon_min = df["LONGITUDE"].min()
+            lon_max = df["LONGITUDE"].max()
+        else:
+            lon_min = ddf["LONGITUDE"].min().compute()
+            lon_max = ddf["LONGITUDE"].max().compute()
+
         # if LONGITUDE is in [0,360) range, it is shifted to [-180,180) range if
         # flag is passed
         if (
-                ddf["LONGITUDE"].min().compute() >= 0
-                and ddf["LONGITUDE"].max().compute() >= 180
-                and ddf["LONGITUDE"].max().compute() <= 360
+                lon_min >= 0
+                and lon_max >= 180
+                and lon_max <= 360
         ):
             # it might be that this dataset uses LONGITUDE in [0,360) range
             # instead of [-180,180). The converter expects the latter range by
@@ -609,7 +615,10 @@ class Converter:
             else:
                 if shift_value is None:
                     shift_value = -180
-                ddf["LONGITUDE"] = ddf["LONGITUDE"] + shift_value
+                if flag_pd:
+                    df["LONGITUDE"] = df["LONGITUDE"] + shift_value
+                else:
+                    ddf["LONGITUDE"] = ddf["LONGITUDE"] + shift_value
 
         # note that the following only works if the wrapped LONGITUDE must be in [-180,180) range
         def modulo_longitude(df):
@@ -621,17 +630,13 @@ class Converter:
             df["LONGITUDE"] = df["LONGITUDE"].astype("float64[pyarrow]")
             return df
 
-        ddf = ddf.map_partitions(
-                modulo_longitude,
-                meta=ddf
-        )
-
         if flag_pd:
-            df = ddf.compute()
-        elif flag_dd:
-            df = ddf
+            df = modulo_longitude(df)
         else:
-            raise TypeError("input dataframe is not a pandas or dask dataframe.")
+            df = ddf.map_partitions(
+                    modulo_longitude,
+                    meta=ddf
+            )
 
         return df
 

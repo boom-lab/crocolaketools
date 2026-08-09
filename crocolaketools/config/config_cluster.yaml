@@ -36,6 +36,13 @@ SAILDRONES:
     memory_limit: '32GB'
     processes: True
 
+# IOOS Glider DAC configuration
+IOOS_GLIDERS:
+    threads_per_worker: 1
+    n_workers: 2
+    memory_limit: '6GB'
+    processes: True
+
 # OleanderXBT configuration
 OLEANDER_XBT:
     threads_per_worker: 1
