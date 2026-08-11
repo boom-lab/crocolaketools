@@ -44,7 +44,7 @@ class ConverterSPOTS(Converter):
 ## Read database into dask dataframe
     def read_to_ddf(self, flist = None, lock = None):
         if len(flist) > 1:
-            raise ValueErros("SPOTS database must be read from a single file. Please check your input.")
+            raise ValueError("SPOTS database must be read from a single file. Please check your input.")
 
         df = self.read_to_df(flist[0], lock)
         if isinstance(df, pd.DataFrame):
@@ -52,7 +52,7 @@ class ConverterSPOTS(Converter):
         elif isinstance(df, dd.DataFrame):
             return df
         else:
-            raise TypeError("read_to_df must return a panadas or dask dataframe, not: ", type(df))
+            raise TypeError("read_to_df must return a pandas or dask dataframe, not: ", type(df))
         
 #-------------------------------------------------------------------------------------------------------------#
 ## Read file to convert into a pandas dataframe
@@ -96,18 +96,17 @@ class ConverterSPOTS(Converter):
         ddf -- homogenized (dask) dataframe
         """
 
-        #ddf = self.add_profile_id(ddf)
-        # don't have add_profile_id() yet
+        ddf = self.add_profile_id(ddf)
 
 
         ### convert SPOTS multiple time columns to one datetime
         # add time as midnight for rows missing a time
-        spots_subset["TIME"] = spots_subset["TIME"].fillna(0)
+        ddf["TIME"] = ddf["TIME"].fillna(0)
    
         date_str = ddf["DATE"].astype("Int64").astype(str)
         time_str = ddf["TIME"].astype("Int64").astype(str).str.zfill(4)
 
-        ddf["JULD"] = pd.to_datetime(
+        ddf["JULD"] = dd.to_datetime(
             date_str + time_str,
             format = "%Y%m%d%H%M",
             errors = "coerce"
@@ -123,17 +122,43 @@ class ConverterSPOTS(Converter):
                 )
                 params_to_check.append(param[:-7])
 
+
+        # Use bottle salinity when available, otherwise use CTD salinity
+        use_salnty = ddf["SALNTY"].notna()
+        
+        ddf["PSAL"] = ddf["SALNTY"].fillna(ddf["CTDSAL"])
+        
+        if "CTDSAL_FLAG_W" in ddf.columns:
+            ddf["PSAL_QC"] = ddf["SALNTY_FLAG_W"].where(
+                use_salnty,
+                ddf["CTDSAL_FLAG_W"]
+            )
+        else:
+            ddf["PSAL_QC"] = ddf["SALNTY_FLAG_W"].where(
+                use_salnty, pd.NA
+            )
+            
+        params_to_check.append("PSAL")
+        
+        ddf = ddf.map_partitions(
+            self.add_error_column,
+            "SALNTY",
+            "PSAL"
+        )
+
+        
         # remove rows containing all NAs
         ddf = ddf.map_partitions(
             super().remove_all_NAs, params_to_check
         )
         ddf = ddf.persist()
 
+        
         ddf["date_update"] = np.datetime64("2024-02-22T00:00:00.00000000")
 
+        
         # add error parameters
         error_params = [
-            "SALNTY",
             "OXYGEN",
             "NITRAT",
             "PHSPHT",
@@ -142,9 +167,15 @@ class ConverterSPOTS(Converter):
             "PH_TOT",
         ]
         for value_name in error_params:
-            ddf = self.add_error_column(ddf, value_name)
+            ddf = ddf.map_partitions(
+                self.add_error_column,
+                value_name
+            )
 
-
+        
+        # Replace SPOTS fill values with missing values
+        ddf = ddf.replace(-999, np.nan)
+        
         # return standardized dataframe
         return super().standardize_data(ddf)
 
@@ -172,38 +203,47 @@ class ConverterSPOTS(Converter):
         # Find bad QC values
         df.loc[condition, param] = pd.NA
         df.loc[condition, param[:-7]] = pd.NA
+        
 
         return df
 #-------------------------------------------------------------------------------------------------------------#
 ## Add error column
-    def add_error_column(df, value_name):
+    def add_error_column(self, df, value_name, error_name = None):
         """Add error column to pandas dataframe
         
         Argument:
         df -- pandas dataframe
         value_name -- name of parameter
+        error_name -- optional name for output error column
         
         Returns:
         df -- pandas dataframe
         """
+
+        # The optional error_name argument handles cases where the source parameter is renamed
+        # before output, e.g., SALNTY_P/SALNTY_A to create PSAL_ERROR
         
+        if error_name is None:
+            error_name = value_name
+
+            
         precision_col = value_name + "_P"
         accuracy_col = value_name + "_A"
-        error_col = value_name + "_ERROR"
+        error_col = error_name + "_ERROR"
         
         df[error_col] = pd.NA
             
         has_p = df[precision_col].notna()
         has_a = df[accuracy_col].notna()
         
-        # for rows with precision but no accuracy, put precision value into error column
+        # If precision exists but accuracy does not, use precision
         df.loc[has_p & ~has_a, error_col] = df.loc[has_p & ~has_a, precision_col]
         
-        # for any row where accuracy exists, put accuracy value into error column
+        # If accuracy exists, use accuracy
         df.loc[has_a, error_col] = df.loc[has_a, accuracy_col]
 
         return df
      
 #######################################################################################################
-#if __name__ == "__main__":
-#    ConverterSPOTS()
+if __name__ == "__main__":
+    ConverterSPOTS()
