@@ -102,19 +102,32 @@ IOOS_GLIDERS_PHY:
   num_threads: 4
   gated_parallel_download: True   # true = only one chunk in ERDDAP's heavy build phase at a time (avoids 503s)
                                   # false = all chunks fire immediately, bounded only by num_threads
-  # Optional constraints - all 7 ERDDAP tabledap operators type are supported:
-  #   =, !=, =~, <, <=, >, >=
-  # time>= / time<= clamp the chunking window so only data in the requested
-  # period is downloaded. All other constraints are sent to ERDDAP on every
-  # chunk request (applied server-side before data is transferred).
-  # Remove or comment out this block to download without any constraints.
+                  
   constraints:
+    # Optional constraints - all 7 ERDDAP tabledap operators type are supported:
+    #   =, !=, =~, <, <=, >, >=
+    # time>= / time<= clamp the chunking window so only data in the requested
+    # period is downloaded. All other constraints are sent to ERDDAP on every
+    # chunk request (applied server-side before data is transferred).
+    # Remove or comment out this block to download without any constraints.
+
+    # The variables we use in the constraint
+    # is expected to be available on the dataset. 
+    # So choose the variables carefully.)
     time>=: "2015-01-01T00:00:00Z"   # only download data from this date onward
     time<=: "2026-01-01T00:00:00Z"   # only download data up to this date
-    latitude>=:  -90.0               # regional constraints
+    # regional constraints
+    latitude>=:  -90.0              
     latitude<=:   90.0
     longitude>=: -180.0
     longitude<=:  180.0
+    # Example PHY constraints
+    pressure>=: 2.3
+    pressure<=: 150.3
+    depth>=: 100
+    depth<=: 300
+    # Example BGC constraints
+    chlorophyll<=: 20
 
 
 # Spray Gliders
