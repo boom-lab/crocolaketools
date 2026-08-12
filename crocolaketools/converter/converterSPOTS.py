@@ -103,14 +103,7 @@ class ConverterSPOTS(Converter):
         # add time as midnight for rows missing a time
         ddf["TIME"] = ddf["TIME"].fillna(0)
    
-        date_str = ddf["DATE"].astype("Int64").astype(str)
-        time_str = ddf["TIME"].astype("Int64").astype(str).str.zfill(4)
-
-        ddf["JULD"] = dd.to_datetime(
-            date_str + time_str,
-            format = "%Y%m%d%H%M",
-            errors = "coerce"
-        )
+        ddf = ddf.map_partitions(self.add_datetime)
         ddf = ddf.persist()
 
         # keep only good QC values
@@ -124,7 +117,7 @@ class ConverterSPOTS(Converter):
 
 
         # Use bottle salinity when available, otherwise use CTD salinity
-        use_salnty = ddf["SALNTY"].notna()
+        use_salnty = ~ddf["SALNTY"].isna()
         
         ddf["PSAL"] = ddf["SALNTY"].fillna(ddf["CTDSAL"])
         
@@ -174,13 +167,79 @@ class ConverterSPOTS(Converter):
 
         
         # Replace SPOTS fill values with missing values
-        ddf = ddf.replace(-999, np.nan)
+        ddf = ddf.map_partitions(self.replace_fill_values)
         
         # return standardized dataframe
         return super().standardize_data(ddf)
 
 #-------------------------------------------------------------------------------------------------------------#
-## this is where add_profile_id() can go
+## Replace fill values
+    def replace_fill_values(self, df):
+        """Replace SPOTS fill values without relying on deprecated downcasting."""
+
+        return df.mask(df.eq(-999), np.nan)
+
+#-------------------------------------------------------------------------------------------------------------#
+## Add datetime
+    def add_datetime(self, df):
+        """Add a single datetime column from SPOTS date and time columns."""
+
+        date_str = df["DATE"].astype("Int64").astype(str)
+        time_str = df["TIME"].astype("Int64").astype(str).str.zfill(4)
+        df["JULD"] = pd.to_datetime(
+            date_str + time_str,
+            format="%Y%m%d%H%M",
+            errors="coerce",
+        )
+        return df
+
+#-------------------------------------------------------------------------------------------------------------#
+## Add profile ID
+    def add_profile_id(self, ddf):
+        """Create deterministic profile identifiers from SPOTS cast metadata."""
+
+        profile_columns = ["TimeSeriesSite", "CRUISE", "STNNBR", "CASTNO"]
+        missing = [column for column in profile_columns if column not in ddf.columns]
+        if missing:
+            raise ValueError(
+                "SPOTS input must contain profile-identifying columns: "
+                + ", ".join(missing)
+            )
+
+        def add_profile_key(df):
+            df = df.copy()
+            df["_profile_key"] = (
+                df[profile_columns]
+                .fillna("")
+                .astype("string")
+                .agg("|".join, axis=1)
+            )
+            return df
+
+        ddf = ddf.map_partitions(add_profile_key)
+        unique_profiles = (
+            ddf[profile_columns + ["_profile_key"]]
+            .drop_duplicates()
+            .compute()
+            .sort_values(profile_columns)
+        )
+        unique_profiles["profile_nb"] = (
+            unique_profiles.groupby("TimeSeriesSite").cumcount() + 1
+        ).astype("int32")
+        profile_numbers = dict(
+            zip(unique_profiles["_profile_key"], unique_profiles["profile_nb"])
+        )
+
+        def assign_profile_number(df):
+            df = df.copy()
+            df["profile_nb"] = (
+                df["_profile_key"].map(profile_numbers).astype("int32")
+            )
+            return df.drop(columns="_profile_key")
+
+        meta = ddf._meta.drop(columns="_profile_key")
+        meta["profile_nb"] = pd.Series(dtype="int32")
+        return ddf.map_partitions(assign_profile_number, meta=meta)
 
 #-------------------------------------------------------------------------------------------------------------#
 ## Keep best values for each row
