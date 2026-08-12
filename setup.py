@@ -34,6 +34,7 @@ setup(
             'oleanderXBT2parquet = scripts.oleanderXBT2parquet:main',
             'saildrones2parquet = scripts.saildrones2parquet:main',
             'spray2parquet = scripts.spray2parquet:main',
+            'spots2parquet = scripts.spots2parquet:main',
         ],
     },
     include_package_data=True,

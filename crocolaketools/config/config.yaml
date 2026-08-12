@@ -126,6 +126,29 @@ SprayGliders_BGC:
   overwrite: True
   tmp_path: ../demo/demo_tmp_SPRAY_BGC/
 
+# SPOTS
+SPOTS_PHY:
+  db: SPOTS
+  db_type: PHY
+  input_path: ../demo/demo_SPOTS/
+  outdir_pq: ../demo/parquet/demo_SPOTS_PHY/
+  outdir_schema: ./schemas/SPOTS/
+  fname_pq: demo_SPOTS_PHY
+  add_derived_vars: True
+  overwrite: True
+  tmp_path:
+
+SPOTS_BGC:
+  db: SPOTS
+  db_type: BGC
+  input_path: ../demo/demo_SPOTS/
+  outdir_pq: ../demo/parquet/demo_SPOTS_BGC/
+  outdir_schema: ./schemas/SPOTS/
+  fname_pq: demo_SPOTS_BGC
+  add_derived_vars: True
+  overwrite: True
+  tmp_path:
+
 # Saildrones
 Saildrones_PHY:
   db: Saildrones

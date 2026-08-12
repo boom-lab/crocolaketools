@@ -851,6 +851,10 @@ params["SPOTS2CROCOLAKE"] = {
     'date_update' : 'DATE_UPDATE', # temporary name for date update
 }
 
+params["CROCOLAKE2SPOTS"] = {
+    value: key for key, value in params["SPOTS2CROCOLAKE"].items()
+}
+
 #------------------------------------------------------------------------------#
 # Argo
 #
