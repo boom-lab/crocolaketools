@@ -335,6 +335,97 @@ class TestData:
                 assert False, "value in CrocoLake is not a scalar nor a pd.NA"
 
 #------------------------------------------------------------------------------#
+    def _check_variables_csv(self, db_name, db_type):
+        """Compare a sample of valid SPOTS CSV observations with Parquet."""
+        config_path = importlib.resources.files("crocolaketools.config").joinpath(
+            "config.yaml"
+        )
+        with open(config_path) as config_file:
+            config = yaml.safe_load(config_file)[db_name + "_" + db_type]
+        csv_path = os.path.abspath(os.path.join(
+            importlib.resources.files("crocolaketools.config"),
+            config["input_path"],
+            "spots.csv",
+        ))
+        source = pd.read_csv(csv_path)
+        source["CTDPRS"] = source["CTDPRS"].astype("float32")
+        source["TIME"] = source["TIME"].fillna(0)
+        source["JULD"] = pd.to_datetime(
+            source["DATE"].astype("Int64").astype(str)
+            + source["TIME"].astype("Int64").astype(str).str.zfill(4),
+            format="%Y%m%d%H%M",
+            errors="coerce",
+        )
+        profile_columns = ["TimeSeriesSite", "CRUISE", "STNNBR", "CASTNO"]
+        source["_profile_key"] = (
+            source[profile_columns]
+            .fillna("")
+            .astype("string")
+            .agg("|".join, axis=1)
+        )
+        profiles = (
+            source[profile_columns + ["_profile_key"]]
+            .drop_duplicates()
+            .sort_values(profile_columns)
+        )
+        profiles["profile_nb"] = (
+            profiles.groupby("TimeSeriesSite").cumcount() + 1
+        ).astype("int32")
+        source["profile_nb"] = source["_profile_key"].map(
+            profiles.set_index("_profile_key")["profile_nb"]
+        )
+        source = source[source["SALNTY_FLAG_W"].eq(2)].head(20)
+        source = source.drop(columns="_profile_key")
+
+        rename = db_params.params["SPOTS2CROCOLAKE"]
+        parquet = dd.read_parquet(
+            os.path.abspath(os.path.join(
+                importlib.resources.files("crocolaketools.config"),
+                config["outdir_pq"],
+            ))
+        ).compute()
+        for source_name, parquet_name in rename.items():
+            if source_name not in source or parquet_name not in parquet:
+                continue
+            if parquet[parquet_name].notna().sum() == 0:
+                continue
+            if source_name.endswith("_FLAG_W"):
+                value_name = source_name[:-7]
+                value_output = rename.get(value_name)
+                if value_output in parquet and parquet[value_output].notna().sum() == 0:
+                    continue
+            for _, row in source.iterrows():
+                matches = parquet[
+                    parquet["PLATFORM_NUMBER"].eq(row["TimeSeriesSite"])
+                    & parquet["CYCLE_NUMBER"].eq(row["profile_nb"])
+                    & parquet["JULD"].eq(row["JULD"])
+                    & np.isclose(parquet["LATITUDE"], row["LATITUDE"])
+                    & np.isclose(parquet["LONGITUDE"], row["LONGITUDE"])
+                    & np.isclose(parquet["PRES"], row["CTDPRS"])
+                ]
+                assert not matches.empty
+                expected = row[source_name]
+                flag_name = source_name + "_FLAG_W"
+                if flag_name in source and row[flag_name] != 2:
+                    expected = np.nan
+                if source_name.endswith("_FLAG_W"):
+                    value = row[source_name[:-7]]
+                    if pd.isna(value) or value == -999:
+                        expected = np.nan
+                actual = matches.iloc[0][parquet_name]
+                if pd.isna(expected) or expected == -999:
+                    assert pd.isna(actual)
+                else:
+                    assert not pd.isna(actual), (
+                        f"Missing converted value for {source_name} "
+                        f"({parquet_name}) at source row {row.name}"
+                    )
+                    if isinstance(actual, str) or isinstance(expected, str):
+                        assert actual == expected
+                    else:
+                        assert np.float32(actual) == np.float32(expected)
+
+#------------------------------------------------------------------------------#
     def test_data_integrity_spraygliders_phy(self):
         self._check_variables_nc(
             db_type="PHY",
@@ -388,6 +479,13 @@ class TestData:
             db_name_config="ARGO-GDAC",
             nc_pattern="*_Sprof.nc"
         )
+
+#------------------------------------------------------------------------------#
+    def test_data_integrity_spots_phy(self):
+        self._check_variables_csv("SPOTS", "PHY")
+
+    def test_data_integrity_spots_bgc(self):
+        self._check_variables_csv("SPOTS", "BGC")
 
 #------------------------------------------------------------------------------#
     def test_profiles_spraygliders_phy(self):

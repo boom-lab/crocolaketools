@@ -8,6 +8,7 @@
 # Will be kept in sync via CI/CD ( details at boom-lab/crocolaketools#52 and
 # boom-lab/crocolakeloader#9).
 #
+## Adapted by @author Kalea Holdren <kalea.holdren@whoi.edu>
 ## Adapted by @author Mahi Sarwar Anol <anol.mahi@gmail.com> 
 #
 ## Everything is Adapted from params.py in crocolakeloader (https://github.com/boom-lab/crocolakeloader.git)
@@ -21,5 +22,6 @@ databases = [
     "CPR", 
     "Saildrones", 
     "OleanderXBT", 
-    "IOOS_GLIDERS"
+    "IOOS_GLIDERS",
+    "SPOTS"
 ]
