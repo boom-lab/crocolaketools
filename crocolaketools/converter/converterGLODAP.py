@@ -89,7 +89,8 @@ class ConverterGLODAP(Converter):
             delimiter=",",
             header=0,
             low_memory=False,
-            dtype_backend='pyarrow'
+            dtype_backend='pyarrow',
+            dtype={'ph_scale': 'string[pyarrow]'},
         )
 
         legacy_columns = {
@@ -145,7 +146,7 @@ class ConverterGLODAP(Converter):
         # number
         ddf = self.add_profile_id(ddf)
 
-        ddf['date_update'] = np.datetime64('2023-10-18T13:01:04.000000000')
+        ddf['date_update'] = np.datetime64('2026-07-28T04:55:00.000000000')
 
         # return standardized dataframe
         return super().standardize_data(ddf)
