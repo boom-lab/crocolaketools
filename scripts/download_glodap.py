@@ -51,7 +51,7 @@ def download_glodap(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Download the GLODAPv2 Merged Master File to a local directory."
+        description="Download the GLODAPv3 Merged Master File to a local directory."
     )
     parser.add_argument(
         "--overwrite",

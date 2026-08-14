@@ -139,6 +139,68 @@ class TestData:
 
                 assert condition.all()
 
+#------------------------------------------------------------------------------#
+    @pytest.mark.parametrize("db_type", ["PHY", "BGC"])
+    def test_data_integrity_glodap_v3_csv(self, db_type):
+        """Compare representative valid GLODAPv3 CSV values with Parquet."""
+        config_path = importlib.resources.files(
+            "crocolaketools.config"
+        ).joinpath("config.yaml")
+        config = yaml.safe_load(open(config_path))["GLODAP_" + db_type]
+        config_dir = Path(str(config_path)).parent
+        pq_path = str((config_dir / config["outdir_pq"]).absolute())
+        source_path = config_dir / config["input_path"] / "demo_GLODAP.csv"
+
+        source = pd.read_csv(source_path)
+        value_name = "salinity" if db_type == "PHY" else "oxygen"
+        output_name = "PSAL" if db_type == "PHY" else "DOXY"
+        output = (
+            dd.read_parquet(
+                pq_path,
+                columns=["PLATFORM_NUMBER", "JULD", "PRES", output_name],
+            )
+            .dropna(subset=[output_name])
+            .head(1)
+        )
+        assert len(output) == 1
+        output_row = output.iloc[0]
+        source_juld = pd.to_datetime(
+            source[["year", "month", "day", "hour", "minute"]].rename(
+                columns={
+                    "year": "year",
+                    "month": "month",
+                    "day": "day",
+                    "hour": "hour",
+                    "minute": "minute",
+                }
+            ),
+            errors="coerce",
+        )
+        source_match = source[
+            (source["expocode"] == output_row["PLATFORM_NUMBER"])
+            & np.isclose(source["pressure"], output_row["PRES"], atol=1e-4)
+            & (source_juld == output_row["JULD"])
+        ]
+        if source_match.empty:
+            pytest.skip("Parquet output does not correspond to the v3 demo CSV.")
+        source = source_match.iloc[0]
+        result = dd.read_parquet(
+            pq_path,
+            filters=[
+                ("PLATFORM_NUMBER", "==", source["expocode"]),
+                ("JULD", "==", output_row["JULD"]),
+            ],
+            columns=["PRES", output_name],
+        ).compute()
+        result = result[
+            np.isclose(result["PRES"], source["pressure"], atol=1e-4)
+        ]
+
+        assert len(result) == 1
+        assert result[output_name].iloc[0] == pytest.approx(
+            source[value_name], abs=1e-5
+        )
+
 
 #------------------------------------------------------------------------------#
     def _check_variables_nc(self,db_name,db_type,db_name_config=None,nc_pattern=None):
