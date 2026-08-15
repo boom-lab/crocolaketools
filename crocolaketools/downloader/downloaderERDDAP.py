@@ -24,7 +24,6 @@ import requests
 from requests.exceptions import ChunkedEncodingError
 from requests.exceptions import ConnectionError as RequestsConnectionError
 from requests.exceptions import ReadTimeout
-from tqdm import tqdm
 
 from crocolaketools.downloader.downloader import Downloader
 
@@ -315,26 +314,25 @@ class DownloaderERDDAP(Downloader):
         """
         tmp_path = local_path + ".tmp"
         try:
+            t0 = time.monotonic()
+            bytes_written = 0
             with requests.get(url, stream=True, timeout=HTTP_TIMEOUT) as response:
                 response.raise_for_status()
-                total_size = int(response.headers.get("content-length", 0))
                 signaled = False
-                with open(tmp_path, "wb") as fh, tqdm(
-                    desc=os.path.basename(local_path),
-                    total=total_size,
-                    unit="iB",
-                    unit_scale=True,
-                    unit_divisor=1024,
-                    leave=True,
-                ) as bar:
+                with open(tmp_path, "wb") as fh:
                     for chunk in response.iter_content(chunk_size=STREAM_CHUNK_SIZE):
                         if not signaled and chunk:
                             signaled = True
                             if on_first_byte is not None:
                                 on_first_byte()
-                        size = fh.write(chunk)
-                        bar.update(size)
+                        bytes_written += fh.write(chunk)
             os.replace(tmp_path, local_path)
+            logging.info(
+                "%s: %.1f MiB in %.1fs.",
+                os.path.basename(local_path),
+                bytes_written / 2**20,
+                time.monotonic() - t0,
+            )
         except Exception:
             if os.path.exists(tmp_path):
                 os.remove(tmp_path)
@@ -376,10 +374,6 @@ class DownloaderERDDAP(Downloader):
                     "%s%s - retrying in %ds (attempt %d/%d): %s",
                     type(last_exc).__name__, status_str, wait,
                     attempt + 1, MAX_RETRIES, url,
-                )
-                tqdm.write(
-                    f"  {type(last_exc).__name__}{status_str} - waiting {wait}s before retry "
-                    f"({attempt + 1}/{MAX_RETRIES})..."
                 )
                 time.sleep(wait)
 
@@ -483,6 +477,9 @@ class DownloaderERDDAP(Downloader):
                 "the first-byte gate.", dataset_id,
             )
 
+        # each outcome is logged here, in the worker thread, at the moment it
+        # happens; the as_completed loop below only tallies results, so log
+        # timestamps reflect the actual event times.
         def _worker(url: str, path: str, on_gate_release: Callable) -> None:
             try:
                 self._download_file_with_retry(
@@ -491,9 +488,22 @@ class DownloaderERDDAP(Downloader):
             except requests.exceptions.HTTPError as exc:
                 status = exc.response.status_code if exc.response is not None else None
                 if status == 404:
-                    tqdm.write(
-                        f"  {os.path.basename(path)}: empty window (no data) - skipped"
+                    logging.info(
+                        "%s: empty window (404, no data) - skipped.",
+                        os.path.basename(path),
                     )
+                elif status == 413:
+                    logging.warning(
+                        "%s: returned 413 - need smaller chunks.",
+                        os.path.basename(path),
+                    )
+                else:
+                    logging.error(
+                        "%s: failed: %s", os.path.basename(path), exc
+                    )
+                raise
+            except Exception as exc:
+                logging.error("%s: failed: %s", os.path.basename(path), exc)
                 raise
             finally:
                 on_gate_release()
@@ -511,6 +521,7 @@ class DownloaderERDDAP(Downloader):
                 future_to_path[future] = chunk_path
                 gate.wait()
 
+            # tally only; per-chunk outcomes were already logged by _worker
             for future in as_completed(future_to_path):
                 chunk_path = future_to_path[future]
                 try:
@@ -520,29 +531,12 @@ class DownloaderERDDAP(Downloader):
                     status = exc.response.status_code if exc.response is not None else None
                     if status == 404:
                         empty_chunks += 1
-                        logging.info(
-                            "%s: chunk %s returned 404 (empty window, no data) - skipping.",
-                            dataset_id, os.path.basename(chunk_path),
-                        )
-                    elif status == 413:
-                        got_413 = True
-                        failed_chunks += 1
-                        logging.warning(
-                            "%s: chunk %s returned 413 - need smaller chunks.",
-                            dataset_id, os.path.basename(chunk_path),
-                        )
                     else:
+                        if status == 413:
+                            got_413 = True
                         failed_chunks += 1
-                        logging.error(
-                            "%s: chunk %s failed: %s",
-                            dataset_id, os.path.basename(chunk_path), exc,
-                        )
-                except Exception as exc:
+                except Exception:
                     failed_chunks += 1
-                    logging.error(
-                        "%s: chunk %s failed: %s",
-                        dataset_id, os.path.basename(chunk_path), exc,
-                    )
 
         if not chunk_files:
             logging.error("%s: no chunks downloaded.", dataset_id)
@@ -562,12 +556,9 @@ class DownloaderERDDAP(Downloader):
                 "%s: %d empty window(s) skipped (404, no data).",
                 dataset_id, empty_chunks,
             )
-            tqdm.write(
-                f"  {dataset_id}: {empty_chunks} empty window(s) skipped, "
-                f"merging {len(chunk_files)} chunk(s)..."
-            )
-        else:
-            tqdm.write(f"  {dataset_id}: merging {len(chunk_files)} chunk(s)...")
+        logging.info(
+            "%s: merging %d chunk(s)...", dataset_id, len(chunk_files)
+        )
 
         return self._merge_chunks(chunk_files, local_path, dataset_id), got_413
 
