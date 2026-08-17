@@ -283,7 +283,8 @@ class DownloaderIOOSGliders(DownloaderERDDAP):
 
         logging.info("Found %d delayed-mode dataset(s).", len(dataset_ids))
 
-        to_download, skipped_current, skipped_no_ts = self._build_download_queue(dataset_ids)
+        to_download, skipped_current, skipped_no_ts, skipped_bounds = \
+            self._build_download_queue(dataset_ids)
 
         if self.dryrun:
             mode = (
@@ -293,8 +294,10 @@ class DownloaderIOOSGliders(DownloaderERDDAP):
             )
             logging.info(
                 "Dry run [%s]: %d file(s) would be downloaded, "
-                "%d already current, %d skipped (no server timestamp).",
-                mode, len(to_download), skipped_current, skipped_no_ts,
+                "%d already current, %d outside constraint bounds, "
+                "%d skipped (no server timestamp).",
+                mode, len(to_download), skipped_current, skipped_bounds,
+                skipped_no_ts,
             )
             for ds in to_download[:10]:
                 logging.info("  %s.parquet", ds)
@@ -304,15 +307,17 @@ class DownloaderIOOSGliders(DownloaderERDDAP):
 
         if not to_download:
             logging.info(
-                "All %d local file(s) are current. Nothing to download.",
-                skipped_current,
+                "Nothing to download (%d already current, "
+                "%d outside constraint bounds).",
+                skipped_current, skipped_bounds,
             )
             return 0, 0
 
         logging.info(
             "Downloading %d dataset(s) (%d already current, "
+            "%d outside constraint bounds, "
             "%d skipped - no server timestamp)...",
-            len(to_download), skipped_current, skipped_no_ts,
+            len(to_download), skipped_current, skipped_bounds, skipped_no_ts,
         )
 
         completed = 0

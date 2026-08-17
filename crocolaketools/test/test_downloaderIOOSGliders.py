@@ -184,7 +184,7 @@ class TestBuildDownloadQueue:
         d.input_path = str(tmp_path) + "/"
         d.overwrite = True
         ids = ["a-delayed", "b-delayed"]
-        to_dl, current, no_ts = d._build_download_queue(ids)
+        to_dl, current, no_ts, bounds = d._build_download_queue(ids)
         assert to_dl == ids
 
     def test_skip_existing_no_sync(self, tmp_path, mock_base_downloader):
@@ -193,7 +193,7 @@ class TestBuildDownloadQueue:
         d.input_path = str(tmp_path) + "/"
         d.overwrite = False
         (tmp_path / "a-delayed.parquet").write_bytes(b"data")
-        to_dl, current, no_ts = d._build_download_queue(["a-delayed", "b-delayed"])
+        to_dl, current, no_ts, bounds = d._build_download_queue(["a-delayed", "b-delayed"])
         assert to_dl == ["b-delayed"]
         assert current == 1
 
@@ -207,7 +207,7 @@ class TestBuildDownloadQueue:
                           return_value=datetime(2030, 1, 1, tzinfo=timezone.utc)), \
              patch.object(DownloaderIOOSGliders, "_local_timestamp",
                           return_value=datetime(2020, 1, 1, tzinfo=timezone.utc)):
-            to_dl, current, no_ts = d._build_download_queue(["a-delayed"])
+            to_dl, current, no_ts, bounds = d._build_download_queue(["a-delayed"])
         assert to_dl == ["a-delayed"]
 
     def test_sync_up_to_date(self, tmp_path, mock_base_downloader):
@@ -220,7 +220,7 @@ class TestBuildDownloadQueue:
                           return_value=datetime(2020, 1, 1, tzinfo=timezone.utc)), \
              patch.object(DownloaderIOOSGliders, "_local_timestamp",
                           return_value=datetime(2030, 1, 1, tzinfo=timezone.utc)):
-            to_dl, current, no_ts = d._build_download_queue(["a-delayed"])
+            to_dl, current, no_ts, bounds = d._build_download_queue(["a-delayed"])
         assert to_dl == []
         assert current == 1
 
@@ -232,7 +232,7 @@ class TestBuildDownloadQueue:
         (tmp_path / "a-delayed.parquet").write_bytes(b"data")
         with patch.object(DownloaderIOOSGliders, "get_server_timestamp",
                           return_value=None):
-            to_dl, current, no_ts = d._build_download_queue(["a-delayed"])
+            to_dl, current, no_ts, bounds = d._build_download_queue(["a-delayed"])
         assert to_dl == []
         assert no_ts == 1
 
@@ -256,7 +256,7 @@ class TestDownload:
         ids = ["a-delayed", "b-delayed"]
         with patch.object(DownloaderIOOSGliders, "list_dataset_ids", return_value=ids), \
              patch.object(DownloaderIOOSGliders, "_build_download_queue",
-                          return_value=(ids, 0, 0)), \
+                          return_value=(ids, 0, 0, 0)), \
              patch.object(DownloaderIOOSGliders, "_download_one") as mock_one:
             completed, failed = d.download()
         mock_one.assert_not_called()
@@ -274,7 +274,7 @@ class TestDownload:
 
         with patch.object(DownloaderIOOSGliders, "list_dataset_ids", return_value=ids), \
              patch.object(DownloaderIOOSGliders, "_build_download_queue",
-                          return_value=(ids, 0, 0)), \
+                          return_value=(ids, 0, 0, 0)), \
              patch.object(DownloaderIOOSGliders, "_download_one", side_effect=one):
             completed, failed = d.download()
         assert completed == 2
@@ -371,8 +371,8 @@ class TestConstraints:
             "time>=": "2015-01-01T00:00:00Z",
             "time<=": "2026-01-01T00:00:00Z",
         }))
-        assert d.time_start == "2015-01-01T00:00:00Z"
-        assert d.time_end   == "2026-01-01T00:00:00Z"
+        assert d.time_start == datetime(2015, 1, 1, tzinfo=timezone.utc)
+        assert d.time_end   == datetime(2026, 1, 1, tzinfo=timezone.utc)
         assert d.extra_constraints == {}
 
     def test_spatial_constraints_in_extra(self, mock_base_downloader):
@@ -397,7 +397,7 @@ class TestConstraints:
             "latitude>=":  30.0,
             "longitude<=": 10.0,
         }))
-        assert d.time_start == "2020-01-01T00:00:00Z"
+        assert d.time_start == datetime(2020, 1, 1, tzinfo=timezone.utc)
         assert d.time_end is None
         assert d.extra_constraints == {"latitude>=": 30.0, "longitude<=": 10.0}
 
