@@ -226,7 +226,6 @@ class DownloaderIOOSGliders(DownloaderERDDAP):
     ) -> str:
         """
         Build the tabledap parquet URL with per-dataset variable filtering.
-
         Queries the ERDDAP info endpoint first to find which variables this
         specific dataset actually carries, then intersects with GLIDER_VARIABLES.
         prevents 400 errors on datasets that lack some specific variables.
@@ -255,6 +254,9 @@ class DownloaderIOOSGliders(DownloaderERDDAP):
         if time_end is not None:
             constraints["time<="] = time_end.strftime("%Y-%m-%dT%H:%M:%SZ")
 
+        # merge in any extra constraints from config (spatial, variable-level, etc.)
+        constraints.update(self.extra_constraints)
+        
         # pass constraints explicitly, even as an empty dict, to avoid erddapy
         # falling back to self.constraints which may hold stale values from a
         # previous call
@@ -281,7 +283,8 @@ class DownloaderIOOSGliders(DownloaderERDDAP):
 
         logging.info("Found %d delayed-mode dataset(s).", len(dataset_ids))
 
-        to_download, skipped_current, skipped_no_ts = self._build_download_queue(dataset_ids)
+        to_download, skipped_current, skipped_no_ts, skipped_bounds = \
+            self._build_download_queue(dataset_ids)
 
         if self.dryrun:
             mode = (
@@ -291,8 +294,10 @@ class DownloaderIOOSGliders(DownloaderERDDAP):
             )
             logging.info(
                 "Dry run [%s]: %d file(s) would be downloaded, "
-                "%d already current, %d skipped (no server timestamp).",
-                mode, len(to_download), skipped_current, skipped_no_ts,
+                "%d already current, %d outside constraint bounds, "
+                "%d skipped (no server timestamp).",
+                mode, len(to_download), skipped_current, skipped_bounds,
+                skipped_no_ts,
             )
             for ds in to_download[:10]:
                 logging.info("  %s.parquet", ds)
@@ -302,15 +307,17 @@ class DownloaderIOOSGliders(DownloaderERDDAP):
 
         if not to_download:
             logging.info(
-                "All %d local file(s) are current. Nothing to download.",
-                skipped_current,
+                "Nothing to download (%d already current, "
+                "%d outside constraint bounds).",
+                skipped_current, skipped_bounds,
             )
             return 0, 0
 
         logging.info(
             "Downloading %d dataset(s) (%d already current, "
+            "%d outside constraint bounds, "
             "%d skipped - no server timestamp)...",
-            len(to_download), skipped_current, skipped_no_ts,
+            len(to_download), skipped_current, skipped_bounds, skipped_no_ts,
         )
 
         completed = 0

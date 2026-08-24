@@ -24,7 +24,6 @@ import requests
 from requests.exceptions import ChunkedEncodingError
 from requests.exceptions import ConnectionError as RequestsConnectionError
 from requests.exceptions import ReadTimeout
-from tqdm import tqdm
 
 from crocolaketools.downloader.downloader import Downloader
 
@@ -118,6 +117,20 @@ class DownloaderERDDAP(Downloader):
         # if False, chunk requests fire without the first-byte gate (see NoOpGate)
         self.gated_parallel_download = config.get("gated_parallel_download", True)
 
+        # Optional user-defined constraints from config.yaml.
+        # Supports all 7 ERDDAP tabledap operators: =, !=, =~, <, <=, >, >=
+        # time>= / time<= clamp the chunking window in _download_one.
+        # All other constraints are passed to ERDDAP on every chunk request.
+        _c = config.get("constraints", {})
+        self.time_start        = self._parse_time(_c.pop("time>=", None))
+        self.time_end          = self._parse_time(_c.pop("time<=", None))
+        self.extra_constraints = _c
+
+        # dataset_id -> coverage bounds from the allDatasets catalogue,
+        # filled by list_dataset_ids() and used to skip datasets whose
+        # coverage cannot match the constraints
+        self._dataset_bounds = {}
+
         self._erddap = ERDDAP(
             server=self.server_url,
             protocol=self.protocol,
@@ -126,18 +139,156 @@ class DownloaderERDDAP(Downloader):
     def list_dataset_ids(self) -> list:
         """
             Return all dataset IDs from the ERDDAP catalogue.
+
+            The catalogue also reports each dataset's time/lat/lon/altitude
+            coverage, so the bounds are cached here (no extra requests) for
+            the constraint checks in _build_download_queue and _download_one.
         """
         self._erddap._dataset_id = "allDatasets"
         self._erddap.constraints = {}
-        self._erddap.variables = None
+        self._erddap.variables = [
+            "datasetID",
+            "minTime", "maxTime",
+            "minLatitude", "maxLatitude",
+            "minLongitude", "maxLongitude",
+            "minAltitude", "maxAltitude",
+        ]
 
         df = self._erddap.to_pandas()
+        # csvp responses append units to the column names, e.g. "minTime (UTC)"
+        df.columns = [c.split(" (")[0] for c in df.columns]
+
         dataset_ids = df["datasetID"].tolist()
 
         if "allDatasets" in dataset_ids:
             dataset_ids.remove("allDatasets")
 
+        self._dataset_bounds = self._parse_bounds(df)
+
         return self._filter_datasets(dataset_ids)
+
+    @staticmethod
+    def _parse_time(ts: Optional[str]) -> Optional[datetime]:
+        """
+            Parse an ERDDAP timestamp string into an aware UTC datetime.
+        """
+        if ts is None:
+            return None
+        return datetime.strptime(ts, ERDDAP_TS_FMT).replace(tzinfo=timezone.utc)
+
+    @staticmethod
+    def _parse_bounds(df: pd.DataFrame) -> dict:
+        """
+            Map dataset IDs to the coverage bounds reported by allDatasets.
+
+            Depth is derived from altitude (positive up, so depth = -altitude);
+            the server does not order min/maxAltitude consistently, so the
+            pair is sorted here. Missing values become None (= unknown).
+        """
+        def _num(value):
+            try:
+                value = float(value)
+            except (TypeError, ValueError):
+                return None
+            return None if pd.isna(value) else value
+
+        bounds = {}
+        for row in df.itertuples(index=False):
+            t_min = pd.to_datetime(getattr(row, "minTime", None), utc=True, errors="coerce")
+            t_max = pd.to_datetime(getattr(row, "maxTime", None), utc=True, errors="coerce")
+
+            depth_min = depth_max = None
+            alt_min = _num(getattr(row, "minAltitude", None))
+            alt_max = _num(getattr(row, "maxAltitude", None))
+            if alt_min is not None and alt_max is not None:
+                depth_min, depth_max = sorted((-alt_min, -alt_max))
+
+            bounds[row.datasetID] = {
+                "t_min": None if pd.isna(t_min) else t_min.to_pydatetime(),
+                "t_max": None if pd.isna(t_max) else t_max.to_pydatetime(),
+                "lat_min": _num(getattr(row, "minLatitude", None)),
+                "lat_max": _num(getattr(row, "maxLatitude", None)),
+                "lon_min": _num(getattr(row, "minLongitude", None)),
+                "lon_max": _num(getattr(row, "maxLongitude", None)),
+                "depth_min": depth_min,
+                "depth_max": depth_max,
+            }
+        return bounds
+
+    def _intersects_constraints(self, dataset_id: str) -> bool:
+        """
+            Check the dataset's catalogue bounds against the user constraints.
+
+            Only time, latitude, longitude and depth can be checked here (the
+            only bounds allDatasets reports); everything else is enforced by
+            ERDDAP on the actual data requests. A dataset is ruled out only
+            when its known coverage provably misses the requested range, so
+            unknown bounds always pass. Strict operators (>, <) are treated
+            like >=/<=, which at worst lets a boundary-touching dataset
+            through to the download stage.
+        """
+        b = self._dataset_bounds.get(dataset_id)
+        if not b:
+            return True
+
+        c = self.extra_constraints
+
+        def disjoint(lo, hi, want_lo, want_hi):
+            if want_hi is not None and lo is not None and lo > want_hi:
+                return True
+            if want_lo is not None and hi is not None and hi < want_lo:
+                return True
+            return False
+
+        if disjoint(b["t_min"], b["t_max"], self.time_start, self.time_end):
+            return False
+        if disjoint(b["lat_min"], b["lat_max"],
+                    c.get("latitude>=", c.get("latitude>")),
+                    c.get("latitude<=", c.get("latitude<"))):
+            return False
+        if disjoint(b["lon_min"], b["lon_max"],
+                    c.get("longitude>=", c.get("longitude>")),
+                    c.get("longitude<=", c.get("longitude<"))):
+            return False
+        if disjoint(b["depth_min"], b["depth_max"],
+                    c.get("depth>=", c.get("depth>")),
+                    c.get("depth<=", c.get("depth<"))):
+            return False
+        return True
+
+    @staticmethod
+    def _constraint_variables(constraints: dict) -> set:
+        """
+            Extract the variable names from constraint keys like
+            "chlorophyll<=" or "pressure>=".
+        """
+        # two-character operators first so "<=" is not read as "<"
+        ops = (">=", "<=", "!=", "=~", ">", "<", "=")
+        variables = set()
+        for key in constraints:
+            for op in ops:
+                if key.endswith(op):
+                    variables.add(key[: -len(op)])
+                    break
+        return variables
+
+    def _missing_constraint_variables(self, dataset_id: str) -> set:
+        """
+            Return constrained variable names that `dataset_id` does not carry.
+
+            ERDDAP rejects queries constraining a variable the dataset lacks
+            (400 Unrecognized constraint variable), and no row of such a
+            dataset could satisfy the constraint anyway, so callers skip the
+            dataset when this is non-empty. If the variable list cannot be
+            fetched, nothing is reported missing and the server gets to decide.
+        """
+        wanted = self._constraint_variables(self.extra_constraints)
+        if not wanted:
+            return set()
+        available = self.get_dataset_variables(dataset_id)
+        if not available:
+            return set()
+        return wanted - available
 
     def get_dataset_url(
         self,
@@ -158,6 +309,8 @@ class DownloaderERDDAP(Downloader):
             constraints["time>="] = time_start.strftime(ERDDAP_TS_FMT)
         if time_end is not None:
             constraints["time<="] = time_end.strftime(ERDDAP_TS_FMT)
+
+        constraints.update(self.extra_constraints)
 
         return self._erddap.get_download_url(
             response=self.response_format,
@@ -218,7 +371,9 @@ class DownloaderERDDAP(Downloader):
     def _build_download_queue(self, dataset_ids: list) -> tuple:
         """
             Decide which datasets need downloading.
-            Returns (to_download, skipped_current, skipped_no_ts).
+            Returns (to_download, skipped_current, skipped_no_ts, skipped_bounds).
+            Datasets whose catalogue bounds cannot match the constraints are
+            dropped first (no requests needed), regardless of overwrite/sync.
             Subclasses may override this if they need different queue-building logic.
             default implementation covers the common case:
             - overwrite=True -> queue everything
@@ -228,6 +383,7 @@ class DownloaderERDDAP(Downloader):
         to_download = []
         skipped_current = 0
         skipped_no_ts = 0
+        skipped_bounds = 0
 
         if self.sync:
             logging.info(
@@ -236,6 +392,14 @@ class DownloaderERDDAP(Downloader):
             )
 
         for i, dataset_id in enumerate(dataset_ids, 1):
+            if not self._intersects_constraints(dataset_id):
+                skipped_bounds += 1
+                logging.info(
+                    "  [%d/%d] %s: outside constraint bounds - skipped",
+                    i, len(dataset_ids), dataset_id,
+                )
+                continue
+
             local_path = self._local_path(dataset_id)
 
             if self.overwrite:
@@ -287,7 +451,7 @@ class DownloaderERDDAP(Downloader):
                 )
                 skipped_current += 1
 
-        return to_download, skipped_current, skipped_no_ts
+        return to_download, skipped_current, skipped_no_ts, skipped_bounds
 
     def _download_file(
         self,
@@ -304,26 +468,25 @@ class DownloaderERDDAP(Downloader):
         """
         tmp_path = local_path + ".tmp"
         try:
+            t0 = time.monotonic()
+            bytes_written = 0
             with requests.get(url, stream=True, timeout=HTTP_TIMEOUT) as response:
                 response.raise_for_status()
-                total_size = int(response.headers.get("content-length", 0))
                 signaled = False
-                with open(tmp_path, "wb") as fh, tqdm(
-                    desc=os.path.basename(local_path),
-                    total=total_size,
-                    unit="iB",
-                    unit_scale=True,
-                    unit_divisor=1024,
-                    leave=True,
-                ) as bar:
+                with open(tmp_path, "wb") as fh:
                     for chunk in response.iter_content(chunk_size=STREAM_CHUNK_SIZE):
                         if not signaled and chunk:
                             signaled = True
                             if on_first_byte is not None:
                                 on_first_byte()
-                        size = fh.write(chunk)
-                        bar.update(size)
+                        bytes_written += fh.write(chunk)
             os.replace(tmp_path, local_path)
+            logging.info(
+                "%s: %.1f MiB in %.1fs.",
+                os.path.basename(local_path),
+                bytes_written / 2**20,
+                time.monotonic() - t0,
+            )
         except Exception:
             if os.path.exists(tmp_path):
                 os.remove(tmp_path)
@@ -366,10 +529,6 @@ class DownloaderERDDAP(Downloader):
                     type(last_exc).__name__, status_str, wait,
                     attempt + 1, MAX_RETRIES, url,
                 )
-                tqdm.write(
-                    f"  {type(last_exc).__name__}{status_str} - waiting {wait}s before retry "
-                    f"({attempt + 1}/{MAX_RETRIES})..."
-                )
                 time.sleep(wait)
 
         raise last_exc
@@ -378,7 +537,13 @@ class DownloaderERDDAP(Downloader):
         """
             Download one dataset to `local_path` using parallel chunking.
         """
-        time_range = self._get_dataset_time_range(dataset_id)
+        # the catalogue bounds cached by list_dataset_ids() usually cover
+        # this; the info endpoint is only asked when they don't
+        b = self._dataset_bounds.get(dataset_id, {})
+        if b.get("t_min") is not None and b.get("t_max") is not None:
+            time_range = (b["t_min"], b["t_max"])
+        else:
+            time_range = self._get_dataset_time_range(dataset_id)
         if time_range is None:
             logging.error(
                 "%s: cannot determine time range for chunking.", dataset_id
@@ -386,6 +551,30 @@ class DownloaderERDDAP(Downloader):
             return False
 
         t_start, t_end = time_range
+
+        if self.time_start is not None:
+            t_start = max(t_start, self.time_start)
+        if self.time_end is not None:
+            t_end = min(t_end, self.time_end)
+
+        if t_start >= t_end:
+            logging.info(
+                "%s: dataset time range is outside the requested "
+                "constraint window - skipping.",
+                dataset_id,
+            )
+            return True
+
+        # a constraint like chlorophyll<=20 can only ever match rows where
+        # the variable exists, so a dataset that lacks it has no matching
+        # data by definition (ERDDAP would reject the query with a 400)
+        missing = self._missing_constraint_variables(dataset_id)
+        if missing:
+            logging.info(
+                "%s: constrained variable(s) %s not in dataset - skipping.",
+                dataset_id, ", ".join(sorted(missing)),
+            )
+            return True
 
         for chunk_hours in CHUNK_SCHEDULE_HOURS:
             windows = self._split_window(t_start, t_end, chunk_hours=chunk_hours)
@@ -457,6 +646,9 @@ class DownloaderERDDAP(Downloader):
                 "the first-byte gate.", dataset_id,
             )
 
+        # each outcome is logged here, in the worker thread, at the moment it
+        # happens; the as_completed loop below only tallies results, so log
+        # timestamps reflect the actual event times.
         def _worker(url: str, path: str, on_gate_release: Callable) -> None:
             try:
                 self._download_file_with_retry(
@@ -465,9 +657,22 @@ class DownloaderERDDAP(Downloader):
             except requests.exceptions.HTTPError as exc:
                 status = exc.response.status_code if exc.response is not None else None
                 if status == 404:
-                    tqdm.write(
-                        f"  {os.path.basename(path)}: empty window (no data) - skipped"
+                    logging.info(
+                        "%s: empty window (404, no data) - skipped.",
+                        os.path.basename(path),
                     )
+                elif status == 413:
+                    logging.warning(
+                        "%s: returned 413 - need smaller chunks.",
+                        os.path.basename(path),
+                    )
+                else:
+                    logging.error(
+                        "%s: failed: %s", os.path.basename(path), exc
+                    )
+                raise
+            except Exception as exc:
+                logging.error("%s: failed: %s", os.path.basename(path), exc)
                 raise
             finally:
                 on_gate_release()
@@ -485,6 +690,7 @@ class DownloaderERDDAP(Downloader):
                 future_to_path[future] = chunk_path
                 gate.wait()
 
+            # tally only; per-chunk outcomes were already logged by _worker
             for future in as_completed(future_to_path):
                 chunk_path = future_to_path[future]
                 try:
@@ -494,31 +700,23 @@ class DownloaderERDDAP(Downloader):
                     status = exc.response.status_code if exc.response is not None else None
                     if status == 404:
                         empty_chunks += 1
-                        logging.info(
-                            "%s: chunk %s returned 404 (empty window, no data) - skipping.",
-                            dataset_id, os.path.basename(chunk_path),
-                        )
-                    elif status == 413:
-                        got_413 = True
-                        failed_chunks += 1
-                        logging.warning(
-                            "%s: chunk %s returned 413 - need smaller chunks.",
-                            dataset_id, os.path.basename(chunk_path),
-                        )
                     else:
+                        if status == 413:
+                            got_413 = True
                         failed_chunks += 1
-                        logging.error(
-                            "%s: chunk %s failed: %s",
-                            dataset_id, os.path.basename(chunk_path), exc,
-                        )
-                except Exception as exc:
+                except Exception:
                     failed_chunks += 1
-                    logging.error(
-                        "%s: chunk %s failed: %s",
-                        dataset_id, os.path.basename(chunk_path), exc,
-                    )
 
         if not chunk_files:
+            if failed_chunks == 0 and empty_chunks:
+                # every window came back 404: nothing in this dataset matches
+                # the constraints; a skip, not a failure
+                logging.warning(
+                    "%s: no data matches the requested constraints "
+                    "(%d empty window(s)).",
+                    dataset_id, empty_chunks,
+                )
+                return True, got_413
             logging.error("%s: no chunks downloaded.", dataset_id)
             return False, got_413
 
@@ -536,12 +734,9 @@ class DownloaderERDDAP(Downloader):
                 "%s: %d empty window(s) skipped (404, no data).",
                 dataset_id, empty_chunks,
             )
-            tqdm.write(
-                f"  {dataset_id}: {empty_chunks} empty window(s) skipped, "
-                f"merging {len(chunk_files)} chunk(s)..."
-            )
-        else:
-            tqdm.write(f"  {dataset_id}: merging {len(chunk_files)} chunk(s)...")
+        logging.info(
+            "%s: merging %d chunk(s)...", dataset_id, len(chunk_files)
+        )
 
         return self._merge_chunks(chunk_files, local_path, dataset_id), got_413
 
