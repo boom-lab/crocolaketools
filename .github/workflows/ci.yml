@@ -1,0 +1,67 @@
+# Note: including tests that are successful, ratcheting towards a full
+#       test-suite; existing tests outside of GLODAP, IOOSGliders, OleanderXBT,
+#       SprayGliders are not included at this time
+
+
+name: CI
+
+on:
+  push:
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  tests-pip:
+    name: tests (pip, py=${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install package
+        run: |
+          python -m pip install -U pip
+          pip install -e .
+
+      - name: Run tests
+        run: |
+          pytest -ra --maxfail=1 --tb=short crocolaketools/test/test_downloader{GLODAP,IOOSGliders,OleanderXBT,SprayGliders}.py
+
+  tests-conda:
+    name: tests (conda, from environment.yml)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up micromamba
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          channels: conda-forge
+          channel-priority: strict
+          environment-file: environment.yml
+          cache-environment: true
+
+      - name: Install package + test extras (inside conda env)
+        shell: bash -l {0}
+        run: |
+          python -m pip install -U pip
+          pip install -e .
+
+      - name: Run tests (inside conda env)
+        shell: bash -l {0}
+        run: |
+          pytest -ra --maxfail=1 --tb=short crocolaketools/test/test_downloader{GLODAP,IOOSGliders,OleanderXBT,SprayGliders}.py
