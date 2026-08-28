@@ -37,7 +37,7 @@ jobs:
 
       - name: Run tests
         run: |
-          pytest -ra --maxfail=1 --tb=short crocolaketools/test/test_downloader{GLODAP,IOOSGliders,OleanderXBT,SprayGliders}.py
+          pytest -ra --maxfail=1 --tb=short tests/test_downloader{GLODAP,IOOSGliders,OleanderXBT,SprayGliders}.py
 
   tests-conda:
     name: tests (conda, from environment.yml)
@@ -64,4 +64,4 @@ jobs:
       - name: Run tests (inside conda env)
         shell: bash -l {0}
         run: |
-          pytest -ra --maxfail=1 --tb=short crocolaketools/test/test_downloader{GLODAP,IOOSGliders,OleanderXBT,SprayGliders}.py
+          pytest -ra --maxfail=1 --tb=short tests/test_downloader{GLODAP,IOOSGliders,OleanderXBT,SprayGliders}.py
