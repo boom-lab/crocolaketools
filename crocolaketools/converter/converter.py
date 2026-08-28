@@ -80,9 +80,9 @@ class Converter:
             print("Converter configuration:")
             print(config)
 
-            input_path = get_config_paths_field(db + "_" + db_type, "input_path")
-            outdir_pq = get_config_paths_field(db + "_" + db_type, "outdir_pq")
-            outdir_schema = get_config_paths_field(db + "_" + db_type, "outdir_schema")
+            input_path = cfgp.get_config_paths_field(db + "_" + db_type, "input_path")
+            outdir_pq = cfgp.get_config_paths_field(db + "_" + db_type, "outdir_pq")
+            outdir_schema = cfgp.get_config_paths_field(db + "_" + db_type, "outdir_schema")
 
             fname_pq = config["fname_pq"]
             add_derived_vars = config["add_derived_vars"]
@@ -117,8 +117,6 @@ class Converter:
 
         if input_path is None:
             raise ValueError("No input file path provided.")
-        if input_path[-1] != "/":
-            input_path = input_path + "/"
         if len(os.listdir(input_path))==0:
             raise ValueError(f"Input folder {input_path} is empty. If you are using config.yaml, is the relative path correct?")
         self.input_path = input_path
