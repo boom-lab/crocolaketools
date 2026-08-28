@@ -25,6 +25,7 @@ import yaml
 from tqdm import tqdm
 
 from crocolaketools import db_names
+from crocolaketools.config import config_paths as cfgp
 ##########################################################################
  
  
@@ -62,10 +63,8 @@ class Downloader:
         db = config['db']
         db_type = config['db_type'].upper()
  
-        config_path = importlib.resources.files("crocolaketools.config").joinpath("config.yaml")
-        base_path = importlib.resources.files("crocolaketools.config")
-        config_disk = yaml.safe_load(open(config_path))
-        config_disk = config_disk[db + "_" + db_type]
+        base_path = cfgp.get_config_path()
+        config_disk = cfgp.get_config_paths_db_dict(db + "_" + db_type)
  
         config_user_keys = list(config.keys())
         config_disk_keys = list(config_disk.keys())

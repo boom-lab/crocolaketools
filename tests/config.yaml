@@ -1,0 +1,216 @@
+# This config file contains the fields for the config dictionary required by the
+# Converter class.
+#
+# DB_NAME_<DB_TYPE>
+#   db: name of the database
+#   db_type: (PHY or BGC)
+#   input_path: path with original files to convert
+#   outdir_pq: destination path for parquet version
+#   outdir_schema: destination path for the schema of the parquet version
+#   fname_pq: basename for the parquet file (e.g. 'filename' would generate 'filename_XXX.parquet' files)
+#   add_derived_vars: True to add derived variables (absolute salinity, conservative temperature, sigma1)
+#   overwrite: True to overwrite any pre-existing parquet dataset in outdir_pq
+#   tmp_path: folder for temporary files (not required by all converters)
+#   ln_path: path to symbolic links to generate CrocoLake (required only when generating CrocoLake with CrocoLakeLoader)
+
+
+# CROCOLAKE
+CROCOLAKE_PHY:
+  db: CROCOLAKE
+  db_type: PHY
+  outdir_pq: ../demo/parquet/demo_CROCOLAKE_PHY/
+  fname_pq: PHY_CROCOLAKE
+  ln_path: ../demo/parquet/demo_CROCOLAKE_PHY_LN/
+
+CROCOLAKE_BGC:
+  db: CROCOLAKE
+  db_type: BGC
+  outdir_pq: ../demo/parquet/demo_CROCOLAKE_BGC/
+  fname_pq: BGC_CROCOLAKE
+  ln_path: ../demo/parquet/demo_CROCOLAKE_BGC_LN/
+
+# Argo QC
+ARGO_PHY:
+  db: ARGO
+  db_type: PHY
+  input_path: ../demo/demo_ARGO_PQT_PHY/
+  outdir_pq: ../demo/parquet/demo_ARGO-QC_PHY/
+  outdir_schema: ./schema/
+  fname_pq: demo_ARGO-QC_PHY
+  add_derived_vars: True
+  overwrite: True
+  tmp_path:
+
+ARGO_BGC:
+  db: ARGO
+  db_type: BGC
+  input_path: ../demo/demo_ARGO_PQT_BGC/
+  outdir_pq: ../demo/parquet/demo_ARGO-QC_BGC/
+  outdir_schema: ./schema/
+  fname_pq: demo_ARGO-QC_BGC
+  add_derived_vars: True
+  overwrite: True
+  tmp_path:
+
+# Argo GDAC
+ARGO-GDAC_PHY:
+  db: ARGO-GDAC
+  db_type: PHY
+  input_path: ../demo/demo_ARGO_GDAC/GDAC/dac/
+  outdir_pq: ../demo/parquet/demo_ARGO-GDAC_PHY/
+
+ARGO-GDAC_BGC:
+  db: ARGO-GDAC
+  db_type: BGC
+  input_path: ../demo/demo_ARGO_GDAC/GDAC/dac/
+  outdir_pq: ../demo/parquet/demo_ARGO-GDAC_BGC/
+
+# GLODAP config
+GLODAP_PHY:
+  db: GLODAP
+  db_type: PHY
+  input_path: ../demo/demo_GLODAP/
+  outdir_pq: ../demo/parquet/demo_GLODAP_PHY/
+  outdir_schema: ./schema/
+  fname_pq: demo_GLODAP_PHY
+  add_derived_vars: True
+  overwrite: True
+  tmp_path:
+
+GLODAP_BGC:
+  db: GLODAP
+  db_type: BGC
+  input_path: ../demo/demo_GLODAP/
+  outdir_pq: ../demo/parquet/demo_GLODAP_BGC/
+  outdir_schema: ./schema/
+  fname_pq: demo_GLODAP_BGC
+  add_derived_vars: True
+  overwrite: True
+  tmp_path:
+
+# IOOS Glider DAC (delayed-mode)
+IOOS_GLIDERS_PHY:
+  db: IOOS_GLIDERS
+  db_type: PHY
+  server_url: https://gliders.ioos.us/erddap
+  response_format: parquet   # parquet, tabledap protocol (variable selection + time constraints)
+  input_path: ../demo/demo_IOOSGliders/
+  delayed_only: true
+  sync: true        # true  = compare timestamps, re-download updated files, false = download missing files only
+  overwrite: false
+  dryrun: false
+  num_threads: 4
+  gated_parallel_download: True   # true = only one chunk in ERDDAP's heavy build phase at a time (avoids 503s)
+                                  # false = all chunks fire immediately, bounded only by num_threads
+                  
+  constraints:
+    # Optional constraints - all 7 ERDDAP tabledap operators type are supported:
+    #   =, !=, =~, <, <=, >, >=
+    # time>= / time<= clamp the chunking window so only data in the requested
+    # period is downloaded. All other constraints are sent to ERDDAP on every
+    # chunk request (applied server-side before data is transferred).
+    # Remove or comment out this block to download without any constraints.
+
+    # The variables we use in the constraint
+    # is expected to be available on the dataset. 
+    # So choose the variables carefully.)
+    time>=: "2015-01-01T00:00:00Z"   # only download data from this date onward
+    time<=: "2026-01-01T00:00:00Z"   # only download data up to this date
+    # regional constraints
+    latitude>=:  -90.0              
+    latitude<=:   90.0
+    longitude>=: -180.0
+    longitude<=:  180.0
+    # Example PHY constraints
+    pressure>=: 2.3
+    pressure<=: 150.3
+    depth>=: 100
+    depth<=: 300
+    # Example BGC constraints
+    chlorophyll<=: 20
+
+
+# Spray Gliders
+SprayGliders_PHY:
+  db: SprayGliders
+  db_type: PHY
+  input_path: ../demo/demo_SPRAY/
+  outdir_pq: ../demo/parquet/demo_SPRAY_PHY/
+  outdir_schema: ./schemas/
+  fname_pq: demo_SPRAY_PHY
+  add_derived_vars: True
+  overwrite: True
+  tmp_path: ../demo/demo_tmp_SPRAY_PHY/
+
+SprayGliders_BGC:
+  db: SprayGliders
+  db_type: BGC
+  input_path: ../demo/demo_SPRAY/
+  outdir_pq: ../demo/parquet/demo_SPRAY_BGC/
+  outdir_schema: ./schemas/
+  fname_pq: demo_SPRAY_BGC
+  add_derived_vars: True
+  overwrite: True
+  tmp_path: ../demo/demo_tmp_SPRAY_BGC/
+
+# SPOTS
+SPOTS_PHY:
+  db: SPOTS
+  db_type: PHY
+  input_path: ../demo/demo_SPOTS/
+  outdir_pq: ../demo/parquet/demo_SPOTS_PHY/
+  outdir_schema: ./schemas/SPOTS/
+  fname_pq: demo_SPOTS_PHY
+  add_derived_vars: True
+  overwrite: True
+  tmp_path:
+
+SPOTS_BGC:
+  db: SPOTS
+  db_type: BGC
+  input_path: ../demo/demo_SPOTS/
+  outdir_pq: ../demo/parquet/demo_SPOTS_BGC/
+  outdir_schema: ./schemas/SPOTS/
+  fname_pq: demo_SPOTS_BGC
+  add_derived_vars: True
+  overwrite: True
+  tmp_path:
+
+# Saildrones
+Saildrones_PHY:
+  db: Saildrones
+  db_type: PHY
+  input_path: ../demo/demo_Saildrones_PHY/
+  outdir_pq: ../demo/parquet/demo_Saildrones_PHY/
+  outdir_schema: ./schemas/Saildrones/
+  fname_pq: demo_SAILDRONES_PHY
+  add_derived_vars: True
+  overwrite: True
+  tmp_path:
+
+Saildrones_BGC:
+  db: Saildrones
+  db_type: BGC
+  input_path: ../demo/demo_Saildrones_BGC/
+  outdir_pq: ../demo/parquet/demo_Saildrones_BGC/
+  outdir_schema: ./schemas/Saildrones/
+  fname_pq: demo_SAILDRONES_BGC
+  add_derived_vars: True
+  overwrite: True
+  tmp_path:
+
+# OleanderXBT
+OleanderXBT_PHY:
+  db: OleanderXBT
+  db_type: PHY
+  input_path: ../demo/demo_OleanderXBT_PHY/
+  outdir_pq: ../demo/parquet/demo_OleanderXBT_PHY/
+  outdir_schema: ./schemas/OleanderXBT/
+  fname_pq: demo_OleanderXBT_PHY
+  add_derived_vars: False
+  overwrite: True
+  tmp_path:
+
+# Default relative path for demo data download
+demo:
+  download_path: ../demo/

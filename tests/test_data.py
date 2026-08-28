@@ -18,6 +18,7 @@ import xarray as xr
 
 from crocolaketools import db_params
 from crocolaketools.utils.logger_configurator import configure_logging
+from crocolaketools.config.config_paths import get_config_paths_field
 
 ####################################################################################################
 class TestData:
@@ -143,13 +144,9 @@ class TestData:
     @pytest.mark.parametrize("db_type", ["PHY", "BGC"])
     def test_data_integrity_glodap_v3_csv(self, db_type):
         """Compare representative valid GLODAPv3 CSV values with Parquet."""
-        config_path = importlib.resources.files(
-            "crocolaketools.config"
-        ).joinpath("config.yaml")
-        config = yaml.safe_load(open(config_path))["GLODAP_" + db_type]
-        config_dir = Path(str(config_path)).parent
-        pq_path = str((config_dir / config["outdir_pq"]).absolute())
-        source_path = config_dir / config["input_path"] / "demo_GLODAP.csv"
+        pq_path = get_config_paths_field( "GLODAP_" + db_type, "outdir_pq" )
+        source_path = get_config_paths_field( "GLODAP_" + db_type, "input_path" )
+        source_path = source_path / "demo_GLODAP.csv"
 
         source = pd.read_csv(source_path)
         value_name = "salinity" if db_type == "PHY" else "oxygen"
@@ -221,12 +218,8 @@ class TestData:
         if nc_pattern is None:
             nc_pattern = "*.nc"
 
-        config_path = importlib.resources.files("crocolaketools.config").joinpath("config.yaml")
-        config = yaml.safe_load(open(config_path))
-        config = config[db_name_config + "_" + db_type]
-
-        nc_path = config["input_path"]
-        pq_path = config["outdir_pq"]
+        nc_path = get_config_paths_field(db_name_config + "_" + db_type, "input_path" )
+        pq_path = get_config_paths_field(db_name_config + "_" + db_type, "outdir_pq" )
 
         # get list of original nc files
         if os.path.isdir(nc_path):
@@ -399,16 +392,7 @@ class TestData:
 #------------------------------------------------------------------------------#
     def _check_variables_csv(self, db_name, db_type):
         """Compare a sample of valid SPOTS CSV observations with Parquet."""
-        config_path = importlib.resources.files("crocolaketools.config").joinpath(
-            "config.yaml"
-        )
-        with open(config_path) as config_file:
-            config = yaml.safe_load(config_file)[db_name + "_" + db_type]
-        csv_path = os.path.abspath(os.path.join(
-            importlib.resources.files("crocolaketools.config"),
-            config["input_path"],
-            "spots.csv",
-        ))
+        csv_path = get_config_paths_field( db_name + "_" + db_type, "input_path" ) / "spots.csv"
         source = pd.read_csv(csv_path)
         source["CTDPRS"] = source["CTDPRS"].astype("float32")
         source["TIME"] = source["TIME"].fillna(0)

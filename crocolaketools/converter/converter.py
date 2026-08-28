@@ -22,6 +22,7 @@ import pyarrow.parquet as pq
 import shutil
 import xarray as xr
 from crocolaketools import db_names,db_params
+from crocolaketools.config import config_paths as cfgp
 from crocolaketools.converter import units_conversion
 ##########################################################################
 
@@ -62,10 +63,8 @@ class Converter:
             db = config['db']
             db_type = config['db_type'].upper()
 
-            config_path = importlib.resources.files("crocolaketools.config").joinpath("config.yaml")
-            base_path = importlib.resources.files("crocolaketools.config")
-            config_disk = yaml.safe_load(open(config_path))
-            config_disk = config_disk[db + "_" + db_type]
+            base_path = cfgp.get_config_path()
+            config_disk = cfgp.get_config_paths_db_dict(db + "_" + db_type)
 
             config_user_keys = list(config.keys())
             config_disk_keys = list(config_disk.keys())
@@ -81,9 +80,10 @@ class Converter:
             print("Converter configuration:")
             print(config)
 
-            input_path = os.path.abspath(os.path.join(base_path, config["input_path"]))
-            outdir_pq = os.path.abspath(os.path.join(base_path, config["outdir_pq"]))
-            outdir_schema = os.path.abspath(os.path.join(base_path, config["outdir_schema"]))
+            input_path = get_config_paths_field(db + "_" + db_type, "input_path")
+            outdir_pq = get_config_paths_field(db + "_" + db_type, "outdir_pq")
+            outdir_schema = get_config_paths_field(db + "_" + db_type, "outdir_schema")
+
             fname_pq = config["fname_pq"]
             add_derived_vars = config["add_derived_vars"]
             overwrite = config["overwrite"]
