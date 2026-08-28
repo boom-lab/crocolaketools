@@ -757,7 +757,7 @@ class TestConverter:
         print("flist:")
         print(flist)
 
-        converterSG.prepare_data(flist=flist,lock=lock)
+        converterSG.prepare_data(flist=flist,lock=lock,chunk_profile=20)
 
         not_empty_dir = bool(os.listdir(converterSG.tmp_path))
         assert not_empty_dir == True
