@@ -8,6 +8,7 @@ venv/
 crocolaketools/demo/
 scripts/data/
 scripts/schemas/
+tests/fixtures/parquet/
 
 # C extensions
 *.so
