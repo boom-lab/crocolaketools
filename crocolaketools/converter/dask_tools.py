@@ -14,7 +14,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pandas as pd
 import xarray as xr
-import argopy
+
 import numpy as np
 # ignore pandas "educational" performance warnings
 import warnings
@@ -24,6 +24,15 @@ warnings.simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 from pprint import pprint
 from dask.distributed import print
 from crocolaketools import db_params
+
+# import argopy pinned version requires some workaround to import erddapy
+# correctly
+import erddapy.erddapy
+if not hasattr(erddapy.erddapy, '_quote_string_constraints'):
+    from erddapy.core.url import _quote_string_constraints
+    erddapy.erddapy._quote_string_constraints = _quote_string_constraints
+import argopy
+
 ##########################################################################
 
 class daskTools():
