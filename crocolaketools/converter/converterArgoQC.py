@@ -256,7 +256,7 @@ class ConverterArgoQC(Converter):
         param_basenames -- list of base names of parameters (i.e. <PARAM> in Argo)
         """
 
-        db_schema = pq.read_schema(self.input_path+"/_common_metadata")
+        db_schema = pq.read_schema(self.input_path / "_common_metadata")
 
         filters = []
         filter_qc = []

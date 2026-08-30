@@ -16,6 +16,7 @@ from dask.distributed import Lock
 import gsw
 import importlib.resources
 import numpy as np
+from pathlib import Path
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -120,21 +121,19 @@ class Converter:
         if len(os.listdir(input_path))==0:
             raise ValueError(f"Input folder {input_path} is empty. If you are using config.yaml, is the relative path correct?")
         self.input_path = input_path
-        print("Original files read from " + self.input_path)
+        print("Original files read from " + str(self.input_path))
 
         if outdir_schema is None:
-            self.outdir_schema = "./schemas/"
+            self.outdir_schema = Path("./schemas/")
         else:
             self.outdir_schema = outdir_schema
-        print("Schema(s) will be stored at " + self.outdir_schema)
+        print("Schema(s) will be stored at " + str(self.outdir_schema))
 
         if outdir_pq is None:
-            self.outdir_pq = "./parquet/"
+            self.outdir_pq = Path("./parquet/")
         else:
             self.outdir_pq = outdir_pq
-            if self.outdir_pq[-1] != "/":
-                self.outdir_pq = self.outdir_pq + "/"
-        print("Parquet database will be stored at " + self.outdir_pq)
+        print("Parquet database will be stored at " + str(self.outdir_pq))
 
         if fname_pq is None:
             self.fname_pq = self.db+"_"+self.db_type+".parquet"
@@ -222,10 +221,10 @@ class Converter:
         if filenames is None:
             if filepath is None:
                 guess_path = self.input_path
-                warnings.warn("Filename(s) not provided, guessing from input path: " + guess_path)
+                warnings.warn("Filename(s) not provided, guessing from input path: " + str(guess_path))
             else:
                 guess_path = filepath
-                warnings.warn("Filename(s) not provided, guessing from provided file path: " + guess_path)
+                warnings.warn("Filename(s) not provided, guessing from provided file path: " + str(guess_path))
             filenames = os.listdir(guess_path)
         print("List of files to convert: ", filenames)
 
@@ -341,7 +340,7 @@ class Converter:
 
         print(f"{self.fname_pq}.parquet")
 
-        print("Saving " + self.db + ", " + self.db_type + " version, to " + self.outdir_pq)
+        print("Saving " + self.db + ", " + self.db_type + " version, to " + str(self.outdir_pq))
 
         os.makedirs(self.outdir_pq, exist_ok=True)
 

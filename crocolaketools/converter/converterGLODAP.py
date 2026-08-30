@@ -79,7 +79,7 @@ class ConverterGLODAP(Converter):
             filename = "GLODAPv3_Merged_Master_File.csv"
             print("Using default filename: ", filename)
 
-        input_fname = filename if os.path.isabs(filename) else self.input_path + filename
+        input_fname = filename if os.path.isabs(filename) else self.input_path / filename
         print("Reading GLODAP file: ", input_fname)
 
         # low_memory=False as GLODAP is a small db

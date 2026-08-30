@@ -94,7 +94,7 @@ class ConverterSprayGliders(Converter):
         lock -- dask lock to use for concurrency
         """
 
-        input_fname = self.input_path + filename
+        input_fname = self.input_path / filename
         print("Reading file: ", input_fname)
 
         # chunking is empirical to force small chunks

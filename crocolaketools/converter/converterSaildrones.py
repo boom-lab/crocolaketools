@@ -112,7 +112,7 @@ class ConverterSaildrones(Converter):
         if filename is None:
             raise ValueError("No filename provided for Saildrone database.")
 
-        input_fname = self.input_path + filename
+        input_fname = self.input_path / filename
         print("Reading file: ", input_fname)
 
         # Hold lock for the entire NetCDF operation to prevent race conditions
