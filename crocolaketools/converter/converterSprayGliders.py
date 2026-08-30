@@ -111,7 +111,8 @@ class ConverterSprayGliders(Converter):
         ds = xr.open_dataset(
             input_fname,
             cache=False,
-            chunks=chunk_dict
+            chunks=chunk_dict,
+            engine="h5netcdf",
         )
 
         tmp_path = self.tmp_path
