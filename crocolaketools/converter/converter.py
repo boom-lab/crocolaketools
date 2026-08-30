@@ -25,6 +25,9 @@ import xarray as xr
 from crocolaketools import db_names,db_params
 from crocolaketools.config import config_paths as cfgp
 from crocolaketools.converter import units_conversion
+
+import logging
+logging.getLogger("distributed.shuffle._scheduler_plugin").setLevel(logging.ERROR)
 ##########################################################################
 
 
