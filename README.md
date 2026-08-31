@@ -74,6 +74,13 @@ spray2parquet --config
 ```
 and both physical and biogeochemical parquet versions are generated.
 
+#### SPOTS
+
+To convert the SPOTS CSV into physical and biogeochemical Parquet datasets, run:
+```
+spots2parquet --config
+```
+
 #### CrocoLake
 
 Once you have two or more dataset in the parquet version, you can build CrocoLake running:

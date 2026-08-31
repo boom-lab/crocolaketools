@@ -21,7 +21,8 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import shutil
 import xarray as xr
-from crocolakeloader import params
+from crocolaketools import db_names,db_params
+from crocolaketools.config import config_paths as cfgp
 from crocolaketools.converter import units_conversion
 ##########################################################################
 
@@ -62,10 +63,8 @@ class Converter:
             db = config['db']
             db_type = config['db_type'].upper()
 
-            config_path = importlib.resources.files("crocolaketools.config").joinpath("config.yaml")
-            base_path = importlib.resources.files("crocolaketools.config")
-            config_disk = yaml.safe_load(open(config_path))
-            config_disk = config_disk[db + "_" + db_type]
+            base_path = cfgp.get_config_path()
+            config_disk = cfgp.get_config_paths_db_dict(db + "_" + db_type)
 
             config_user_keys = list(config.keys())
             config_disk_keys = list(config_disk.keys())
@@ -81,9 +80,10 @@ class Converter:
             print("Converter configuration:")
             print(config)
 
-            input_path = os.path.abspath(os.path.join(base_path, config["input_path"]))
-            outdir_pq = os.path.abspath(os.path.join(base_path, config["outdir_pq"]))
-            outdir_schema = os.path.abspath(os.path.join(base_path, config["outdir_schema"]))
+            input_path = get_config_paths_field(db + "_" + db_type, "input_path")
+            outdir_pq = get_config_paths_field(db + "_" + db_type, "outdir_pq")
+            outdir_schema = get_config_paths_field(db + "_" + db_type, "outdir_schema")
+
             fname_pq = config["fname_pq"]
             add_derived_vars = config["add_derived_vars"]
             overwrite = config["overwrite"]
@@ -96,11 +96,11 @@ class Converter:
             raise ValueError("No config argument provided.")
 
         if isinstance(db,str):
-            if db in params.databases:
+            if db in db_names.databases:
                 self.db = db
                 print("Setting up converter for " + self.db + " database.")
             else:
-                raise ValueError("Database db must be one of " + str(params.databases))
+                raise ValueError("Database db must be one of " + str(db_names.databases))
         elif db is not None:
             raise ValueError("Database db not a string.")
         else:
@@ -375,7 +375,7 @@ class Converter:
         elif not vars_schema == "_ALL":
             raise ValueError("vars_schema must be 'QC' or '_ALL'.")
 
-        param = params.params["CROCOLAKE_" + self.db_type + vars_schema].copy()
+        param = db_params.params["CROCOLAKE_" + self.db_type + vars_schema].copy()
 
         self.fields = []
         for p in param:
@@ -469,7 +469,7 @@ class Converter:
             raise ValueError("Database type can only be PHY to trim schema.")
 
         db_phy_name = self.db + self.db_type
-        param = params.params[db_phy_name].copy()
+        param = db_params.params[db_phy_name].copy()
         schema_phy_pq = self.schema_pq
 
         columns_to_drop = []
@@ -501,7 +501,7 @@ class Converter:
         """
 
         print("Renaming columns")
-        rename_map = params.params[self.db + "2CROCOLAKE"]
+        rename_map = db_params.params[self.db + "2CROCOLAKE"]
 
         if isinstance(data,(pd.DataFrame,dd.DataFrame)):
             data = data.rename(columns=rename_map)
@@ -511,7 +511,7 @@ class Converter:
             data_vars = data.data_vars.keys()
 
         # drop columns that are not of interest for CrocoLake
-        todrop = [c for c in data_vars if c not in params.params["CROCOLAKE_" + self.db_type + "_QC"]]
+        todrop = [c for c in data_vars if c not in db_params.params["CROCOLAKE_" + self.db_type + "_QC"]]
 
         if isinstance(data,(pd.DataFrame,dd.DataFrame)):
             data = data.drop(columns=todrop) #inplace defaults to False
@@ -521,14 +521,14 @@ class Converter:
             data = data.reset_index()
         # data is always a pandas dataframe now
 
-        # add <NA> for columns in params.params["CROCOLAKE_" + self.db_type +
+        # add <NA> for columns in db_params.params["CROCOLAKE_" + self.db_type +
         # "_QC"] but not in data; this is needed when different files for the
         # same original database do not have the same variables (e.g. some Spray
         # Gliders do not have doxy and others do)
         toadd = [
-            c for c in params.params["CROCOLAKE_" + self.db_type + "_QC"]
+            c for c in db_params.params["CROCOLAKE_" + self.db_type + "_QC"]
             if (c not in data.columns
-                and c in list(params.params[self.db + "2CROCOLAKE"].values())
+                and c in list(db_params.params[self.db + "2CROCOLAKE"].values())
                 and not any(item in c for item in ["QC", "ERROR", "DB_NAME"]))
         ]
         for col in toadd:
@@ -538,10 +538,10 @@ class Converter:
         for col in data.columns:
             col_error = col+"_ERROR"
             col_qc = col+"_QC"
-            if (col_error in params.params["CROCOLAKE_" + self.db_type + "_QC"]) and (col_error not in data.columns):
+            if (col_error in db_params.params["CROCOLAKE_" + self.db_type + "_QC"]) and (col_error not in data.columns):
                 data[col_error] = pd.NA
                 data[col_error] = data[col_error].astype("float32[pyarrow]")
-            if (col_qc in params.params["CROCOLAKE_" + self.db_type + "_QC"]) and (col_qc not in data.columns):
+            if (col_qc in db_params.params["CROCOLAKE_" + self.db_type + "_QC"]) and (col_qc not in data.columns):
                 data[col_qc] = pd.NA
                 data[col_qc] = data[col_qc].astype("uint8[pyarrow]")
 

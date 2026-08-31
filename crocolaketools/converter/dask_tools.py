@@ -23,7 +23,7 @@ warnings.simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 #warnings.simplefilter(action="error", category=RuntimeWarning)
 from pprint import pprint
 from dask.distributed import print
-import crocolakeloader.params as params
+from crocolaketools import db_params
 ##########################################################################
 
 class daskTools():
@@ -273,7 +273,7 @@ class daskTools():
         """ Select variables in target Argo database"""
 
         if self.db_type in ["PHY","BGC"]:
-            self.VARS = params.params["Argo"+self.db_type].copy()
+            self.VARS = db_params.params["Argo"+self.db_type].copy()
         else:
             raise ValueError("List of variables to read from Argo files not provided.")
 

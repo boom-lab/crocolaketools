@@ -20,7 +20,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 import xarray as xr
-from crocolakeloader import params
+from crocolaketools import db_params
 from crocolaketools.converter.converter import Converter
 ##########################################################################
 
@@ -236,7 +236,7 @@ class ConverterSprayGliders(Converter):
         try:
             with xr.open_dataset(input_fname,cache=True,chunks=None,engine="h5netcdf") as ds:
                 ds_vars = list(ds.data_vars) + list(ds.coords)
-                invars = list(set(params.params["SprayGliders"]) & set(ds_vars))
+                invars = list(set(db_params.params["SprayGliders"]) & set(ds_vars))
                 # replacing 'mission' 0-10 indices with corresponding 'mission_name' entries
                 ds["mission"] = ds["mission_name"].isel(trajectory=ds["mission"])
                 ds = ds.drop_vars(["mission_name"])

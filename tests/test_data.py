@@ -16,8 +16,9 @@ import pytest
 import yaml
 import xarray as xr
 
-from crocolakeloader import params
+from crocolaketools import db_params
 from crocolaketools.utils.logger_configurator import configure_logging
+from crocolaketools.config.config_paths import get_config_paths_field
 
 ####################################################################################################
 class TestData:
@@ -139,6 +140,64 @@ class TestData:
 
                 assert condition.all()
 
+#------------------------------------------------------------------------------#
+    @pytest.mark.parametrize("db_type", ["PHY", "BGC"])
+    def test_data_integrity_glodap_v3_csv(self, db_type):
+        """Compare representative valid GLODAPv3 CSV values with Parquet."""
+        pq_path = get_config_paths_field( "GLODAP_" + db_type, "outdir_pq" )
+        source_path = get_config_paths_field( "GLODAP_" + db_type, "input_path" )
+        source_path = source_path / "demo_GLODAP.csv"
+
+        source = pd.read_csv(source_path)
+        value_name = "salinity" if db_type == "PHY" else "oxygen"
+        output_name = "PSAL" if db_type == "PHY" else "DOXY"
+        output = (
+            dd.read_parquet(
+                pq_path,
+                columns=["PLATFORM_NUMBER", "JULD", "PRES", output_name],
+            )
+            .dropna(subset=[output_name])
+            .head(1)
+        )
+        assert len(output) == 1
+        output_row = output.iloc[0]
+        source_juld = pd.to_datetime(
+            source[["year", "month", "day", "hour", "minute"]].rename(
+                columns={
+                    "year": "year",
+                    "month": "month",
+                    "day": "day",
+                    "hour": "hour",
+                    "minute": "minute",
+                }
+            ),
+            errors="coerce",
+        )
+        source_match = source[
+            (source["expocode"] == output_row["PLATFORM_NUMBER"])
+            & np.isclose(source["pressure"], output_row["PRES"], atol=1e-4)
+            & (source_juld == output_row["JULD"])
+        ]
+        if source_match.empty:
+            pytest.skip("Parquet output does not correspond to the v3 demo CSV.")
+        source = source_match.iloc[0]
+        result = dd.read_parquet(
+            pq_path,
+            filters=[
+                ("PLATFORM_NUMBER", "==", source["expocode"]),
+                ("JULD", "==", output_row["JULD"]),
+            ],
+            columns=["PRES", output_name],
+        ).compute()
+        result = result[
+            np.isclose(result["PRES"], source["pressure"], atol=1e-4)
+        ]
+
+        assert len(result) == 1
+        assert result[output_name].iloc[0] == pytest.approx(
+            source[value_name], abs=1e-5
+        )
+
 
 #------------------------------------------------------------------------------#
     def _check_variables_nc(self,db_name,db_type,db_name_config=None,nc_pattern=None):
@@ -159,12 +218,8 @@ class TestData:
         if nc_pattern is None:
             nc_pattern = "*.nc"
 
-        config_path = importlib.resources.files("crocolaketools.config").joinpath("config.yaml")
-        config = yaml.safe_load(open(config_path))
-        config = config[db_name_config + "_" + db_type]
-
-        nc_path = config["input_path"]
-        pq_path = config["outdir_pq"]
+        nc_path = get_config_paths_field(db_name_config + "_" + db_type, "input_path" )
+        pq_path = get_config_paths_field(db_name_config + "_" + db_type, "outdir_pq" )
 
         # get list of original nc files
         if os.path.isdir(nc_path):
@@ -174,7 +229,7 @@ class TestData:
         logging.info(f"nc_path: {nc_path}")
         logging.info(f"Files found: {nc_files}")
 
-        params_db2crocolake = params.params[db_name + "2CROCOLAKE"]
+        params_db2crocolake = db_params.params[db_name + "2CROCOLAKE"]
         # remove PLATFORM_NUMBER from params_db2crocolake because it needs to be dealt with separately
         # (in general it is not unique given lat, lon, profile)
 
@@ -190,7 +245,7 @@ class TestData:
         else:
             params_in_crocolake = params_db2crocolake.keys()
 
-        params_crocolake2db = params.params[ "CROCOLAKE2" + db_name]
+        params_crocolake2db = db_params.params[ "CROCOLAKE2" + db_name]
         lat_name = params_crocolake2db["LATITUDE"]
         lon_name = params_crocolake2db["LONGITUDE"]
 
@@ -265,7 +320,7 @@ class TestData:
                         nc_depth = self._get_scalar_from_ds(ds["depth"].isel(**indices))
                         indices_pq[ "DEPTH" ] = nc_depth
                     elif db_name == "Saildrones":
-                        depth_map = params.params["Saildrones_depth_map"]
+                        depth_map = db_params.params["Saildrones_depth_map"]
                         nc_depth = depth_map[random_var]
                         nc_juld = self._get_scalar_from_ds(ds["time"].isel(**indices))
                         indices_pq[ "DEPTH" ] = np.float32(nc_depth)
@@ -335,6 +390,88 @@ class TestData:
                 assert False, "value in CrocoLake is not a scalar nor a pd.NA"
 
 #------------------------------------------------------------------------------#
+    def _check_variables_csv(self, db_name, db_type):
+        """Compare a sample of valid SPOTS CSV observations with Parquet."""
+        csv_path = get_config_paths_field( db_name + "_" + db_type, "input_path" ) / "spots.csv"
+        source = pd.read_csv(csv_path)
+        source["CTDPRS"] = source["CTDPRS"].astype("float32")
+        source["TIME"] = source["TIME"].fillna(0)
+        source["JULD"] = pd.to_datetime(
+            source["DATE"].astype("Int64").astype(str)
+            + source["TIME"].astype("Int64").astype(str).str.zfill(4),
+            format="%Y%m%d%H%M",
+            errors="coerce",
+        )
+        profile_columns = ["TimeSeriesSite", "CRUISE", "STNNBR", "CASTNO"]
+        source["_profile_key"] = (
+            source[profile_columns]
+            .fillna("")
+            .astype("string")
+            .agg("|".join, axis=1)
+        )
+        profiles = (
+            source[profile_columns + ["_profile_key"]]
+            .drop_duplicates()
+            .sort_values(profile_columns)
+        )
+        profiles["profile_nb"] = (
+            profiles.groupby("TimeSeriesSite").cumcount() + 1
+        ).astype("int32")
+        source["profile_nb"] = source["_profile_key"].map(
+            profiles.set_index("_profile_key")["profile_nb"]
+        )
+        source = source[source["SALNTY_FLAG_W"].eq(2)].head(20)
+        source = source.drop(columns="_profile_key")
+
+        rename = db_params.params["SPOTS2CROCOLAKE"]
+        parquet = dd.read_parquet(
+            os.path.abspath(os.path.join(
+                importlib.resources.files("crocolaketools.config"),
+                config["outdir_pq"],
+            ))
+        ).compute()
+        for source_name, parquet_name in rename.items():
+            if source_name not in source or parquet_name not in parquet:
+                continue
+            if parquet[parquet_name].notna().sum() == 0:
+                continue
+            if source_name.endswith("_FLAG_W"):
+                value_name = source_name[:-7]
+                value_output = rename.get(value_name)
+                if value_output in parquet and parquet[value_output].notna().sum() == 0:
+                    continue
+            for _, row in source.iterrows():
+                matches = parquet[
+                    parquet["PLATFORM_NUMBER"].eq(row["TimeSeriesSite"])
+                    & parquet["CYCLE_NUMBER"].eq(row["profile_nb"])
+                    & parquet["JULD"].eq(row["JULD"])
+                    & np.isclose(parquet["LATITUDE"], row["LATITUDE"])
+                    & np.isclose(parquet["LONGITUDE"], row["LONGITUDE"])
+                    & np.isclose(parquet["PRES"], row["CTDPRS"])
+                ]
+                assert not matches.empty
+                expected = row[source_name]
+                flag_name = source_name + "_FLAG_W"
+                if flag_name in source and row[flag_name] != 2:
+                    expected = np.nan
+                if source_name.endswith("_FLAG_W"):
+                    value = row[source_name[:-7]]
+                    if pd.isna(value) or value == -999:
+                        expected = np.nan
+                actual = matches.iloc[0][parquet_name]
+                if pd.isna(expected) or expected == -999:
+                    assert pd.isna(actual)
+                else:
+                    assert not pd.isna(actual), (
+                        f"Missing converted value for {source_name} "
+                        f"({parquet_name}) at source row {row.name}"
+                    )
+                    if isinstance(actual, str) or isinstance(expected, str):
+                        assert actual == expected
+                    else:
+                        assert np.float32(actual) == np.float32(expected)
+
+#------------------------------------------------------------------------------#
     def test_data_integrity_spraygliders_phy(self):
         self._check_variables_nc(
             db_type="PHY",
@@ -388,6 +525,13 @@ class TestData:
             db_name_config="ARGO-GDAC",
             nc_pattern="*_Sprof.nc"
         )
+
+#------------------------------------------------------------------------------#
+    def test_data_integrity_spots_phy(self):
+        self._check_variables_csv("SPOTS", "PHY")
+
+    def test_data_integrity_spots_bgc(self):
+        self._check_variables_csv("SPOTS", "BGC")
 
 #------------------------------------------------------------------------------#
     def test_profiles_spraygliders_phy(self):

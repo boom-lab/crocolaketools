@@ -17,7 +17,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 import xarray as xr
-from crocolakeloader import params
+from crocolaketools import db_params
 from crocolaketools.converter.converter import Converter
 ##########################################################################
 
@@ -76,10 +76,10 @@ class ConverterGLODAP(Converter):
         """
 
         if filename is None:
-            filename = "GLODAPv2.2023_Merged_Master_File.csv"
+            filename = "GLODAPv3_Merged_Master_File.csv"
             print("Using default filename: ", filename)
 
-        input_fname = self.input_path + filename
+        input_fname = filename if os.path.isabs(filename) else self.input_path + filename
         print("Reading GLODAP file: ", input_fname)
 
         # low_memory=False as GLODAP is a small db
@@ -89,8 +89,17 @@ class ConverterGLODAP(Converter):
             delimiter=",",
             header=0,
             low_memory=False,
-            dtype_backend='pyarrow'
+            dtype_backend='pyarrow',
+            dtype={'ph_scale': 'string[pyarrow]'},
         )
+
+        legacy_columns = {
+            column: column[2:]
+            for column in ddf.columns
+            if column.startswith("G2") and column[2:] not in ddf.columns
+        }
+        if legacy_columns:
+            ddf = ddf.rename(columns=legacy_columns)
 
         return self.standardize_data(ddf)
 
@@ -106,31 +115,17 @@ class ConverterGLODAP(Converter):
         ddf -- homogenized (dask) dataframe
         """
 
-        ### Adding profile number
-        # GLODAP has no profile number, so we create a temporary one. For each
-        # expocode, it is unique given (cruise, station, region, cast). For each
-        # group of these values, the profile number is a progressive integer
-        # number
-        ddf = self.add_profile_id(ddf)
-
         # convert GLODAP multiple time columns to one datetime
         print("Converting GLODAP multiple time columns to one datetime")
-        rename_datetime = {
-            "G2year": "year",
-            "G2month": "month",
-            "G2day": "day",
-            "G2hour": "hour",
-            "G2minute": "minute"
-        }
-        ddf = ddf.rename(columns=rename_datetime) #pd.to_datetime expects these column names
-        ddf["JULD"] = dd.to_datetime(ddf[["year", "month", "day", "hour", "minute"]])
-        ddf = ddf.drop(columns=rename_datetime.values())
+        datetime_cols = ["year", "month", "day", "hour", "minute"]
+        ddf["JULD"] = dd.to_datetime(ddf[ datetime_cols ])
+        ddf = ddf.drop(columns=datetime_cols)
         ddf = ddf.persist()
 
         # keep only good QC values
         params_to_check = []
-        for param in params.params["GLODAP2CROCOLAKE"].keys():
-            if param.startswith("G2") and param.endswith("f") and param in ddf.columns:
+        for param in db_params.params["GLODAP2CROCOLAKE"].keys():
+            if param.endswith("f") and param in ddf.columns:
                 ddf = ddf.map_partitions(
                     self.keep_best_values, param
                 )
@@ -143,7 +138,15 @@ class ConverterGLODAP(Converter):
         )
         ddf = ddf.persist()
 
-        ddf['date_update'] = np.datetime64('2023-10-18T13:01:04.000000000')
+
+        ### Adding profile number
+        # GLODAP has no profile number, so we create a temporary one. For each
+        # expocode, it is unique given (cruise, station, region, cast). For each
+        # group of these values, the profile number is a progressive integer
+        # number
+        ddf = self.add_profile_id(ddf)
+
+        ddf['date_update'] = np.datetime64('2026-07-28T04:55:00.000000000')
 
         # return standardized dataframe
         return super().standardize_data(ddf)
@@ -155,7 +158,7 @@ class ConverterGLODAP(Converter):
 
         # sorting values to order closer to that of operations later
         ddf = ddf.sort_values(
-            by=["G2expocode","G2cruise","G2station","G2region","G2cast","G2pressure"]
+            by=["expocode", "cruise", "station", "region", "cast", "pressure"]
         )
         # persisting and repartitioning to minimize chances of empty partitions
         ddf = ddf.persist()
@@ -168,7 +171,7 @@ class ConverterGLODAP(Converter):
 
         # add hash_0 to perform sorts and groupbys and merges on one unique
         # column instead of multiple columns at once
-        cols = ["G2expocode", "G2cruise", "G2station", "G2region", "G2cast"]
+        cols = ["expocode", "cruise", "station", "region", "cast"]
         hash_col = "hash_0"
         meta = ddf._meta
         meta[hash_col] = 'int64'
@@ -180,15 +183,15 @@ class ConverterGLODAP(Converter):
 
         # get combinations of "metadata" that unambiguosly describe all profiles
         # (casts)
-        unique_by = ["G2expocode", "G2cruise", "G2station", "G2region", "G2cast", hash_col]
+        unique_by = ["expocode", "cruise", "station", "region", "cast", hash_col]
         unique_casts = ddf[ unique_by ].drop_duplicates()
 
         # generate hash_1 for each of set of "metadata" that contains 1 or more casts:
-        # in GLODAP, cast number resets when any in ["G2expocode", "G2cruise",
-        # "G2station", "G2region"] changes
+        # in GLODAP, cast number resets when any in
+        # ["expocode", "cruise", "station", "region"] changes
         meta = unique_casts._meta
         meta["hash_1"] = "int64"
-        hash_by_cols = ["G2expocode", "G2cruise", "G2station", "G2region"]
+        hash_by_cols = ["expocode", "cruise", "station", "region"]
         unique_casts = unique_casts.map_partitions(
             lambda df: compute_hash(df, hash_by_cols, hash_col="hash_1"),
             meta=meta,
@@ -222,7 +225,7 @@ class ConverterGLODAP(Converter):
 
         # getting unique hash_1 values, repartitioning and persisting to prevent
         # empty partitions
-        unique_hash1 = unique_casts[ ["G2expocode","hash_1_col"] ].drop_duplicates()
+        unique_hash1 = unique_casts[["expocode", "hash_1_col"]].drop_duplicates()
         print("unique_hash1 index name:")
         print(unique_hash1.index.name)
         unique_hash1 = unique_hash1.persist()
@@ -237,9 +240,9 @@ class ConverterGLODAP(Converter):
         if unique_hash1["cumul_count"].isnull().any().compute():
             raise ValueError("Warning: cumul_count in unique_hash1 has NaNs")
 
-        unique_expocodes = unique_casts['G2expocode'].drop_duplicates().compute().tolist()
+        unique_expocodes = unique_casts["expocode"].drop_duplicates().compute().tolist()
         unique_hash1_expocode_partitions = [
-            unique_hash1[unique_hash1['G2expocode'] == expocode]
+            unique_hash1[unique_hash1["expocode"] == expocode]
             for expocode in unique_expocodes
         ]
         unique_hash1_expocode_partitions = [p.repartition(npartitions=1) for p in unique_hash1_expocode_partitions]
@@ -263,7 +266,9 @@ class ConverterGLODAP(Converter):
         unique_hash1_repartitioned["hash_1_col"] = unique_hash1_repartitioned["hash_1_col"].astype("int64")
         unique_hash1_repartitioned = unique_hash1_repartitioned.persist()
 
-        unique_casts = unique_casts[ ["G2expocode","hash_0","hash_1_col","cumul_count"] ]
+        unique_casts = unique_casts[
+            ["expocode", "hash_0", "hash_1_col", "cumul_count"]
+        ]
         unique_casts["hash_1_col"] = unique_casts["hash_1_col"].astype("int64")
 
         merged = unique_casts.merge(unique_hash1_repartitioned[ ["hash_1_col","sum_mcc"] ], left_index=True, right_index=True, how="left")

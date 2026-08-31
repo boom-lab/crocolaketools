@@ -18,7 +18,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 import xarray as xr
-from crocolakeloader import params
+from crocolaketools import db_names
 from crocolaketools.converter.converter import Converter
 ##########################################################################
 
@@ -167,7 +167,7 @@ class ConverterArgoQC(Converter):
         # add database name if not present
         if "DB_NAME" not in ddf.columns:
             ddf["DB_NAME"] = self.db
-            categories = pd.Series(params.databases, dtype='string[pyarrow]')
+            categories = pd.Series(db_names.databases, dtype='string[pyarrow]')
             ddf["DB_NAME"] = ddf["DB_NAME"].astype(pd.CategoricalDtype(categories=categories, ordered=False))
 
         # convert DATA_MODEs to categorical

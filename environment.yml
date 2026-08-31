@@ -1,0 +1,27 @@
+name: crocolaketools
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - argopy==0.1.15
+  - dask==2024.7.1
+  - distributed==2024.7.1
+  - dask[dataframe]
+  - numpy==1.26.4
+  - pandas>=2.2.2
+  - psutil==5.9.8
+  - pyarrow==16.1.0
+  - scipy==1.13.1
+  - setuptools==69.5.1
+  - urllib3==1.26.6
+  - xarray>=2025.3.0
+  - gsw==3.6.19
+  - bokeh
+  - pytest
+  - h5netcdf
+  - yq
+  - pyyaml
+  - tqdm
+  - pip
+  - pip:
+      - -e .

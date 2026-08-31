@@ -21,7 +21,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 import xarray as xr
-from crocolakeloader import params
+from crocolaketools import db_params
 from crocolaketools.converter.converter import Converter
 ##########################################################################
 
@@ -113,7 +113,7 @@ class ConverterOleanderXBT(Converter):
         try:
             with xr.open_dataset(input_fname,cache=True,chunks=None,engine="netcdf4") as ds:
                 ds_vars = list(ds.data_vars) + list(ds.coords)
-                invars = list(set(params.params["OleanderXBT"]) & set(ds_vars))
+                invars = list(set(db_params.params["OleanderXBT"]) & set(ds_vars))
                 df = ds[invars].to_dataframe()
                 df["date_update"] = pd.to_datetime(
                     ds.attrs["date_created"]

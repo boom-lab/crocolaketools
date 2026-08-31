@@ -48,7 +48,9 @@ def glodap2parquet(glodap_path=None, glodap_name=None, outdir_pqt_phy=None, outd
         print("Using configuration from config.yaml")
         ConverterPHY = ConverterGLODAP(db_type='phy')
 
-    ConverterPHY.convert()
+    ConverterPHY.convert(
+        filenames=None if use_config_file else glodap_name
+    )
     del ConverterPHY
 
     if not use_config_file:
@@ -69,16 +71,19 @@ def glodap2parquet(glodap_path=None, glodap_name=None, outdir_pqt_phy=None, outd
         print("Using configuration from config.yaml")
         ConverterBGC = ConverterGLODAP(db_type='bgc')
 
-    ConverterBGC.convert()
+    ConverterBGC.convert(
+        filenames=None if use_config_file else glodap_name
+    )
     del ConverterBGC
 
+    client.shutdown()
     return
 
 #------------------------------------------------------------------------------#
 def main():
     parser = argparse.ArgumentParser(description='Script to convert GLODAP csv master file to parquet')
     parser.add_argument('-i', help="Path to GLODAP csv master file", required=False, default=None)
-    parser.add_argument('-n', help="Name of GLODAP csv master file", required=False, default="GLODAPv2.2023_Merged_Master_File.csv")
+    parser.add_argument('-n', help="Name of GLODAP csv master file", required=False, default="GLODAPv3_Merged_Master_File.csv")
     parser.add_argument('--phy', help="Destination path for physical-variables database", required=False, default=None)
     parser.add_argument('--bgc', help="Destination path for bgc-variables database", required=False, default=None)
     parser.add_argument('-b', help="Basename for output files", required=False, default=None)
@@ -86,7 +91,7 @@ def main():
 
     args = parser.parse_args()
 
-    if args.b is None and args.n == "GLODAPv2.2023_Merged_Master_File.csv":
+    if args.b is None and args.n == "GLODAPv3_Merged_Master_File.csv":
         basename = args.n[:-4]
     else:
         raise ValueError("Please provide a basename for the output files.")

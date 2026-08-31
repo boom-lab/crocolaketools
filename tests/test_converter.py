@@ -30,13 +30,59 @@ from crocolaketools.converter.converterArgoQC import ConverterArgoQC
 from crocolaketools.converter.converterGLODAP import ConverterGLODAP
 from crocolaketools.converter.converterCPR import ConverterCPR
 from crocolaketools.converter.converterSaildrones import ConverterSaildrones
-from crocolakeloader import params
+from crocolaketools import db_names,db_params
 
 ##########################################################################
 class TestConverter:
 
 #------------------------------------------------------------------------------#
 ## Set of tests for the Converter class constructor
+
+    def test_converter_glodap_v3_read_and_standardize(self):
+        """Test reading the unprefixed GLODAPv3 demo CSV."""
+        converter = ConverterGLODAP(db_type="PHY")
+        source = pd.read_csv(
+            os.path.join(converter.input_path, "demo_GLODAP.csv"),
+            nrows=100,
+        ).convert_dtypes(dtype_backend="pyarrow")
+        profiled = converter.add_profile_id(
+            dd.from_pandas(source, npartitions=2)
+        ).compute()
+        profile_minimums = (
+            profiled[["expocode", "profile_nb"]]
+            .drop_duplicates()
+            .groupby("expocode")["profile_nb"]
+            .min()
+        )
+        assert (profile_minimums == 1).all()
+
+        ddf = converter.standardize_data(dd.from_pandas(source, npartitions=2))
+        df = ddf.compute()
+
+        assert not df.empty
+        assert {"PLATFORM_NUMBER", "CYCLE_NUMBER", "JULD", "PRES",
+                "TEMP", "PSAL"}.issubset(df.columns)
+        assert not any(column.startswith("G2") for column in df.columns)
+        assert df["JULD"].notna().all()
+
+        assert (df["CYCLE_NUMBER"] >= 1).all()
+
+    def test_converter_glodap_v3_qc_filtering(self):
+        """Test that GLODAP QC flags retain only values flagged 0 or 2."""
+        converter = ConverterGLODAP(db_type="BGC")
+        source = pd.read_csv(
+            os.path.join(converter.input_path, "demo_GLODAP.csv"),
+            nrows=100,
+        ).convert_dtypes(dtype_backend="pyarrow")
+        df = converter.standardize_data(
+            dd.from_pandas(source, npartitions=2)
+        ).compute()
+
+        for value, flag in [("PSAL", "PSAL_QC"), ("DOXY", "DOXY_QC"),
+                            ("NITRATE", "NITRATE_QC")]:
+            valid = df[flag].notna()
+            assert df.loc[valid, flag].isin([0, 2]).all()
+            assert not (df.loc[valid, value] == -9999).any()
 
     def test_converter_argoqc_read_pq_dtypes_phy(self):
         """
@@ -89,7 +135,7 @@ class TestConverter:
         print(ddf.head())
         assert not ddf.head().empty
 
-        for var in params.params["CROCOLAKE_BGC_QC"]:
+        for var in db_params.params["CROCOLAKE_BGC_QC"]:
             if var in ddf.columns:
                 print(var)
                 if var in ["PLATFORM_NUMBER","CYCLE_NUMBER"]:
@@ -220,7 +266,7 @@ class TestConverter:
             elif "QC" in param:
                 sol_df[ param ] = sol_df[ param ].astype("uint8[pyarrow]")
             elif param == "DB_NAME":
-                categories = pd.Series(params.databases, dtype='string[pyarrow]')
+                categories = pd.Series(db_names.databases, dtype='string[pyarrow]')
                 sol_df[ param ] = sol_df[ param ].astype(pd.CategoricalDtype(categories=categories, ordered=False))
             elif "DATA_MODE" in param:
                 categories = pd.Series(["R", "A", "D"], dtype='string[pyarrow]')
@@ -598,7 +644,7 @@ class TestConverter:
         ddf = converterBGC.read_pq(filename=fname)
         ddf = converterBGC.update_cols(ddf)
 
-        for var in params.params["CROCOLAKE_BGC_QC"]:
+        for var in db_params.params["CROCOLAKE_BGC_QC"]:
             if var in ddf.columns:
                 print(var)
                 if var in ["PLATFORM_NUMBER","CYCLE_NUMBER"]:
