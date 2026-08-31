@@ -1,0 +1,115 @@
+{
+  "columns": {
+    "ABS_SAL_COMPUTED": {
+      "dtype": "float[pyarrow]",
+      "max": 36.85295486450195,
+      "min": 34.94562530517578,
+      "n_null": 27
+    },
+    "CONSERVATIVE_TEMP_COMPUTED": {
+      "dtype": "float[pyarrow]",
+      "max": 19.631559371948242,
+      "min": 3.2043681144714355,
+      "n_null": 32
+    },
+    "CYCLE_NUMBER": {
+      "dtype": "int64[pyarrow]",
+      "max": 287.0,
+      "min": 3.0,
+      "n_null": 0
+    },
+    "DATA_MODE": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "DATE_UPDATE": {
+      "dtype": "timestamp[ns][pyarrow]",
+      "n_null": 0
+    },
+    "DB_NAME": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "JULD": {
+      "dtype": "timestamp[ns][pyarrow]",
+      "n_null": 0
+    },
+    "LATITUDE": {
+      "dtype": "double[pyarrow]",
+      "max": 59.68505859375,
+      "min": 18.14609,
+      "n_null": 0
+    },
+    "LONGITUDE": {
+      "dtype": "double[pyarrow]",
+      "max": -20.806,
+      "min": -73.9200439453125,
+      "n_null": 0
+    },
+    "PLATFORM_NUMBER": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "PRES": {
+      "dtype": "float[pyarrow]",
+      "max": 1967.9599609375,
+      "min": 0.30000001192092896,
+      "n_null": 2
+    },
+    "PRES_ERROR": {
+      "dtype": "float[pyarrow]",
+      "max": 2.4000000953674316,
+      "min": 2.4000000953674316,
+      "n_null": 16
+    },
+    "PRES_QC": {
+      "dtype": "uint8[pyarrow]",
+      "max": 1.0,
+      "min": 1.0,
+      "n_null": 2
+    },
+    "PSAL": {
+      "dtype": "float[pyarrow]",
+      "max": 36.679691314697266,
+      "min": 34.77899932861328,
+      "n_null": 25
+    },
+    "PSAL_ERROR": {
+      "dtype": "float[pyarrow]",
+      "max": 0.019999999552965164,
+      "min": 0.009999999776482582,
+      "n_null": 30
+    },
+    "PSAL_QC": {
+      "dtype": "uint8[pyarrow]",
+      "max": 1.0,
+      "min": 1.0,
+      "n_null": 25
+    },
+    "SIGMA1_COMPUTED": {
+      "dtype": "float[pyarrow]",
+      "max": 32.42361068725586,
+      "min": 30.395336151123047,
+      "n_null": 32
+    },
+    "TEMP": {
+      "dtype": "float[pyarrow]",
+      "max": 28.214000701904297,
+      "min": 2.8980000019073486,
+      "n_null": 16
+    },
+    "TEMP_ERROR": {
+      "dtype": "float[pyarrow]",
+      "max": 0.0020000000949949026,
+      "min": 0.0020000000949949026,
+      "n_null": 23
+    },
+    "TEMP_QC": {
+      "dtype": "uint8[pyarrow]",
+      "max": 1.0,
+      "min": 1.0,
+      "n_null": 16
+    }
+  },
+  "n_rows": 41
+}

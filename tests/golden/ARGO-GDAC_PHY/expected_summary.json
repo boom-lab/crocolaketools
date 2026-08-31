@@ -1,0 +1,159 @@
+{
+  "columns": {
+    "CYCLE_NUMBER": {
+      "dtype": "Int64",
+      "max": 227.0,
+      "min": 0.0,
+      "n_null": 0
+    },
+    "DATA_MODE": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "DATE_UPDATE": {
+      "dtype": "datetime64[ns]",
+      "n_null": 0
+    },
+    "DIRECTION": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "JULD": {
+      "dtype": "datetime64[ns]",
+      "n_null": 0
+    },
+    "JULD_QC": {
+      "dtype": "Int8",
+      "max": 1.0,
+      "min": 1.0,
+      "n_null": 0
+    },
+    "LATITUDE": {
+      "dtype": "float64",
+      "max": 58.54,
+      "min": 24.9138,
+      "n_null": 0
+    },
+    "LONGITUDE": {
+      "dtype": "float64",
+      "max": -30.197000000000003,
+      "min": -73.24353,
+      "n_null": 0
+    },
+    "N_LEVELS": {
+      "dtype": "Int64",
+      "max": 14.0,
+      "min": 0.0,
+      "n_null": 0
+    },
+    "N_PROF": {
+      "dtype": "Int64",
+      "max": 4.0,
+      "min": 0.0,
+      "n_null": 0
+    },
+    "PLATFORM_NUMBER": {
+      "dtype": "Int64",
+      "max": 6903754.0,
+      "min": 4902394.0,
+      "n_null": 0
+    },
+    "POSITION_QC": {
+      "dtype": "Int8",
+      "max": 8.0,
+      "min": 1.0,
+      "n_null": 0
+    },
+    "PRES": {
+      "dtype": "float32",
+      "max": 1535.0,
+      "min": 0.1970600038766861,
+      "n_null": 0
+    },
+    "PRES_ADJUSTED": {
+      "dtype": "float32",
+      "max": 1534.9000244140625,
+      "min": 0.1970600038766861,
+      "n_null": 45
+    },
+    "PRES_ADJUSTED_ERROR": {
+      "dtype": "float32",
+      "max": 2.4000000953674316,
+      "min": 2.4000000953674316,
+      "n_null": 210
+    },
+    "PRES_ADJUSTED_QC": {
+      "dtype": "Int8",
+      "max": 9.0,
+      "min": 0.0,
+      "n_null": 0
+    },
+    "PRES_QC": {
+      "dtype": "Int8",
+      "max": 1.0,
+      "min": 1.0,
+      "n_null": 0
+    },
+    "PSAL": {
+      "dtype": "float32",
+      "max": 37.37786865234375,
+      "min": 12.443840026855469,
+      "n_null": 0
+    },
+    "PSAL_ADJUSTED": {
+      "dtype": "float32",
+      "max": 37.37776565551758,
+      "min": 32.02199172973633,
+      "n_null": 51
+    },
+    "PSAL_ADJUSTED_ERROR": {
+      "dtype": "float32",
+      "max": 0.01016147993505001,
+      "min": 0.009999999776482582,
+      "n_null": 211
+    },
+    "PSAL_ADJUSTED_QC": {
+      "dtype": "Int8",
+      "max": 9.0,
+      "min": 0.0,
+      "n_null": 0
+    },
+    "PSAL_QC": {
+      "dtype": "Int8",
+      "max": 4.0,
+      "min": 1.0,
+      "n_null": 0
+    },
+    "TEMP": {
+      "dtype": "float32",
+      "max": 25.920379638671875,
+      "min": 2.8510000705718994,
+      "n_null": 0
+    },
+    "TEMP_ADJUSTED": {
+      "dtype": "float32",
+      "max": 25.920379638671875,
+      "min": 2.8510000705718994,
+      "n_null": 45
+    },
+    "TEMP_ADJUSTED_ERROR": {
+      "dtype": "float32",
+      "max": 0.0020000000949949026,
+      "min": 0.0020000000949949026,
+      "n_null": 210
+    },
+    "TEMP_ADJUSTED_QC": {
+      "dtype": "Int8",
+      "max": 9.0,
+      "min": 0.0,
+      "n_null": 0
+    },
+    "TEMP_QC": {
+      "dtype": "Int8",
+      "max": 1.0,
+      "min": 1.0,
+      "n_null": 0
+    }
+  },
+  "n_rows": 450
+}

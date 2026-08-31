@@ -1,0 +1,175 @@
+{
+  "columns": {
+    "ABS_SAL_COMPUTED": {
+      "dtype": "float[pyarrow]",
+      "max": 34.751914978027344,
+      "min": 32.828338623046875,
+      "n_null": 147
+    },
+    "BBP700": {
+      "dtype": "float[pyarrow]",
+      "max": 110.0,
+      "min": 110.0,
+      "n_null": 253
+    },
+    "BBP700_ERROR": {
+      "dtype": "float[pyarrow]",
+      "max": 0.0,
+      "min": 0.0,
+      "n_null": 253
+    },
+    "BBP700_QC": {
+      "dtype": "uint8[pyarrow]",
+      "n_null": 255
+    },
+    "CDOM": {
+      "dtype": "float[pyarrow]",
+      "max": 0.0,
+      "min": 0.0,
+      "n_null": 253
+    },
+    "CDOM_ERROR": {
+      "dtype": "float[pyarrow]",
+      "max": 0.0,
+      "min": 0.0,
+      "n_null": 253
+    },
+    "CDOM_QC": {
+      "dtype": "uint8[pyarrow]",
+      "n_null": 255
+    },
+    "CHLA": {
+      "dtype": "float[pyarrow]",
+      "max": 2.843400001525879,
+      "min": 0.0,
+      "n_null": 133
+    },
+    "CHLA_ERROR": {
+      "dtype": "float[pyarrow]",
+      "max": 0.16859999299049377,
+      "min": 0.0,
+      "n_null": 133
+    },
+    "CHLA_QC": {
+      "dtype": "uint8[pyarrow]",
+      "n_null": 255
+    },
+    "CONSERVATIVE_TEMP_COMPUTED": {
+      "dtype": "float[pyarrow]",
+      "max": 28.778520584106445,
+      "min": 27.01192283630371,
+      "n_null": 147
+    },
+    "CYCLE_NUMBER": {
+      "dtype": "int32[pyarrow]",
+      "max": 8.0,
+      "min": 2.0,
+      "n_null": 0
+    },
+    "DB_NAME": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "DEPTH": {
+      "dtype": "float[pyarrow]",
+      "max": 1.899999976158142,
+      "min": 0.5,
+      "n_null": 0
+    },
+    "DOXY": {
+      "dtype": "double[pyarrow]",
+      "max": 195.35220336914062,
+      "min": 162.89059448242188,
+      "n_null": 147
+    },
+    "DOXY_ERROR": {
+      "dtype": "float[pyarrow]",
+      "max": 0.3100000023841858,
+      "min": 0.0,
+      "n_null": 97
+    },
+    "DOXY_QC": {
+      "dtype": "uint8[pyarrow]",
+      "n_null": 255
+    },
+    "JULD": {
+      "dtype": "timestamp[ns][pyarrow]",
+      "n_null": 0
+    },
+    "LATITUDE": {
+      "dtype": "double[pyarrow]",
+      "max": 21.3108048,
+      "min": 3.5254788,
+      "n_null": 0
+    },
+    "LONGITUDE": {
+      "dtype": "double[pyarrow]",
+      "max": -125.0680064,
+      "min": -157.8701056,
+      "n_null": 0
+    },
+    "PLATFORM_NUMBER": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "PRES": {
+      "dtype": "float[pyarrow]",
+      "max": 1.9118341207504272,
+      "min": 0.50277179479599,
+      "n_null": 0
+    },
+    "PRES_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 255
+    },
+    "PRES_QC": {
+      "dtype": "uint8[pyarrow]",
+      "max": 1.0,
+      "min": 1.0,
+      "n_null": 0
+    },
+    "PSAL": {
+      "dtype": "float[pyarrow]",
+      "max": 34.588600158691406,
+      "min": 32.67390060424805,
+      "n_null": 147
+    },
+    "PSAL_ERROR": {
+      "dtype": "float[pyarrow]",
+      "max": 0.02290000021457672,
+      "min": 0.00039999998989515007,
+      "n_null": 147
+    },
+    "PSAL_QC": {
+      "dtype": "uint8[pyarrow]",
+      "max": 1.0,
+      "min": 1.0,
+      "n_null": 147
+    },
+    "SIGMA1_COMPUTED": {
+      "dtype": "float[pyarrow]",
+      "max": 26.590038299560547,
+      "min": 24.59706687927246,
+      "n_null": 147
+    },
+    "TEMP": {
+      "dtype": "float[pyarrow]",
+      "max": 28.673799514770508,
+      "min": 26.992000579833984,
+      "n_null": 122
+    },
+    "TEMP_ERROR": {
+      "dtype": "float[pyarrow]",
+      "max": 0.014999999664723873,
+      "min": 0.0010000000474974513,
+      "n_null": 172
+    },
+    "TEMP_QC": {
+      "dtype": "uint8[pyarrow]",
+      "max": 1.0,
+      "min": 1.0,
+      "n_null": 122
+    }
+  },
+  "n_rows": 255
+}

@@ -1,0 +1,101 @@
+{
+  "columns": {
+    "ABS_SAL_COMPUTED": {
+      "dtype": "float[pyarrow]",
+      "max": 37.56656265258789,
+      "min": 34.55344772338867,
+      "n_null": 0
+    },
+    "CONSERVATIVE_TEMP_COMPUTED": {
+      "dtype": "float[pyarrow]",
+      "max": 27.097898483276367,
+      "min": -1.8757449388504028,
+      "n_null": 0
+    },
+    "CYCLE_NUMBER": {
+      "dtype": "int32[pyarrow]",
+      "max": 1.0,
+      "min": 1.0,
+      "n_null": 0
+    },
+    "DATE_UPDATE": {
+      "dtype": "timestamp[ns][pyarrow]",
+      "n_null": 0
+    },
+    "DB_NAME": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "JULD": {
+      "dtype": "timestamp[ns][pyarrow]",
+      "n_null": 0
+    },
+    "LATITUDE": {
+      "dtype": "double[pyarrow]",
+      "max": 77.0,
+      "min": -63.9457,
+      "n_null": 0
+    },
+    "LONGITUDE": {
+      "dtype": "double[pyarrow]",
+      "max": 164.995,
+      "min": -178.00829999999996,
+      "n_null": 0
+    },
+    "PLATFORM_NUMBER": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "PRES": {
+      "dtype": "float[pyarrow]",
+      "max": 2209.199951171875,
+      "min": 41.0,
+      "n_null": 0
+    },
+    "PRES_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 19
+    },
+    "PRES_QC": {
+      "dtype": "uint8[pyarrow]",
+      "n_null": 19
+    },
+    "PSAL": {
+      "dtype": "float[pyarrow]",
+      "max": 37.390098571777344,
+      "min": 34.390098571777344,
+      "n_null": 0
+    },
+    "PSAL_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 19
+    },
+    "PSAL_QC": {
+      "dtype": "uint8[pyarrow]",
+      "max": 2.0,
+      "min": 2.0,
+      "n_null": 0
+    },
+    "SIGMA1_COMPUTED": {
+      "dtype": "float[pyarrow]",
+      "max": 33.28702926635742,
+      "min": 28.618371963500977,
+      "n_null": 0
+    },
+    "TEMP": {
+      "dtype": "float[pyarrow]",
+      "max": 27.19969940185547,
+      "min": -1.875,
+      "n_null": 0
+    },
+    "TEMP_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 19
+    },
+    "TEMP_QC": {
+      "dtype": "uint8[pyarrow]",
+      "n_null": 19
+    }
+  },
+  "n_rows": 19
+}
