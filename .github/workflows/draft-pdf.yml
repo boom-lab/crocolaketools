@@ -26,10 +26,8 @@ jobs:
           # PDF. Note, this should be the same directory as the input
           # paper.md
           path: paper/paper.pdf
-      - name: Commit PDF to repository
-        uses: EndBug/add-and-commit@v9
-        with:
-          message: '(auto) Paper PDF Draft'
-          # This should be the path to the paper within your repo.
-          add: 'paper/paper.pdf' # 'paper/*.pdf' to commit all PDFs in the paper directory
-      
+      # PDF is downloadable from this workflow run's artifacts above; not
+      # committed back to the repo to avoid a new paper.pdf blob on every
+      # push touching paper/** (each commit was a full, non-delta-friendly
+      # binary revision -- this was the single largest contributor to repo
+      # size on this branch).
