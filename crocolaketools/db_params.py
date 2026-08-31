@@ -837,6 +837,216 @@ params["CROCOLAKE2SPOTS"] = {
 }
 
 #------------------------------------------------------------------------------#
+# IOOS Glider DAC
+#
+# original names of parameters to keep; the ERDDAP parquet files downloaded by
+# DownloaderIOOSGliders can carry any subset of these (variable names differ
+# between glider operators, so most CrocoLake parameters have several source
+# aliases). Aliases mapping to the same CrocoLake name are merged by
+# ConverterIOOSGliders before renaming (first non-null value wins, in the
+# order they appear in params["IOOS_GLIDERS2CROCOLAKE"]).
+
+params["IOOS_GLIDERS"] = [
+    # navigation / identifiers
+    'trajectory',
+    'wmo_id',
+    'profile_id',
+    'latitude',
+    'longitude',
+    'time',
+    'depth',
+    'pressure',
+    # PHY
+    'temperature',
+    'salinity',
+    # BGC: dissolved oxygen
+    'dissolved_oxygen',
+    'oxygen',
+    'oxygen_concentration',
+    'oxy4_oxygen',
+    'oxy3835_wphase_oxygen',
+    'sci_oxy4_oxygen',
+    'oxy3835_oxygen',
+    'sci_oxy3835_oxygen',
+    'sci_oxy4330f_oxygen',
+    'sci_rinkoII_DO',
+    # BGC: particle backscattering
+    'beta_470nm',
+    'backscatter_470',
+    'optical_backscatter_470',
+    'beta_532nm',
+    'backscatter_532',
+    'backscatter532',
+    'backscatter',
+    'beta_700nm',
+    'backscatter_700',
+    'optical_backscatter_700',
+    'backscatter700',
+    'VBSC',
+    # BGC: turbidity
+    'turbidity',
+    'sci_c3sfl_turbidity',
+    'sci_c3sfl_turbidty', # typo variant present in source data
+    # BGC: chlorophyll-a
+    'chlorophyll',
+    'chlorophyll_a',
+    'fluorescence',
+    'sci_c3sfl_chlorophyll',
+    'CPHL',
+    # BGC: CDOM
+    'CDOM',
+    'cdom',
+    'sci_flbbcd_cdom_units',
+    # BGC: pH
+    'pH',
+    'pHtot',
+    # BGC: downwelling irradiance (OCR-504I channels 1-4 = 380/412/443/490 nm)
+    'sci_ocr504I_irrad1',
+    'sci_ocr504I_irrad2',
+    'sci_ocr504I_irrad3',
+    'sci_ocr504I_irrad4',
+    # BGC: PAR
+    'PAR',
+    'par',
+    'bsipar_par',
+    'sci_bsipar_par',
+    'sci_FIRe_par',
+    'sci_whpar_par',
+    'sci_satpar_par',
+    # BGC: alkalinity and nitrate
+    'total_alkalinity',
+    'nitrate',
+    'sci_suna_nitrate_um',
+    'suna_nitrate_concentration',
+    # QC flags 
+    'pressure_qc',
+    'depth_qc',
+    'temperature_qc',
+    'salinity_qc',
+    'dissolved_oxygen_qc',
+    'oxygen_qc',
+    'doxy_qc',
+    'DO_qc',
+    'optical_backscatter_470_qc',
+    'backscatter532_qc',
+    'backscatter_qc',
+    'optical_backscatter_700_qc',
+    'backscatter700_qc',
+    'chlorophyll_qc',
+    'chlorophyll_a_qc',
+    'fluorescence_qc',
+    'cdom_qc',
+    'CDOM_qc',
+    'pHtot_qc',
+    'par_qc',
+    'nitrate_qc',
+]
+
+# dict for renaming parameters to crocolake names
+#
+# NB: several source names map to the same CrocoLake name; the converter merges
+# them (first non-null value wins) before renaming, following the insertion
+# order below, so put the preferred alias first.
+
+params["IOOS_GLIDERS2CROCOLAKE"] = {
+    # identifiers: wmo_id preferred, trajectory as fallback
+    'wmo_id' : 'PLATFORM_NUMBER',
+    'trajectory' : 'PLATFORM_NUMBER',
+    'profile_id' : 'CYCLE_NUMBER',
+    'latitude' : 'LATITUDE',
+    'longitude' : 'LONGITUDE',
+    'time' : 'JULD',
+    'depth' : 'DEPTH',
+    'pressure' : 'PRES',
+    # PHY
+    'temperature' : 'TEMP',
+    'salinity' : 'PSAL',
+    # DOXY
+    'dissolved_oxygen' : 'DOXY',
+    'oxygen' : 'DOXY',
+    'oxygen_concentration' : 'DOXY',
+    'oxy4_oxygen' : 'DOXY',
+    'oxy3835_wphase_oxygen' : 'DOXY',
+    'sci_oxy4_oxygen' : 'DOXY',
+    'oxy3835_oxygen' : 'DOXY',
+    'sci_oxy3835_oxygen' : 'DOXY',
+    'sci_oxy4330f_oxygen' : 'DOXY',
+    'sci_rinkoII_DO' : 'DOXY',
+    # BBP
+    'beta_470nm' : 'BBP470',
+    'backscatter_470' : 'BBP470',
+    'optical_backscatter_470' : 'BBP470',
+    'beta_532nm' : 'BBP532',
+    'backscatter_532' : 'BBP532',
+    'backscatter532' : 'BBP532',
+    'backscatter' : 'BBP700',
+    'beta_700nm' : 'BBP700',
+    'backscatter_700' : 'BBP700',
+    'optical_backscatter_700' : 'BBP700',
+    'backscatter700' : 'BBP700',
+    'VBSC' : 'BBP700',
+    # TURBIDITY
+    'turbidity' : 'TURBIDITY',
+    'sci_c3sfl_turbidity' : 'TURBIDITY',
+    'sci_c3sfl_turbidty' : 'TURBIDITY',
+    # CHLA
+    'chlorophyll' : 'CHLA',
+    'chlorophyll_a' : 'CHLA',
+    'fluorescence' : 'CHLA',
+    'sci_c3sfl_chlorophyll' : 'CHLA',
+    'CPHL' : 'CHLA',
+    # CDOM
+    'CDOM' : 'CDOM',
+    'cdom' : 'CDOM',
+    'sci_flbbcd_cdom_units' : 'CDOM',
+    # PH
+    'pH' : 'PH_IN_SITU_TOTAL',
+    'pHtot' : 'PH_IN_SITU_TOTAL',
+    # DOWN_IRRADIANCE (OCR-504I channels 1-4 = 380/412/443/490 nm)
+    'sci_ocr504I_irrad1' : 'DOWN_IRRADIANCE380',
+    'sci_ocr504I_irrad2' : 'DOWN_IRRADIANCE412',
+    'sci_ocr504I_irrad3' : 'DOWN_IRRADIANCE443',
+    'sci_ocr504I_irrad4' : 'DOWN_IRRADIANCE490',
+    # DOWNWELLING_PAR
+    'PAR' : 'DOWNWELLING_PAR',
+    'par' : 'DOWNWELLING_PAR',
+    'bsipar_par' : 'DOWNWELLING_PAR',
+    'sci_bsipar_par' : 'DOWNWELLING_PAR',
+    'sci_FIRe_par' : 'DOWNWELLING_PAR',
+    'sci_whpar_par' : 'DOWNWELLING_PAR',
+    'sci_satpar_par' : 'DOWNWELLING_PAR',
+    # TOT_ALKALINITY and NITRATE
+    'total_alkalinity' : 'TOT_ALKALINITY',
+    'nitrate' : 'NITRATE',
+    'sci_suna_nitrate_um' : 'NITRATE',
+    'suna_nitrate_concentration' : 'NITRATE',
+    # QC flags
+    'pressure_qc' : 'PRES_QC',
+    'depth_qc' : 'PRES_QC',
+    'temperature_qc' : 'TEMP_QC',
+    'salinity_qc' : 'PSAL_QC',
+    'dissolved_oxygen_qc' : 'DOXY_QC',
+    'oxygen_qc' : 'DOXY_QC',
+    'doxy_qc' : 'DOXY_QC',
+    'DO_qc' : 'DOXY_QC',
+    'optical_backscatter_470_qc' : 'BBP470_QC',
+    'backscatter532_qc' : 'BBP532_QC',
+    'backscatter_qc' : 'BBP700_QC',
+    'optical_backscatter_700_qc' : 'BBP700_QC',
+    'backscatter700_qc' : 'BBP700_QC',
+    'chlorophyll_qc' : 'CHLA_QC',
+    'chlorophyll_a_qc' : 'CHLA_QC',
+    'fluorescence_qc' : 'CHLA_QC',
+    'cdom_qc' : 'CDOM_QC',
+    'CDOM_qc' : 'CDOM_QC',
+    'pHtot_qc' : 'PH_IN_SITU_TOTAL_QC',
+    'par_qc' : 'DOWNWELLING_PAR_QC',
+    'nitrate_qc' : 'NITRATE_QC',
+    'date_update' : 'DATE_UPDATE', # temporary name for date update, created in
+                                   # the converter from the file's download time
+}
+
+#------------------------------------------------------------------------------#
 # Argo
 #
 # standardized names for Argo only databases, when converting from GDAC

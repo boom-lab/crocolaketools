@@ -30,6 +30,7 @@ setup(
             'download_spraygliders = scripts.download_spraygliders:main',
             'download_ioos_gliders = scripts.download_ioos_gliders:main',
             'glodap2parquet = scripts.glodap2parquet:main',
+            'ioos_gliders2parquet = scripts.ioos_gliders2parquet:main',
             'merge_crocolake = scripts.merge_crocolake:main',
             'oleanderXBT2parquet = scripts.oleanderXBT2parquet:main',
             'saildrones2parquet = scripts.saildrones2parquet:main',
