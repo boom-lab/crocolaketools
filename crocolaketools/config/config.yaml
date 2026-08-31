@@ -18,23 +18,23 @@
 CROCOLAKE_PHY:
   db: CROCOLAKE
   db_type: PHY
-  outdir_pq: ../demo/parquet/demo_CROCOLAKE_PHY/
+  outdir_pq: ../../tests/fixtures/parquet/demo_CROCOLAKE_PHY/
   fname_pq: PHY_CROCOLAKE
-  ln_path: ../demo/parquet/demo_CROCOLAKE_PHY_LN/
+  ln_path: ../../tests/fixtures/parquet/demo_CROCOLAKE_PHY_LN/
 
 CROCOLAKE_BGC:
   db: CROCOLAKE
   db_type: BGC
-  outdir_pq: ../demo/parquet/demo_CROCOLAKE_BGC/
+  outdir_pq: ../../tests/fixtures/parquet/demo_CROCOLAKE_BGC/
   fname_pq: BGC_CROCOLAKE
-  ln_path: ../demo/parquet/demo_CROCOLAKE_BGC_LN/
+  ln_path: ../../tests/fixtures/parquet/demo_CROCOLAKE_BGC_LN/
 
 # Argo QC
 ARGO_PHY:
   db: ARGO
   db_type: PHY
-  input_path: ../demo/demo_ARGO_PQT_PHY/
-  outdir_pq: ../demo/parquet/demo_ARGO-QC_PHY/
+  input_path: ../../tests/fixtures/demo_ARGO_PQT_PHY/
+  outdir_pq: ../../tests/fixtures/parquet/demo_ARGO-QC_PHY/
   outdir_schema: ./schema/
   fname_pq: demo_ARGO-QC_PHY
   add_derived_vars: True
@@ -44,8 +44,8 @@ ARGO_PHY:
 ARGO_BGC:
   db: ARGO
   db_type: BGC
-  input_path: ../demo/demo_ARGO_PQT_BGC/
-  outdir_pq: ../demo/parquet/demo_ARGO-QC_BGC/
+  input_path: ../../tests/fixtures/demo_ARGO_PQT_BGC/
+  outdir_pq: ../../tests/fixtures/parquet/demo_ARGO-QC_BGC/
   outdir_schema: ./schema/
   fname_pq: demo_ARGO-QC_BGC
   add_derived_vars: True
@@ -56,21 +56,21 @@ ARGO_BGC:
 ARGO-GDAC_PHY:
   db: ARGO-GDAC
   db_type: PHY
-  input_path: ../demo/demo_ARGO_GDAC/GDAC/dac/
-  outdir_pq: ../demo/parquet/demo_ARGO-GDAC_PHY/
+  input_path: ../../tests/fixtures/demo_ARGO_GDAC/GDAC/dac/
+  outdir_pq: ../../tests/fixtures/parquet/demo_ARGO-GDAC_PHY/
 
 ARGO-GDAC_BGC:
   db: ARGO-GDAC
   db_type: BGC
-  input_path: ../demo/demo_ARGO_GDAC/GDAC/dac/
-  outdir_pq: ../demo/parquet/demo_ARGO-GDAC_BGC/
+  input_path: ../../tests/fixtures/demo_ARGO_GDAC/GDAC/dac/
+  outdir_pq: ../../tests/fixtures/parquet/demo_ARGO-GDAC_BGC/
 
 # GLODAP config
 GLODAP_PHY:
   db: GLODAP
   db_type: PHY
-  input_path: ../demo/demo_GLODAP/
-  outdir_pq: ../demo/parquet/demo_GLODAP_PHY/
+  input_path: ../../tests/fixtures/demo_GLODAP/
+  outdir_pq: ../../tests/fixtures/parquet/demo_GLODAP_PHY/
   outdir_schema: ./schema/
   fname_pq: demo_GLODAP_PHY
   add_derived_vars: True
@@ -80,8 +80,8 @@ GLODAP_PHY:
 GLODAP_BGC:
   db: GLODAP
   db_type: BGC
-  input_path: ../demo/demo_GLODAP/
-  outdir_pq: ../demo/parquet/demo_GLODAP_BGC/
+  input_path: ../../tests/fixtures/demo_GLODAP/
+  outdir_pq: ../../tests/fixtures/parquet/demo_GLODAP_BGC/
   outdir_schema: ./schema/
   fname_pq: demo_GLODAP_BGC
   add_derived_vars: True
@@ -94,7 +94,7 @@ IOOS_GLIDERS_PHY:
   db_type: PHY
   server_url: https://gliders.ioos.us/erddap
   response_format: parquet   # parquet, tabledap protocol (variable selection + time constraints)
-  input_path: ../demo/demo_IOOSGliders/
+  input_path: ../../tests/fixtures/demo_IOOSGliders/
   delayed_only: true
   sync: true        # true  = compare timestamps, re-download updated files, false = download missing files only
   overwrite: false
@@ -134,31 +134,31 @@ IOOS_GLIDERS_PHY:
 SprayGliders_PHY:
   db: SprayGliders
   db_type: PHY
-  input_path: ../demo/demo_SPRAY/
-  outdir_pq: ../demo/parquet/demo_SPRAY_PHY/
+  input_path: ../../tests/fixtures/demo_SPRAY_PHY/
+  outdir_pq: ../../tests/fixtures/parquet/demo_SPRAY_PHY/
   outdir_schema: ./schemas/
   fname_pq: demo_SPRAY_PHY
   add_derived_vars: True
   overwrite: True
-  tmp_path: ../demo/demo_tmp_SPRAY_PHY/
+  tmp_path: ../../tests/fixtures/demo_tmp_SPRAY_PHY/
 
 SprayGliders_BGC:
   db: SprayGliders
   db_type: BGC
-  input_path: ../demo/demo_SPRAY/
-  outdir_pq: ../demo/parquet/demo_SPRAY_BGC/
+  input_path: ../../tests/fixtures/demo_SPRAY_BGC/
+  outdir_pq: ../../tests/fixtures/parquet/demo_SPRAY_BGC/
   outdir_schema: ./schemas/
   fname_pq: demo_SPRAY_BGC
   add_derived_vars: True
   overwrite: True
-  tmp_path: ../demo/demo_tmp_SPRAY_BGC/
+  tmp_path: ../../tests/fixtures/demo_tmp_SPRAY_BGC/
 
 # SPOTS
 SPOTS_PHY:
   db: SPOTS
   db_type: PHY
-  input_path: ../demo/demo_SPOTS/
-  outdir_pq: ../demo/parquet/demo_SPOTS_PHY/
+  input_path: ../../tests/fixtures/demo_SPOTS/
+  outdir_pq: ../../tests/fixtures/parquet/demo_SPOTS_PHY/
   outdir_schema: ./schemas/SPOTS/
   fname_pq: demo_SPOTS_PHY
   add_derived_vars: True
@@ -168,8 +168,8 @@ SPOTS_PHY:
 SPOTS_BGC:
   db: SPOTS
   db_type: BGC
-  input_path: ../demo/demo_SPOTS/
-  outdir_pq: ../demo/parquet/demo_SPOTS_BGC/
+  input_path: ../../tests/fixtures/demo_SPOTS/
+  outdir_pq: ../../tests/fixtures/parquet/demo_SPOTS_BGC/
   outdir_schema: ./schemas/SPOTS/
   fname_pq: demo_SPOTS_BGC
   add_derived_vars: True
@@ -180,8 +180,8 @@ SPOTS_BGC:
 Saildrones_PHY:
   db: Saildrones
   db_type: PHY
-  input_path: ../demo/demo_Saildrones_PHY/
-  outdir_pq: ../demo/parquet/demo_Saildrones_PHY/
+  input_path: ../../tests/fixtures/demo_Saildrones/
+  outdir_pq: ../../tests/fixtures/parquet/demo_SAILDRONES_PHY/
   outdir_schema: ./schemas/Saildrones/
   fname_pq: demo_SAILDRONES_PHY
   add_derived_vars: True
@@ -191,8 +191,8 @@ Saildrones_PHY:
 Saildrones_BGC:
   db: Saildrones
   db_type: BGC
-  input_path: ../demo/demo_Saildrones_BGC/
-  outdir_pq: ../demo/parquet/demo_Saildrones_BGC/
+  input_path: ../../tests/fixtures/demo_Saildrones/
+  outdir_pq: ../../tests/fixtures/parquet/demo_SAILDRONES_BGC/
   outdir_schema: ./schemas/Saildrones/
   fname_pq: demo_SAILDRONES_BGC
   add_derived_vars: True
@@ -203,14 +203,14 @@ Saildrones_BGC:
 OleanderXBT_PHY:
   db: OleanderXBT
   db_type: PHY
-  input_path: ../demo/demo_OleanderXBT_PHY/
-  outdir_pq: ../demo/parquet/demo_OleanderXBT_PHY/
+  input_path: ../../tests/fixtures/demo_OleanderXBT_PHY/
+  outdir_pq: ../../tests/fixtures/parquet/demo_OLEANDER_PHY/
   outdir_schema: ./schemas/OleanderXBT/
-  fname_pq: demo_OleanderXBT_PHY
+  fname_pq: demo_OLEANDER_PHY
   add_derived_vars: False
   overwrite: True
   tmp_path:
 
 # Default relative path for demo data download
 demo:
-  download_path: ../demo/
+  download_path: ../../tests/fixtures/
