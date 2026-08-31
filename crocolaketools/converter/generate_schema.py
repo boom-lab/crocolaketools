@@ -10,6 +10,7 @@
 ##########################################################################
 import copy
 from datetime import datetime
+import json
 import numpy as np
 import pandas as pd
 import pathlib
@@ -79,7 +80,15 @@ class generateSchema():
             self.schema_fname
         )
 
+        # human-readable companion
+        self.schema_json_fname = self.schema_fname + ".json"
+        columns = {field.name: str(field.type) for field in self.schema}
+        with open(self.schema_json_fname, "w") as f:
+            json.dump({"n_columns": len(columns), "columns": columns}, f, indent=2)
+            f.write("\n")
+
         print("Schema(s) stored at " + self.schema_fname)
+        print("Schema(s) companion stored at " + self.schema_json_fname)
 
 #------------------------------------------------------------------------------#
 ## Generate schema
