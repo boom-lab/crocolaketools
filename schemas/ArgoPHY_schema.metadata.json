@@ -1,0 +1,32 @@
+{
+  "n_columns": 27,
+  "columns": {
+    "PLATFORM_NUMBER": "int64",
+    "N_PROF": "int64",
+    "N_LEVELS": "int64",
+    "CYCLE_NUMBER": "int64",
+    "DIRECTION": "string",
+    "DATA_MODE": "string",
+    "DATE_UPDATE": "timestamp[ns]",
+    "LATITUDE": "double",
+    "LONGITUDE": "double",
+    "POSITION_QC": "uint8",
+    "JULD": "timestamp[ns]",
+    "JULD_QC": "uint8",
+    "PRES": "float",
+    "PRES_QC": "uint8",
+    "PRES_ADJUSTED": "float",
+    "PRES_ADJUSTED_QC": "uint8",
+    "PRES_ADJUSTED_ERROR": "float",
+    "TEMP": "float",
+    "TEMP_QC": "uint8",
+    "TEMP_ADJUSTED": "float",
+    "TEMP_ADJUSTED_QC": "uint8",
+    "TEMP_ADJUSTED_ERROR": "float",
+    "PSAL": "float",
+    "PSAL_QC": "uint8",
+    "PSAL_ADJUSTED": "float",
+    "PSAL_ADJUSTED_QC": "uint8",
+    "PSAL_ADJUSTED_ERROR": "float"
+  }
+}
