@@ -731,16 +731,11 @@ class TestConverter:
 
         print(ddf.compute())
 
-    def test_converter_spraygliders_prepare_tmp(self):
+    @pytest.mark.parametrize("dask_client", ["SPRAY_GLIDERS"], indirect=True)
+    def test_converter_spraygliders_prepare_tmp(self, dask_client):
         """Test that SprayGliders conversion executes; this test does not use
         convert() but its internal steps to check the dataframe is never empty
         """
-        client = Client(
-            threads_per_worker=2,
-            n_workers=1,
-            memory_limit='100GB',
-            dashboard_address=':8787',
-        )
 
         converterSG = ConverterSprayGliders(
             db_type="PHY",
@@ -769,20 +764,13 @@ class TestConverter:
                 assert False, f"Failed to open file {file}: {e}"
         assert True
 
-        client.shutdown()
-
-    def test_converter_spraygliders_read_to_ddf_phy(self):
+    @pytest.mark.parametrize("dask_client", ["SPRAY_GLIDERS"], indirect=True)
+    def test_converter_spraygliders_read_to_ddf_phy(self, dask_client):
         """Test that SprayGliders conversion executes; this test does not use
         convert() but its internal steps to check the dataframe is never empty
         """
-        client = Client(
-            threads_per_worker=20,
-            n_workers=1,
-            memory_limit='100GB',
-            dashboard_address=':1419',
-        )
         print("Dashboard address:")
-        print(client.dashboard_link)
+        print(dask_client.dashboard_link)
 
         converterSG = ConverterSprayGliders(
             db_type="PHY",
@@ -802,8 +790,6 @@ class TestConverter:
         converterSG.convert(
             filenames=flist
         )
-
-        client.shutdown()
 
         return
 
