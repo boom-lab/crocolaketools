@@ -731,7 +731,7 @@ class TestConverter:
 
         print(ddf.compute())
 
-    @pytest.mark.parametrize("dask_client", ["SPRAY_GLIDERS"], indirect=True)
+    @pytest.mark.parametrize("dask_client", ["TESTS"], indirect=True)
     def test_converter_spraygliders_prepare_tmp(self, dask_client):
         """Test that SprayGliders conversion executes; this test does not use
         convert() but its internal steps to check the dataframe is never empty
@@ -764,7 +764,7 @@ class TestConverter:
                 assert False, f"Failed to open file {file}: {e}"
         assert True
 
-    @pytest.mark.parametrize("dask_client", ["SPRAY_GLIDERS"], indirect=True)
+    @pytest.mark.parametrize("dask_client", ["TESTS"], indirect=True)
     def test_converter_spraygliders_read_to_ddf_phy(self, dask_client):
         """Test that SprayGliders conversion executes; this test does not use
         convert() but its internal steps to check the dataframe is never empty

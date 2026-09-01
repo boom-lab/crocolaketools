@@ -33,7 +33,7 @@ class GoldenTarget(NamedTuple):
     name: str                  # tests/golden/<name>/ directory
     converter_cls: Type
     db_type: str                # "PHY" or "BGC"
-    cluster_key: str            # key into config_cluster.yaml
+    cluster_key: str            # key into config_cluster_tests.yaml
     tolerant_columns: List[str] # compared with atol=1e-10, rtol=1e-10; all others exact
     # SprayGliders only: it has no convert() override, so the base class's
     # generic convert() would try to read straight from tmp_path -- it needs
@@ -44,15 +44,15 @@ class GoldenTarget(NamedTuple):
 
 
 GOLDEN_REGISTRY = [
-    GoldenTarget("ARGO-QC_PHY", ConverterArgoQC, "PHY", "ARGO-QC_PHY", GSW_COLUMNS),
-    GoldenTarget("ARGO-QC_BGC", ConverterArgoQC, "BGC", "ARGO-QC_BGC", GSW_COLUMNS),
-    GoldenTarget("GLODAP_PHY", ConverterGLODAP, "PHY", "GLODAP", GSW_COLUMNS),
-    GoldenTarget("GLODAP_BGC", ConverterGLODAP, "BGC", "GLODAP", GSW_COLUMNS),
-    GoldenTarget("SPRAY_PHY", ConverterSprayGliders, "PHY", "SPRAY_GLIDERS", ["PRES"] + GSW_COLUMNS, chunk_profile=20),
-    GoldenTarget("SPRAY_BGC", ConverterSprayGliders, "BGC", "SPRAY_GLIDERS", ["PRES"] + GSW_COLUMNS, chunk_profile=20),
-    GoldenTarget("Saildrones_PHY", ConverterSaildrones, "PHY", "SAILDRONES", ["PRES"] + GSW_COLUMNS),
-    GoldenTarget("Saildrones_BGC", ConverterSaildrones, "BGC", "SAILDRONES", ["PRES"] + GSW_COLUMNS),
-    GoldenTarget("OleanderXBT_PHY", ConverterOleanderXBT, "PHY", "OLEANDER_XBT", ["PRES"]),
+    GoldenTarget("ARGO-QC_PHY", ConverterArgoQC, "PHY", "TESTS", GSW_COLUMNS),
+    GoldenTarget("ARGO-QC_BGC", ConverterArgoQC, "BGC", "TESTS", GSW_COLUMNS),
+    GoldenTarget("GLODAP_PHY", ConverterGLODAP, "PHY", "TESTS", GSW_COLUMNS),
+    GoldenTarget("GLODAP_BGC", ConverterGLODAP, "BGC", "TESTS", GSW_COLUMNS),
+    GoldenTarget("SPRAY_PHY", ConverterSprayGliders, "PHY", "TESTS", ["PRES"] + GSW_COLUMNS, chunk_profile=20),
+    GoldenTarget("SPRAY_BGC", ConverterSprayGliders, "BGC", "TESTS", ["PRES"] + GSW_COLUMNS, chunk_profile=20),
+    GoldenTarget("Saildrones_PHY", ConverterSaildrones, "PHY", "TESTS", ["PRES"] + GSW_COLUMNS),
+    GoldenTarget("Saildrones_BGC", ConverterSaildrones, "BGC", "TESTS", ["PRES"] + GSW_COLUMNS),
+    GoldenTarget("OleanderXBT_PHY", ConverterOleanderXBT, "PHY", "TESTS", ["PRES"]),
 ]
 
 

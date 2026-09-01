@@ -15,18 +15,22 @@ from dask.distributed import Client
 
 import crocolaketools.config.config_paths as cfgp
 
+TEST_CONFIG_CLUSTER_FILE = Path(__file__).parent / "config_cluster_tests.yaml"
+
 # ============================================================================
 # Dask Fixtures
 # ============================================================================
 
 @pytest.fixture
 def dask_client(request):
-    """Client built from the named key's settings in config_cluster.yaml.
+    """Client built from the named key's settings in
+    tests/config_cluster_tests.yaml (small, CI-safe settings -- not
+    production's crocolaketools/config/config_cluster.yaml).
 
-    Indirect fixture: parametrize with the config_cluster.yaml key to use,
-    e.g. @pytest.mark.parametrize("dask_client", ["SPRAY_GLIDERS"], indirect=True)
+    Indirect fixture: parametrize with the config_cluster_tests.yaml key to use,
+    e.g. @pytest.mark.parametrize("dask_client", ["TESTS"], indirect=True)
     """
-    config_cluster = cfgp.get_config_cluster_db_dict(request.param)
+    config_cluster = cfgp.get_config_cluster_db_dict(request.param, config_file=TEST_CONFIG_CLUSTER_FILE)
     client = Client(**config_cluster)
     yield client
     client.close()

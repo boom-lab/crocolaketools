@@ -219,7 +219,7 @@ def test_golden_schema(db_type, tmp_path, request):
 
 @pytest.mark.parametrize(
     "db_type,suffix,dask_client",
-    [("PHY", "_prof.nc", "ARGO-QC_PHY"), ("BGC", "_Sprof.nc", "ARGO-QC_PHY")],
+    [("PHY", "_prof.nc", "TESTS"), ("BGC", "_Sprof.nc", "TESTS")],
     ids=["ARGO-GDAC_PHY", "ARGO-GDAC_BGC"],
     indirect=["dask_client"],
 )

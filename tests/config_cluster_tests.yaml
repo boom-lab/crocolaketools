@@ -1,0 +1,15 @@
+# This config file contains the fields for the config_hpc dictionary used by the
+# scripts in the script folder.
+# Field names must be arguments to dask's LocalCluster Client
+#  (https://docs.dask.org/en/stable/deploying-python.html)
+
+
+# Test settings for all datasets
+TESTS:
+    threads_per_worker: 1
+    n_workers: 1
+    memory_limit: '2GB'
+    processes: True
+
+# add here if special cases are needed, remember to update test files
+# accordingly (e.g. GOLDEN_REGISTRY in golden_registry.py; dask_client in test_golden.test_golden_argo_gdac)
