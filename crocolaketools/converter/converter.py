@@ -667,6 +667,8 @@ class Converter:
         df -- dataframe containign absolute salinity, conservative temperature,
               and potential density anomaly
         """
+        # prevents pandas from raising SettingWithCopyWarning.
+        df = df.copy()
 
         # absolute salinity
         df['ABS_SAL_COMPUTED'] = gsw.conversions.SA_from_SP(
