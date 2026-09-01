@@ -268,8 +268,8 @@ class ConverterGLODAP(Converter):
             df["sum_mcc"] = df["sum_mcc"].astype("int64")
             return df
 
-        meta = unique_hash1_repartitioned._meta
-        meta["sum_mcc"] = "int64"
+        meta = unique_hash1_repartitioned._meta.copy()
+        meta["sum_mcc"] = pd.Series(dtype="int64")
         pl = unique_hash1_repartitioned.map_partitions(len).compute()
         if (pl==0).any():
             empty_partitions = pl[pl==0].index.tolist()
