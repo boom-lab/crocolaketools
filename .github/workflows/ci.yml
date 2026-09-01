@@ -77,10 +77,9 @@ jobs:
       - name: Set up micromamba
         uses: mamba-org/setup-micromamba@v2
         with:
-          channels: conda-forge
-          channel-priority: strict
           environment-file: environment.yml
           cache-environment: true
+          generate-run-shell: false
 
       - name: Install package + test extras (inside conda env)
         shell: bash -l {0}
@@ -104,10 +103,9 @@ jobs:
       - name: Set up micromamba
         uses: mamba-org/setup-micromamba@v2
         with:
-          channels: conda-forge
-          channel-priority: strict
           environment-file: environment.yml
           cache-environment: true
+          generate-run-shell: false
 
       - name: Install package + test extras (inside conda env)
         shell: bash -l {0}
