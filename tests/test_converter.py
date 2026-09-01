@@ -32,6 +32,24 @@ from crocolaketools.converter.converterCPR import ConverterCPR
 from crocolaketools.converter.converterSaildrones import ConverterSaildrones
 from crocolaketools import db_names,db_params
 
+def _plausible_extreme_profiles():
+    """(LATITUDE, LONGITUDE, PSAL, PRES, TEMP) profiles spanning the ocean's
+    realistic physical envelope -- polar to tropical, brackish to
+    hypersaline, surface to abyssal -- so a derived-variable bounds check
+    exercises near-extreme values.
+    """
+    data = {
+        # polar surface, tropical surface, mid-lat abyssal, coastal
+        # brackish, hypersaline restricted sea, cold deep salty, warm-salty
+        # outflow at depth, deep trench
+        'LATITUDE':  [-70.0,  10.0,    40.0,   45.0,  20.0,  55.0,   36.0,   11.0],
+        'LONGITUDE': [-30.0,  -170.0,  -40.0,  -65.0, 38.0,  -20.0,  5.0,    -155.0],
+        'PSAL':      [34.5,   36.0,    34.9,   5.0,   40.0,  34.9,   38.4,   34.7],
+        'PRES':      [5.0,    5.0,     5000.0, 2.0,   5.0,   4000.0, 1000.0, 10000.0],
+        'TEMP':      [-1.8,   30.0,    2.0,    15.0,  32.0,  3.0,    13.0,   1.5],
+    }
+    return pd.DataFrame(data)
+
 ##########################################################################
 class TestConverter:
 
@@ -730,6 +748,83 @@ class TestConverter:
             assert ddf.dtypes[var] == "float32[pyarrow]"
 
         print(ddf.compute())
+
+    @staticmethod
+    def _assert_within_bounds(result, var, lower, upper, unit):
+        """Assert result[var] stays within [lower, upper]; print and name the
+        failing rows first if not
+        """
+        out_of_bounds = result[(result[var] < lower) | (result[var] > upper)]
+        if not out_of_bounds.empty:
+            print(f"{var} out of bounds [{lower}, {upper}] {unit}:")
+            print(out_of_bounds[["LATITUDE", "LONGITUDE", "PSAL", "PRES", "TEMP", var]])
+        assert out_of_bounds.empty, (
+            f"{var} outside physically admissible bounds [{lower}, {upper}] {unit} "
+            f"for {len(out_of_bounds)} row(s) (see printed output above)"
+        )
+
+    def test_converter_abs_sal_computed(self):
+        """Check that ABS_SAL_COMPUTED (TEOS-10 Absolute Salinity, g/kg) is
+        within physically admissible bounds.
+        """
+        pdf = _plausible_extreme_profiles()
+        ddf = dd.from_pandas(pdf, npartitions=2)
+
+        # create converter simply to access function to test
+        converterPHY = ConverterArgoQC(
+            db_type="PHY",
+        )
+
+        with pytest.warns(UserWarning):
+            ddf = converterPHY.add_derived_variables(ddf)
+
+        var = "ABS_SAL_COMPUTED"
+        assert var in ddf.columns
+        result = ddf.compute()
+
+        self._assert_within_bounds(result, var, lower=0.0, upper=50.0, unit="g/kg")
+
+    def test_converter_conservative_temp_computed(self):
+        """Check that CONSERVATIVE_TEMP_COMPUTED (degrees C) is within
+        physically admissible bounds.
+        """
+        pdf = _plausible_extreme_profiles()
+        ddf = dd.from_pandas(pdf, npartitions=2)
+
+        converterPHY = ConverterArgoQC(
+            db_type="PHY",
+        )
+
+        with pytest.warns(UserWarning):
+            ddf = converterPHY.add_derived_variables(ddf)
+
+        var = "CONSERVATIVE_TEMP_COMPUTED"
+        assert var in ddf.columns
+        result = ddf.compute()
+
+        self._assert_within_bounds(result, var, lower=-3.0, upper=40.0, unit="degC")
+
+    def test_converter_sigma1_computed(self):
+        """Check that SIGMA1_COMPUTED (potential density anomaly
+        referenced to 1000 dbar, kg/m^3) is within physically
+        admissible bounds.
+        """
+        pdf = _plausible_extreme_profiles()
+        ddf = dd.from_pandas(pdf, npartitions=2)
+
+        converterPHY = ConverterArgoQC(
+            db_type="PHY",
+        )
+
+        with pytest.warns(UserWarning):
+            ddf = converterPHY.add_derived_variables(ddf)
+
+        var = "SIGMA1_COMPUTED"
+        assert var in ddf.columns
+        result = ddf.compute()
+
+        self._assert_within_bounds(result, var, lower=0.0, upper=35.0, unit="kg/m^3")
+
 
     @pytest.mark.parametrize("dask_client", ["TESTS"], indirect=True)
     def test_converter_spraygliders_prepare_tmp(self, dask_client):
