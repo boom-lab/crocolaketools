@@ -15,7 +15,7 @@ dependencies:
   - urllib3==1.26.6
   - xarray==2025.6.1
   - gsw==3.6.19
-  - bokeh==3.4.3
+  - bokeh==3.4.2
   - pytest==9.1.1
   - h5netcdf==1.8.1
   - h5py==3.16.0

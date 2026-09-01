@@ -79,7 +79,6 @@ jobs:
         with:
           environment-file: environment.yml
           cache-environment: true
-          generate-run-shell: false
 
       - name: Install package + test extras (inside conda env)
         shell: bash -l {0}
@@ -105,7 +104,6 @@ jobs:
         with:
           environment-file: environment.yml
           cache-environment: true
-          generate-run-shell: false
 
       - name: Install package + test extras (inside conda env)
         shell: bash -l {0}
