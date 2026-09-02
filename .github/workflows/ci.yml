@@ -40,7 +40,7 @@ jobs:
           pytest -ra --maxfail=1 --tb=short tests/test_downloader{GLODAP,IOOSGliders,OleanderXBT,SprayGliders,Saildrones}.py
 
   tests-pip-converter:
-    name: downloader tests (pip, py=${{ matrix.python-version }})
+    name: converter tests (pip, py=${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -119,7 +119,7 @@ jobs:
           pytest -ra --maxfail=1 --tb=short tests/test_downloader{GLODAP,IOOSGliders,OleanderXBT,SprayGliders,Saildrones}.py
 
   tests-conda-converter:
-    name: golden tests (conda, from environment.yml)
+    name: converter tests (conda, from environment.yml)
     runs-on: ubuntu-latest
 
     steps:
