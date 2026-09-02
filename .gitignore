@@ -9,8 +9,7 @@ crocolaketools/demo/
 scripts/data/
 scripts/schemas/
 tests/fixtures/parquet/
-tests/fixtures/demo_tmp_SPRAY_PHY/
-tests/fixtures/demo_tmp_SPRAY_BGC/
+tests/fixtures/demo_tmp_*/
 
 # C extensions
 *.so

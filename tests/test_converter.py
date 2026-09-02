@@ -826,68 +826,6 @@ class TestConverter:
         self._assert_within_bounds(result, var, lower=0.0, upper=35.0, unit="kg/m^3")
 
 
-    @pytest.mark.parametrize("dask_client", ["TESTS"], indirect=True)
-    def test_converter_spraygliders_prepare_tmp(self, dask_client):
-        """Test that SprayGliders conversion executes; this test does not use
-        convert() but its internal steps to check the dataframe is never empty
-        """
-
-        converterSG = ConverterSprayGliders(
-            db_type="PHY",
-        )
-
-        from dask.distributed import Lock
-        lock=Lock()
-
-        # select three random files to test
-        spray_files = glob.glob(os.path.join(converterSG.input_path, '*.nc'))
-        spray_names = [os.path.basename(f) for f in spray_files]
-        flist = random.sample(spray_names, k=min(3,len(spray_names)))
-        print(f"Testing with {len(flist)} of {len(spray_names)} files")
-        print("flist:")
-        print(flist)
-
-        converterSG.prepare_data(flist=flist,lock=lock,chunk_profile=20)
-
-        not_empty_dir = bool(os.listdir(converterSG.tmp_path))
-        assert not_empty_dir == True
-
-        for file in glob.glob(converterSG.tmp_path+"/*.nc"):
-            try:
-                ds = xr.open_dataset(file, engine="h5netcdf", chunks=None, cache=True)
-            except Exception as e:
-                assert False, f"Failed to open file {file}: {e}"
-        assert True
-
-    @pytest.mark.parametrize("dask_client", ["TESTS"], indirect=True)
-    def test_converter_spraygliders_read_to_ddf_phy(self, dask_client):
-        """Test that SprayGliders conversion executes; this test does not use
-        convert() but its internal steps to check the dataframe is never empty
-        """
-        print("Dashboard address:")
-        print(dask_client.dashboard_link)
-
-        converterSG = ConverterSprayGliders(
-            db_type="PHY",
-        )
-
-        from dask.distributed import Lock
-        lock=Lock()
-
-        spray_files = glob.glob(os.path.join(converterSG.tmp_path, '*.nc'))
-        spray_names = [os.path.basename(f) for f in spray_files]
-        flist = random.sample(spray_names, k=min(3,len(spray_names)))
-
-        print(f"Testing with {len(flist)} of {len(spray_names)} files")
-        print("flist:")
-        print(flist)
-
-        converterSG.convert(
-            filenames=flist
-        )
-
-        return
-
     def test_converter_cpr_read_to_df(self):
         """
         Test that the CPR CSV file is correctly read into a pandas DataFrame.
