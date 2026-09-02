@@ -24,4 +24,5 @@ dependencies:
   - tqdm==4.70.0
   - pip
   - pip:
+      - ./crocolakeloader/
       - -e .

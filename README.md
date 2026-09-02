@@ -14,11 +14,22 @@ It is composed of two submodules, `downloader` and `converter`, which retrieve t
 ### Installation
 Clone the repository locally with its submodules:
 ```
-git clone --recursive git@github.com:boom-lab/crocolaketools-public.git
+git clone --recursive git@github.com:boom-lab/crocolaketools.git
+cd crocolaketools
 ```
-Install it with pip:
+
+#### Conda
+
+Install with
+``` sh
+conda env create -f environment.yml
 ```
-cd crocolaketools-public
+and activate with `conda activate crocolaketools`.
+
+#### pip
+
+Install with:
+```
 pip install ./crocolakeloader/
 pip install .
 ```
