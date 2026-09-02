@@ -30,7 +30,7 @@ def micromol_L_to_micromol_kg(ddf, col):
                           "Set add_derived_vars=True to enable unit conversion.")
 
     def convert_partition(df):
-        # convert DOXY units in a single partition.
+        df = df.copy()
         sigma0 = gsw.density.sigma0(df['ABS_SAL_COMPUTED'], df['CONSERVATIVE_TEMP_COMPUTED'])
         correction_factor = sigma0 / 1000 + 1
         df['DOXY'] = df['DOXY'] / correction_factor

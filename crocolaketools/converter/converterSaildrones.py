@@ -308,6 +308,9 @@ class ConverterSaildrones(Converter):
                 print("Adding derived variables")
                 ddf = self.compute_derived_variables(ddf)
             ddf = self.convert_units(ddf)
+            # Materialize now to defend from later cross-partition shuffles that
+            # could reapply compute
+            ddf = ddf.persist()
             ddf = self.reorder_columns(ddf)
             ddf = ddf.drop_duplicates()
             self.to_parquet(ddf)

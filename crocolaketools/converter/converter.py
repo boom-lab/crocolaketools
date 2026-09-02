@@ -251,6 +251,9 @@ class Converter:
             ddf = self.add_derived_variables(ddf)
 
         ddf = self.convert_units(ddf)
+        # Materialize here to prevent later shuffles (drop_duplicates,
+        # sort_rows) to silently re-applying the conversion multiple times
+        ddf = ddf.persist()
 
         ddf = self.reorder_columns(ddf)
 
