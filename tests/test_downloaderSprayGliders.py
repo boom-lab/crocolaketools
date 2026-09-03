@@ -142,14 +142,14 @@ class TestSprayDownload:
         d.input_path = str(tmp_path) + "/"
         expected_path = os.path.join(d.input_path, "CORC.nc")
         expected_url = f"{SPRAY_BASE_URL}/binnedCORC/CORC.nc"
- 
+
         with patch.object(
-            DownloaderSprayGliders, "get_url",
-            return_value=expected_url
+            DownloaderSprayGliders, "_check_url_reachable",
+            return_value=None
         ), patch.object(DownloaderSprayGliders, "_download_file") as mock_dl:
             result = d.spray_download()
             mock_dl.assert_called_once_with(expected_url, expected_path)
- 
+
         assert result == [expected_path]
  
     def test_returns_correct_paths(self, tmp_path, mock_base_downloader):
@@ -158,13 +158,13 @@ class TestSprayDownload:
         d = DownloaderSprayGliders(fnames=fnames)
         d.input_path = str(tmp_path) + "/"
         expected_paths = [os.path.join(d.input_path, f) for f in fnames]
- 
+
         with patch.object(
-            DownloaderSprayGliders, "get_url",
-            side_effect=lambda f: f"{SPRAY_BASE_URL}/{fnames[f]}"
+            DownloaderSprayGliders, "_check_url_reachable",
+            return_value=None
         ), patch.object(DownloaderSprayGliders, "_download_file"):
             result = d.spray_download()
- 
+
         assert result == expected_paths
  
     def test_overwrite_triggers_redownload(self, tmp_path, mock_base_downloader):
@@ -176,8 +176,8 @@ class TestSprayDownload:
             fh.write(b"old data")
  
         with patch.object(
-            DownloaderSprayGliders, "get_url",
-            return_value=f"{SPRAY_BASE_URL}/binnedCORC/CORC.nc"
+            DownloaderSprayGliders, "_check_url_reachable",
+            return_value=None
         ), patch.object(DownloaderSprayGliders, "_download_file") as mock_dl:
             d.spray_download()
             mock_dl.assert_called_once()

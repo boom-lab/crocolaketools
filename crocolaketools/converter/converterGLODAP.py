@@ -79,7 +79,7 @@ class ConverterGLODAP(Converter):
             filename = "GLODAPv3_Merged_Master_File.csv"
             print("Using default filename: ", filename)
 
-        input_fname = filename if os.path.isabs(filename) else self.input_path + filename
+        input_fname = filename if os.path.isabs(filename) else self.input_path / filename
         print("Reading GLODAP file: ", input_fname)
 
         # low_memory=False as GLODAP is a small db
@@ -131,6 +131,18 @@ class ConverterGLODAP(Converter):
                 )
                 params_to_check.append(param[:-1])
         ddf = ddf.persist()
+
+        # temperature and pressure have no dedicated QC flag column of their
+        # own, so bad values show up as GLODAP's -9999.0 sentinel fill value
+        # instead; replace it with NA before checking for all-NA rows
+        ddf = ddf.map_partitions(self.keep_best_pres_temp)
+        params_to_check.append("temperature")
+        ddf = ddf.persist()
+
+        # remove rows without a valid pressure reading
+        ddf = ddf.map_partitions(
+            super().remove_all_NAs, ["pressure"]
+        )
 
         # remove rows containing all NAs
         ddf = ddf.map_partitions(
@@ -256,8 +268,8 @@ class ConverterGLODAP(Converter):
             df["sum_mcc"] = df["sum_mcc"].astype("int64")
             return df
 
-        meta = unique_hash1_repartitioned._meta
-        meta["sum_mcc"] = "int64"
+        meta = unique_hash1_repartitioned._meta.copy()
+        meta["sum_mcc"] = pd.Series(dtype="int64")
         pl = unique_hash1_repartitioned.map_partitions(len).compute()
         if (pl==0).any():
             empty_partitions = pl[pl==0].index.tolist()
@@ -306,6 +318,26 @@ class ConverterGLODAP(Converter):
         # Find bad QC values
         df.loc[condition, param] = pd.NA
         df.loc[condition, param[:-1]] = pd.NA
+
+        return df
+
+#------------------------------------------------------------------------------#
+## Replace sentinel fill values for temperature and pressure
+    def keep_best_pres_temp(self,df):
+        """Replace GLODAP's -9999.0 sentinel fill value with NA for
+        temperature and pressure, which (unlike other parameters) have no
+        dedicated QC flag column of their own.
+
+        Arguments:
+        df -- a row or a partition of a pandas dataframe
+
+        Returns:
+        df -- updated dataframe
+
+        """
+
+        params = ["temperature", "pressure"]
+        df[params] = df[params].replace(-9999.0, pd.NA)
 
         return df
 

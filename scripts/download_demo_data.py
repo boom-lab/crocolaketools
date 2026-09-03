@@ -69,8 +69,6 @@ def main():
         destination = args.d
 
     destination = Path(destination)
-    base_path = Path(importlib.resources.files("crocolaketools.config"))
-    destination = (base_path / destination).resolve()
     destination.mkdir(parents = True, exist_ok = True)
 
     # Download the dataset

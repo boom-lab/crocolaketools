@@ -112,7 +112,7 @@ class ConverterSaildrones(Converter):
         if filename is None:
             raise ValueError("No filename provided for Saildrone database.")
 
-        input_fname = self.input_path + filename
+        input_fname = self.input_path / filename
         print("Reading file: ", input_fname)
 
         # Hold lock for the entire NetCDF operation to prevent race conditions
@@ -308,6 +308,9 @@ class ConverterSaildrones(Converter):
                 print("Adding derived variables")
                 ddf = self.compute_derived_variables(ddf)
             ddf = self.convert_units(ddf)
+            # Materialize now to defend from later cross-partition shuffles that
+            # could reapply compute
+            ddf = ddf.persist()
             ddf = self.reorder_columns(ddf)
             ddf = ddf.drop_duplicates()
             self.to_parquet(ddf)

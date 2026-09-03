@@ -53,7 +53,7 @@ class ConverterSprayGliders(Converter):
 
 #------------------------------------------------------------------------------#
 ## Chunk large netcdf files
-    def prepare_data(self, flist=None, lock=None):
+    def prepare_data(self, flist=None, lock=None, chunk_profile=None):
         """Read list of netCDF files and chunk them and save them into smaller
         files. This is because dask is not efficient at lazingly converting dask
         arrays to dask dataframes.
@@ -80,13 +80,13 @@ class ConverterSprayGliders(Converter):
         for fname in flist:
             if not fname.endswith(".nc"):
                 raise ValueError(f"{fname} does not end with '.nc'.")
-            self.prepare_nc(fname, lock)
+            self.prepare_nc(fname, lock, chunk_profile)
 
         return
 
 #------------------------------------------------------------------------------#
 ## Chunk large netcdf files
-    def prepare_nc(self,filename,lock):
+    def prepare_nc(self,filename,lock,chunk_profile=None):
         """Take a netCDF file and chunk it into smaller files
 
         Arguments:
@@ -94,11 +94,12 @@ class ConverterSprayGliders(Converter):
         lock -- dask lock to use for concurrency
         """
 
-        input_fname = self.input_path + filename
+        input_fname = self.input_path / filename
         print("Reading file: ", input_fname)
 
         # chunking is empirical to force small chunks
-        chunk_profile = 5000
+        if chunk_profile is None:
+            chunk_profile = 5000
         chunk_depth = -1
         chunk_trajectory = -1
         chunk_dict = {
@@ -110,7 +111,8 @@ class ConverterSprayGliders(Converter):
         ds = xr.open_dataset(
             input_fname,
             cache=False,
-            chunks=chunk_dict
+            chunks=chunk_dict,
+            engine="h5netcdf",
         )
 
         tmp_path = self.tmp_path

@@ -1,0 +1,567 @@
+{
+  "columns": {
+    "ABS_SAL_COMPUTED": {
+      "dtype": "float[pyarrow]",
+      "max": 37.361610412597656,
+      "min": 33.779563903808594,
+      "n_null": 80
+    },
+    "BBP": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "BBP470": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "BBP470_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 162
+    },
+    "BBP470_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "BBP470_QC": {
+      "dtype": "uint8[pyarrow]",
+      "n_null": 162
+    },
+    "BBP532": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "BBP532_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 162
+    },
+    "BBP532_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "BBP532_QC": {
+      "dtype": "uint8[pyarrow]",
+      "n_null": 162
+    },
+    "BBP700": {
+      "dtype": "float[pyarrow]",
+      "max": 0.0010106083936989307,
+      "min": 0.00012456145486794412,
+      "n_null": 109
+    },
+    "BBP700_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 80
+    },
+    "BBP700_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "BBP700_QC": {
+      "dtype": "uint8[pyarrow]",
+      "max": 8.0,
+      "min": 1.0,
+      "n_null": 109
+    },
+    "BBP_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 162
+    },
+    "BBP_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "BBP_QC": {
+      "dtype": "uint8[pyarrow]",
+      "n_null": 162
+    },
+    "BISULFIDE": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "BISULFIDE_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 162
+    },
+    "BISULFIDE_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "BISULFIDE_QC": {
+      "dtype": "uint8[pyarrow]",
+      "n_null": 162
+    },
+    "CDOM": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "CDOM_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 116
+    },
+    "CDOM_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "CDOM_QC": {
+      "dtype": "uint8[pyarrow]",
+      "n_null": 162
+    },
+    "CHLA": {
+      "dtype": "float[pyarrow]",
+      "max": 0.41068291664123535,
+      "min": 0.001203648280352354,
+      "n_null": 106
+    },
+    "CHLA_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 80
+    },
+    "CHLA_ERROR": {
+      "dtype": "float[pyarrow]",
+      "max": 0.8013437390327454,
+      "min": 0.002407296560704708,
+      "n_null": 118
+    },
+    "CHLA_QC": {
+      "dtype": "uint8[pyarrow]",
+      "max": 8.0,
+      "min": 1.0,
+      "n_null": 106
+    },
+    "CONSERVATIVE_TEMP_COMPUTED": {
+      "dtype": "float[pyarrow]",
+      "max": 25.8812198638916,
+      "min": 1.8014394044876099,
+      "n_null": 80
+    },
+    "CP": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "CP660": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "CP660_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 162
+    },
+    "CP660_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "CP660_QC": {
+      "dtype": "uint8[pyarrow]",
+      "n_null": 162
+    },
+    "CP_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 162
+    },
+    "CP_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "CP_QC": {
+      "dtype": "uint8[pyarrow]",
+      "n_null": 162
+    },
+    "CYCLE_NUMBER": {
+      "dtype": "int64[pyarrow]",
+      "max": 149.0,
+      "min": 1.0,
+      "n_null": 0
+    },
+    "DATE_UPDATE": {
+      "dtype": "timestamp[ns][pyarrow]",
+      "n_null": 0
+    },
+    "DB_NAME": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "DOWNWELLING_PAR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "DOWNWELLING_PAR_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 162
+    },
+    "DOWNWELLING_PAR_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "DOWNWELLING_PAR_QC": {
+      "dtype": "uint8[pyarrow]",
+      "n_null": 162
+    },
+    "DOWN_IRRADIANCE": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "DOWN_IRRADIANCE380": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "DOWN_IRRADIANCE380_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 162
+    },
+    "DOWN_IRRADIANCE380_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "DOWN_IRRADIANCE380_QC": {
+      "dtype": "uint8[pyarrow]",
+      "n_null": 162
+    },
+    "DOWN_IRRADIANCE412": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "DOWN_IRRADIANCE412_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 162
+    },
+    "DOWN_IRRADIANCE412_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "DOWN_IRRADIANCE412_QC": {
+      "dtype": "uint8[pyarrow]",
+      "n_null": 162
+    },
+    "DOWN_IRRADIANCE443": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "DOWN_IRRADIANCE443_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 162
+    },
+    "DOWN_IRRADIANCE443_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "DOWN_IRRADIANCE443_QC": {
+      "dtype": "uint8[pyarrow]",
+      "n_null": 162
+    },
+    "DOWN_IRRADIANCE490": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "DOWN_IRRADIANCE490_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 162
+    },
+    "DOWN_IRRADIANCE490_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "DOWN_IRRADIANCE490_QC": {
+      "dtype": "uint8[pyarrow]",
+      "n_null": 162
+    },
+    "DOWN_IRRADIANCE555": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "DOWN_IRRADIANCE555_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 162
+    },
+    "DOWN_IRRADIANCE555_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "DOWN_IRRADIANCE555_QC": {
+      "dtype": "uint8[pyarrow]",
+      "n_null": 162
+    },
+    "DOWN_IRRADIANCE_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 162
+    },
+    "DOWN_IRRADIANCE_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "DOWN_IRRADIANCE_QC": {
+      "dtype": "uint8[pyarrow]",
+      "n_null": 162
+    },
+    "DOXY": {
+      "dtype": "float[pyarrow]",
+      "max": 325.31195068359375,
+      "min": 68.67631530761719,
+      "n_null": 109
+    },
+    "DOXY_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "DOXY_ERROR": {
+      "dtype": "float[pyarrow]",
+      "max": 16.57465171813965,
+      "min": 1.9483660459518433,
+      "n_null": 109
+    },
+    "DOXY_QC": {
+      "dtype": "uint8[pyarrow]",
+      "max": 8.0,
+      "min": 1.0,
+      "n_null": 109
+    },
+    "JULD": {
+      "dtype": "timestamp[ns][pyarrow]",
+      "n_null": 0
+    },
+    "LATITUDE": {
+      "dtype": "double[pyarrow]",
+      "max": 58.67187333333333,
+      "min": 16.645,
+      "n_null": 0
+    },
+    "LONGITUDE": {
+      "dtype": "double[pyarrow]",
+      "max": -29.8594,
+      "min": -73.37484741210938,
+      "n_null": 0
+    },
+    "NITRATE": {
+      "dtype": "float[pyarrow]",
+      "max": 32.322242736816406,
+      "min": -4.719900608062744,
+      "n_null": 127
+    },
+    "NITRATE_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 96
+    },
+    "NITRATE_ERROR": {
+      "dtype": "float[pyarrow]",
+      "max": 1.7526534795761108,
+      "min": 1.1948366165161133,
+      "n_null": 127
+    },
+    "NITRATE_QC": {
+      "dtype": "uint8[pyarrow]",
+      "max": 1.0,
+      "min": 1.0,
+      "n_null": 127
+    },
+    "PH_IN_SITU_TOTAL": {
+      "dtype": "float[pyarrow]",
+      "max": 8.092436790466309,
+      "min": 7.921713352203369,
+      "n_null": 152
+    },
+    "PH_IN_SITU_TOTAL_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 34
+    },
+    "PH_IN_SITU_TOTAL_ERROR": {
+      "dtype": "float[pyarrow]",
+      "max": 1.2989041805267334,
+      "min": 1.1948366165161133,
+      "n_null": 152
+    },
+    "PH_IN_SITU_TOTAL_QC": {
+      "dtype": "uint8[pyarrow]",
+      "max": 1.0,
+      "min": 1.0,
+      "n_null": 152
+    },
+    "PLATFORM_NUMBER": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "PRES": {
+      "dtype": "float[pyarrow]",
+      "max": 3869.5,
+      "min": -0.10000000149011612,
+      "n_null": 16
+    },
+    "PRES_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "PRES_ERROR": {
+      "dtype": "float[pyarrow]",
+      "max": 3.6122918128967285,
+      "min": 2.00083327293396,
+      "n_null": 56
+    },
+    "PRES_QC": {
+      "dtype": "uint8[pyarrow]",
+      "max": 1.0,
+      "min": 1.0,
+      "n_null": 16
+    },
+    "PSAL": {
+      "dtype": "float[pyarrow]",
+      "max": 37.18600082397461,
+      "min": 33.619998931884766,
+      "n_null": 80
+    },
+    "PSAL_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "PSAL_ERROR": {
+      "dtype": "float[pyarrow]",
+      "max": 0.04093395546078682,
+      "min": 0.004000000189989805,
+      "n_null": 102
+    },
+    "PSAL_QC": {
+      "dtype": "uint8[pyarrow]",
+      "max": 8.0,
+      "min": 1.0,
+      "n_null": 80
+    },
+    "SIGMA1_COMPUTED": {
+      "dtype": "float[pyarrow]",
+      "max": 32.563411712646484,
+      "min": 28.05565643310547,
+      "n_null": 80
+    },
+    "TEMP": {
+      "dtype": "float[pyarrow]",
+      "max": 26.39276885986328,
+      "min": 2.119999885559082,
+      "n_null": 47
+    },
+    "TEMP_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "TEMP_ERROR": {
+      "dtype": "float[pyarrow]",
+      "max": 0.0020000000949949026,
+      "min": 0.0020000000949949026,
+      "n_null": 75
+    },
+    "TEMP_QC": {
+      "dtype": "uint8[pyarrow]",
+      "max": 8.0,
+      "min": 1.0,
+      "n_null": 47
+    },
+    "TURBIDITY": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "TURBIDITY_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 162
+    },
+    "TURBIDITY_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "TURBIDITY_QC": {
+      "dtype": "uint8[pyarrow]",
+      "n_null": 162
+    },
+    "UP_IRRADIANCE": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "UP_IRRADIANCE380": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "UP_IRRADIANCE380_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 162
+    },
+    "UP_IRRADIANCE380_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "UP_IRRADIANCE380_QC": {
+      "dtype": "uint8[pyarrow]",
+      "n_null": 162
+    },
+    "UP_IRRADIANCE412": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "UP_IRRADIANCE412_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 162
+    },
+    "UP_IRRADIANCE412_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "UP_IRRADIANCE412_QC": {
+      "dtype": "uint8[pyarrow]",
+      "n_null": 162
+    },
+    "UP_IRRADIANCE443": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "UP_IRRADIANCE443_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 162
+    },
+    "UP_IRRADIANCE443_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "UP_IRRADIANCE443_QC": {
+      "dtype": "uint8[pyarrow]",
+      "n_null": 162
+    },
+    "UP_IRRADIANCE490": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "UP_IRRADIANCE490_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 162
+    },
+    "UP_IRRADIANCE490_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "UP_IRRADIANCE490_QC": {
+      "dtype": "uint8[pyarrow]",
+      "n_null": 162
+    },
+    "UP_IRRADIANCE555": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "UP_IRRADIANCE555_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 162
+    },
+    "UP_IRRADIANCE555_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "UP_IRRADIANCE555_QC": {
+      "dtype": "uint8[pyarrow]",
+      "n_null": 162
+    },
+    "UP_IRRADIANCE_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 162
+    },
+    "UP_IRRADIANCE_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 162
+    },
+    "UP_IRRADIANCE_QC": {
+      "dtype": "uint8[pyarrow]",
+      "n_null": 162
+    }
+  },
+  "n_rows": 162
+}

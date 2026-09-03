@@ -70,7 +70,7 @@ class ConverterSPOTS(Converter):
             filename = "spots.csv"
             print("Using default filename: ", filename)
 
-        input_fname = self.input_path + filename
+        input_fname = self.input_path / filename
         print("Reading SPOTS file: ", input_fname)
 
         # low_memory = False as SPOTS is a small db

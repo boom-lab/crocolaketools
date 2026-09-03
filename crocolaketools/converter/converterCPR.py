@@ -53,7 +53,7 @@ class ConverterCPR(Converter):
         if filename is None:
             raise ValueError("No filename provided for CPR database.")
 
-        input_fname = self.input_path + filename
+        input_fname = self.input_path / filename
         logger.info(f"Reading CPR file: {input_fname}")
 
         try:

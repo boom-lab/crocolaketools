@@ -32,6 +32,24 @@ from crocolaketools.converter.converterCPR import ConverterCPR
 from crocolaketools.converter.converterSaildrones import ConverterSaildrones
 from crocolaketools import db_names,db_params
 
+def _plausible_extreme_profiles():
+    """(LATITUDE, LONGITUDE, PSAL, PRES, TEMP) profiles spanning the ocean's
+    realistic physical envelope -- polar to tropical, brackish to
+    hypersaline, surface to abyssal -- so a derived-variable bounds check
+    exercises near-extreme values.
+    """
+    data = {
+        # polar surface, tropical surface, mid-lat abyssal, coastal
+        # brackish, hypersaline restricted sea, cold deep salty, warm-salty
+        # outflow at depth, deep trench
+        'LATITUDE':  [-70.0,  10.0,    40.0,   45.0,  20.0,  55.0,   36.0,   11.0],
+        'LONGITUDE': [-30.0,  -170.0,  -40.0,  -65.0, 38.0,  -20.0,  5.0,    -155.0],
+        'PSAL':      [34.5,   36.0,    34.9,   5.0,   40.0,  34.9,   38.4,   34.7],
+        'PRES':      [5.0,    5.0,     5000.0, 2.0,   5.0,   4000.0, 1000.0, 10000.0],
+        'TEMP':      [-1.8,   30.0,    2.0,    15.0,  32.0,  3.0,    13.0,   1.5],
+    }
+    return pd.DataFrame(data)
+
 ##########################################################################
 class TestConverter:
 
@@ -731,81 +749,82 @@ class TestConverter:
 
         print(ddf.compute())
 
-    def test_converter_spraygliders_prepare_tmp(self):
-        """Test that SprayGliders conversion executes; this test does not use
-        convert() but its internal steps to check the dataframe is never empty
+    @staticmethod
+    def _assert_within_bounds(result, var, lower, upper, unit):
+        """Assert result[var] stays within [lower, upper]; print and name the
+        failing rows first if not
         """
-        client = Client(
-            threads_per_worker=2,
-            n_workers=1,
-            memory_limit='100GB',
-            dashboard_address=':8787',
+        out_of_bounds = result[(result[var] < lower) | (result[var] > upper)]
+        if not out_of_bounds.empty:
+            print(f"{var} out of bounds [{lower}, {upper}] {unit}:")
+            print(out_of_bounds[["LATITUDE", "LONGITUDE", "PSAL", "PRES", "TEMP", var]])
+        assert out_of_bounds.empty, (
+            f"{var} outside physically admissible bounds [{lower}, {upper}] {unit} "
+            f"for {len(out_of_bounds)} row(s) (see printed output above)"
         )
 
-        converterSG = ConverterSprayGliders(
+    def test_converter_abs_sal_computed(self):
+        """Check that ABS_SAL_COMPUTED (TEOS-10 Absolute Salinity, g/kg) is
+        within physically admissible bounds.
+        """
+        pdf = _plausible_extreme_profiles()
+        ddf = dd.from_pandas(pdf, npartitions=2)
+
+        # create converter simply to access function to test
+        converterPHY = ConverterArgoQC(
             db_type="PHY",
         )
 
-        from dask.distributed import Lock
-        lock=Lock()
+        with pytest.warns(UserWarning):
+            ddf = converterPHY.add_derived_variables(ddf)
 
-        # select three random files to test
-        spray_files = glob.glob(os.path.join(converterSG.input_path, '*.nc'))
-        spray_names = [os.path.basename(f) for f in spray_files]
-        flist = random.sample(spray_names, k=min(3,len(spray_names)))
-        print(f"Testing with {len(flist)} of {len(spray_names)} files")
-        print("flist:")
-        print(flist)
+        var = "ABS_SAL_COMPUTED"
+        assert var in ddf.columns
+        result = ddf.compute()
 
-        converterSG.prepare_data(flist=flist,lock=lock)
+        self._assert_within_bounds(result, var, lower=0.0, upper=50.0, unit="g/kg")
 
-        not_empty_dir = bool(os.listdir(converterSG.tmp_path))
-        assert not_empty_dir == True
-
-        for file in glob.glob(converterSG.tmp_path+"/*.nc"):
-            try:
-                ds = xr.open_dataset(file, engine="h5netcdf", chunks=None, cache=True)
-            except Exception as e:
-                assert False, f"Failed to open file {file}: {e}"
-        assert True
-
-        client.shutdown()
-
-    def test_converter_spraygliders_read_to_ddf_phy(self):
-        """Test that SprayGliders conversion executes; this test does not use
-        convert() but its internal steps to check the dataframe is never empty
+    def test_converter_conservative_temp_computed(self):
+        """Check that CONSERVATIVE_TEMP_COMPUTED (degrees C) is within
+        physically admissible bounds.
         """
-        client = Client(
-            threads_per_worker=20,
-            n_workers=1,
-            memory_limit='100GB',
-            dashboard_address=':1419',
-        )
-        print("Dashboard address:")
-        print(client.dashboard_link)
+        pdf = _plausible_extreme_profiles()
+        ddf = dd.from_pandas(pdf, npartitions=2)
 
-        converterSG = ConverterSprayGliders(
+        converterPHY = ConverterArgoQC(
             db_type="PHY",
         )
 
-        from dask.distributed import Lock
-        lock=Lock()
+        with pytest.warns(UserWarning):
+            ddf = converterPHY.add_derived_variables(ddf)
 
-        spray_files = glob.glob(os.path.join(converterSG.tmp_path, '*.nc'))
-        spray_names = [os.path.basename(f) for f in spray_files]
-        flist = random.sample(spray_names, k=min(3,len(spray_names)))
+        var = "CONSERVATIVE_TEMP_COMPUTED"
+        assert var in ddf.columns
+        result = ddf.compute()
 
-        print(f"Testing with {len(flist)} of {len(spray_names)} files")
-        print("flist:")
-        print(flist)
+        self._assert_within_bounds(result, var, lower=-3.0, upper=40.0, unit="degC")
 
-        converterSG.convert(
-            filenames=flist
+    def test_converter_sigma1_computed(self):
+        """Check that SIGMA1_COMPUTED (potential density anomaly
+        referenced to 1000 dbar, kg/m^3) is within physically
+        admissible bounds.
+        """
+        pdf = _plausible_extreme_profiles()
+        ddf = dd.from_pandas(pdf, npartitions=2)
+
+        converterPHY = ConverterArgoQC(
+            db_type="PHY",
         )
 
-        client.shutdown()
+        with pytest.warns(UserWarning):
+            ddf = converterPHY.add_derived_variables(ddf)
 
-        return
+        var = "SIGMA1_COMPUTED"
+        assert var in ddf.columns
+        result = ddf.compute()
+
+        self._assert_within_bounds(result, var, lower=0.0, upper=35.0, unit="kg/m^3")
+
 
     def test_converter_cpr_read_to_df(self):
         """

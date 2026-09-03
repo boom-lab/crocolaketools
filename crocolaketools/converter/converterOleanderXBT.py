@@ -106,7 +106,7 @@ class ConverterOleanderXBT(Converter):
         if filename is None:
             raise ValueError("No filename provided for OleanderXBT database.")
 
-        input_fname = self.input_path + filename
+        input_fname = self.input_path / filename
         print("Reading file: ", input_fname)
 
         lock.acquire(timeout=600)

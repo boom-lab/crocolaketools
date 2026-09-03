@@ -1,0 +1,297 @@
+{
+  "columns": {
+    "ABS_SAL_COMPUTED": {
+      "dtype": "float[pyarrow]",
+      "max": 37.56656265258789,
+      "min": 34.55344772338867,
+      "n_null": 0
+    },
+    "CCL4": {
+      "dtype": "float[pyarrow]",
+      "n_null": 19
+    },
+    "CCL4_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 19
+    },
+    "CCL4_QC": {
+      "dtype": "uint8[pyarrow]",
+      "n_null": 19
+    },
+    "CFC11": {
+      "dtype": "float[pyarrow]",
+      "max": 4.429999828338623,
+      "min": -0.004000000189989805,
+      "n_null": 13
+    },
+    "CFC113": {
+      "dtype": "float[pyarrow]",
+      "n_null": 19
+    },
+    "CFC113_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 19
+    },
+    "CFC113_QC": {
+      "dtype": "uint8[pyarrow]",
+      "n_null": 19
+    },
+    "CFC11_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 19
+    },
+    "CFC11_QC": {
+      "dtype": "uint8[pyarrow]",
+      "max": 2.0,
+      "min": 2.0,
+      "n_null": 13
+    },
+    "CFC12": {
+      "dtype": "float[pyarrow]",
+      "max": 2.375,
+      "min": 0.0,
+      "n_null": 14
+    },
+    "CFC12_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 19
+    },
+    "CFC12_QC": {
+      "dtype": "uint8[pyarrow]",
+      "max": 2.0,
+      "min": 2.0,
+      "n_null": 14
+    },
+    "CHLA": {
+      "dtype": "float[pyarrow]",
+      "n_null": 19
+    },
+    "CHLA_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 19
+    },
+    "CHLA_QC": {
+      "dtype": "uint8[pyarrow]",
+      "n_null": 19
+    },
+    "CONSERVATIVE_TEMP_COMPUTED": {
+      "dtype": "float[pyarrow]",
+      "max": 27.097898483276367,
+      "min": -1.8757449388504028,
+      "n_null": 0
+    },
+    "CYCLE_NUMBER": {
+      "dtype": "int32[pyarrow]",
+      "max": 1.0,
+      "min": 1.0,
+      "n_null": 0
+    },
+    "DATE_UPDATE": {
+      "dtype": "timestamp[ns][pyarrow]",
+      "n_null": 0
+    },
+    "DB_NAME": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "DOXY": {
+      "dtype": "float[pyarrow]",
+      "max": 362.0,
+      "min": 51.79999923706055,
+      "n_null": 1
+    },
+    "DOXY_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 19
+    },
+    "DOXY_QC": {
+      "dtype": "uint8[pyarrow]",
+      "max": 2.0,
+      "min": 0.0,
+      "n_null": 1
+    },
+    "JULD": {
+      "dtype": "timestamp[ns][pyarrow]",
+      "n_null": 0
+    },
+    "LATITUDE": {
+      "dtype": "double[pyarrow]",
+      "max": 77.0,
+      "min": -63.9457,
+      "n_null": 0
+    },
+    "LONGITUDE": {
+      "dtype": "double[pyarrow]",
+      "max": 164.995,
+      "min": -178.00829999999996,
+      "n_null": 0
+    },
+    "NITRATE": {
+      "dtype": "float[pyarrow]",
+      "max": 42.59000015258789,
+      "min": 0.029999999329447746,
+      "n_null": 3
+    },
+    "NITRATE_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 19
+    },
+    "NITRATE_QC": {
+      "dtype": "uint8[pyarrow]",
+      "max": 2.0,
+      "min": 0.0,
+      "n_null": 3
+    },
+    "PHOSPHATE": {
+      "dtype": "float[pyarrow]",
+      "max": 3.109999895095825,
+      "min": 0.05999999865889549,
+      "n_null": 3
+    },
+    "PHOSPHATE_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 19
+    },
+    "PHOSPHATE_QC": {
+      "dtype": "uint8[pyarrow]",
+      "max": 2.0,
+      "min": 0.0,
+      "n_null": 3
+    },
+    "PH_IN_SITU_TOTAL": {
+      "dtype": "float[pyarrow]",
+      "max": 8.112099647521973,
+      "min": 7.7154998779296875,
+      "n_null": 13
+    },
+    "PH_IN_SITU_TOTAL_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 19
+    },
+    "PH_IN_SITU_TOTAL_QC": {
+      "dtype": "uint8[pyarrow]",
+      "max": 2.0,
+      "min": 2.0,
+      "n_null": 13
+    },
+    "PLATFORM_NUMBER": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "PRES": {
+      "dtype": "float[pyarrow]",
+      "max": 2209.199951171875,
+      "min": 41.0,
+      "n_null": 0
+    },
+    "PRES_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 19
+    },
+    "PRES_QC": {
+      "dtype": "uint8[pyarrow]",
+      "n_null": 19
+    },
+    "PSAL": {
+      "dtype": "float[pyarrow]",
+      "max": 37.390098571777344,
+      "min": 34.390098571777344,
+      "n_null": 0
+    },
+    "PSAL_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 19
+    },
+    "PSAL_QC": {
+      "dtype": "uint8[pyarrow]",
+      "max": 2.0,
+      "min": 2.0,
+      "n_null": 0
+    },
+    "SF6": {
+      "dtype": "float[pyarrow]",
+      "max": 3.549999952316284,
+      "min": 2.0220000743865967,
+      "n_null": 17
+    },
+    "SF6_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 19
+    },
+    "SF6_QC": {
+      "dtype": "uint8[pyarrow]",
+      "max": 2.0,
+      "min": 2.0,
+      "n_null": 17
+    },
+    "SIGMA1_COMPUTED": {
+      "dtype": "float[pyarrow]",
+      "max": 33.28702926635742,
+      "min": 28.618371963500977,
+      "n_null": 0
+    },
+    "SILICATE": {
+      "dtype": "float[pyarrow]",
+      "max": 147.9199981689453,
+      "min": 1.4500000476837158,
+      "n_null": 3
+    },
+    "SILICATE_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 19
+    },
+    "SILICATE_QC": {
+      "dtype": "uint8[pyarrow]",
+      "max": 2.0,
+      "min": 0.0,
+      "n_null": 3
+    },
+    "TCO2": {
+      "dtype": "float[pyarrow]",
+      "max": 2348.199951171875,
+      "min": 2153.10009765625,
+      "n_null": 11
+    },
+    "TCO2_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 19
+    },
+    "TCO2_QC": {
+      "dtype": "uint8[pyarrow]",
+      "max": 2.0,
+      "min": 2.0,
+      "n_null": 11
+    },
+    "TEMP": {
+      "dtype": "float[pyarrow]",
+      "max": 27.19969940185547,
+      "min": -1.875,
+      "n_null": 0
+    },
+    "TEMP_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 19
+    },
+    "TEMP_QC": {
+      "dtype": "uint8[pyarrow]",
+      "n_null": 19
+    },
+    "TOT_ALKALINITY": {
+      "dtype": "float[pyarrow]",
+      "max": 2404.300048828125,
+      "min": 2290.0,
+      "n_null": 10
+    },
+    "TOT_ALKALINITY_ERROR": {
+      "dtype": "float[pyarrow]",
+      "n_null": 19
+    },
+    "TOT_ALKALINITY_QC": {
+      "dtype": "uint8[pyarrow]",
+      "max": 2.0,
+      "min": 2.0,
+      "n_null": 10
+    }
+  },
+  "n_rows": 19
+}

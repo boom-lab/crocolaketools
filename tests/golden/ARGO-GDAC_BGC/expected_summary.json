@@ -1,0 +1,1011 @@
+{
+  "columns": {
+    "BBP": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "BBP470": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "BBP470_ADJUSTED": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "BBP470_ADJUSTED_ERROR": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "BBP470_ADJUSTED_QC": {
+      "dtype": "Int8",
+      "n_null": 375
+    },
+    "BBP470_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "BBP470_QC": {
+      "dtype": "Int8",
+      "n_null": 375
+    },
+    "BBP470_dPRES": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "BBP532": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "BBP532_ADJUSTED": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "BBP532_ADJUSTED_ERROR": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "BBP532_ADJUSTED_QC": {
+      "dtype": "Int8",
+      "n_null": 375
+    },
+    "BBP532_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "BBP532_QC": {
+      "dtype": "Int8",
+      "n_null": 375
+    },
+    "BBP532_dPRES": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "BBP700": {
+      "dtype": "float32",
+      "max": 0.0033959196880459785,
+      "min": -0.0005999999702908099,
+      "n_null": 235
+    },
+    "BBP700_ADJUSTED": {
+      "dtype": "float32",
+      "max": 0.000950508052483201,
+      "min": 0.0004966888809576631,
+      "n_null": 300
+    },
+    "BBP700_ADJUSTED_ERROR": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "BBP700_ADJUSTED_QC": {
+      "dtype": "Int8",
+      "max": 1.0,
+      "min": 0.0,
+      "n_null": 225
+    },
+    "BBP700_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "BBP700_QC": {
+      "dtype": "Int8",
+      "max": 8.0,
+      "min": 0.0,
+      "n_null": 225
+    },
+    "BBP700_dPRES": {
+      "dtype": "float32",
+      "max": 0.10000000149011612,
+      "min": -0.10000000149011612,
+      "n_null": 235
+    },
+    "BBP_ADJUSTED": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "BBP_ADJUSTED_ERROR": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "BBP_ADJUSTED_QC": {
+      "dtype": "Int8",
+      "n_null": 375
+    },
+    "BBP_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "BBP_QC": {
+      "dtype": "Int8",
+      "n_null": 375
+    },
+    "BBP_dPRES": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "BISULFIDE": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "BISULFIDE_ADJUSTED": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "BISULFIDE_ADJUSTED_ERROR": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "BISULFIDE_ADJUSTED_QC": {
+      "dtype": "Int8",
+      "n_null": 375
+    },
+    "BISULFIDE_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "BISULFIDE_QC": {
+      "dtype": "Int8",
+      "n_null": 375
+    },
+    "BISULFIDE_dPRES": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "CDOM": {
+      "dtype": "float32",
+      "max": 0.8042929768562317,
+      "min": 0.7500709891319275,
+      "n_null": 300
+    },
+    "CDOM_ADJUSTED": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "CDOM_ADJUSTED_ERROR": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "CDOM_ADJUSTED_QC": {
+      "dtype": "Int8",
+      "max": 0.0,
+      "min": 0.0,
+      "n_null": 300
+    },
+    "CDOM_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "CDOM_QC": {
+      "dtype": "Int8",
+      "max": 3.0,
+      "min": 3.0,
+      "n_null": 300
+    },
+    "CDOM_dPRES": {
+      "dtype": "float32",
+      "max": 0.0,
+      "min": 0.0,
+      "n_null": 300
+    },
+    "CHLA": {
+      "dtype": "float32",
+      "max": 0.5328999757766724,
+      "min": -0.065700002014637,
+      "n_null": 235
+    },
+    "CHLA_ADJUSTED": {
+      "dtype": "float32",
+      "max": 0.25189998745918274,
+      "min": -0.03290000185370445,
+      "n_null": 235
+    },
+    "CHLA_ADJUSTED_ERROR": {
+      "dtype": "float32",
+      "max": 0.20555199682712555,
+      "min": 0.05298199877142906,
+      "n_null": 300
+    },
+    "CHLA_ADJUSTED_QC": {
+      "dtype": "Int8",
+      "max": 8.0,
+      "min": 0.0,
+      "n_null": 225
+    },
+    "CHLA_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "CHLA_FLUORESCENCE": {
+      "dtype": "float32",
+      "max": 0.22805200517177582,
+      "min": 0.07548200339078903,
+      "n_null": 300
+    },
+    "CHLA_FLUORESCENCE_ADJUSTED": {
+      "dtype": "float32",
+      "max": 0.20555199682712555,
+      "min": 0.05298199877142906,
+      "n_null": 300
+    },
+    "CHLA_FLUORESCENCE_ADJUSTED_ERROR": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "CHLA_FLUORESCENCE_ADJUSTED_QC": {
+      "dtype": "Int8",
+      "max": 1.0,
+      "min": 1.0,
+      "n_null": 300
+    },
+    "CHLA_FLUORESCENCE_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "CHLA_FLUORESCENCE_QC": {
+      "dtype": "Int8",
+      "max": 3.0,
+      "min": 3.0,
+      "n_null": 300
+    },
+    "CHLA_FLUORESCENCE_dPRES": {
+      "dtype": "float32",
+      "max": 0.0,
+      "min": 0.0,
+      "n_null": 300
+    },
+    "CHLA_QC": {
+      "dtype": "Int8",
+      "max": 8.0,
+      "min": 0.0,
+      "n_null": 225
+    },
+    "CHLA_dPRES": {
+      "dtype": "float32",
+      "max": 0.10000000149011612,
+      "min": -0.10000000149011612,
+      "n_null": 235
+    },
+    "CP": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "CP660": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "CP660_ADJUSTED": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "CP660_ADJUSTED_ERROR": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "CP660_ADJUSTED_QC": {
+      "dtype": "Int8",
+      "n_null": 375
+    },
+    "CP660_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "CP660_QC": {
+      "dtype": "Int8",
+      "n_null": 375
+    },
+    "CP660_dPRES": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "CP_ADJUSTED": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "CP_ADJUSTED_ERROR": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "CP_ADJUSTED_QC": {
+      "dtype": "Int8",
+      "n_null": 375
+    },
+    "CP_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "CP_QC": {
+      "dtype": "Int8",
+      "n_null": 375
+    },
+    "CP_dPRES": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "CYCLE_NUMBER": {
+      "dtype": "Int64",
+      "max": 120.0,
+      "min": 1.0,
+      "n_null": 0
+    },
+    "DATE_UPDATE": {
+      "dtype": "datetime64[ns]",
+      "n_null": 0
+    },
+    "DIRECTION": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "DOWNWELLING_PAR": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "DOWNWELLING_PAR_ADJUSTED": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "DOWNWELLING_PAR_ADJUSTED_ERROR": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "DOWNWELLING_PAR_ADJUSTED_QC": {
+      "dtype": "Int8",
+      "n_null": 375
+    },
+    "DOWNWELLING_PAR_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "DOWNWELLING_PAR_QC": {
+      "dtype": "Int8",
+      "n_null": 375
+    },
+    "DOWNWELLING_PAR_dPRES": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "DOWN_IRRADIANCE": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "DOWN_IRRADIANCE380": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "DOWN_IRRADIANCE380_ADJUSTED": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "DOWN_IRRADIANCE380_ADJUSTED_ERROR": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "DOWN_IRRADIANCE380_ADJUSTED_QC": {
+      "dtype": "Int8",
+      "n_null": 375
+    },
+    "DOWN_IRRADIANCE380_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "DOWN_IRRADIANCE380_QC": {
+      "dtype": "Int8",
+      "n_null": 375
+    },
+    "DOWN_IRRADIANCE380_dPRES": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "DOWN_IRRADIANCE412": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "DOWN_IRRADIANCE412_ADJUSTED": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "DOWN_IRRADIANCE412_ADJUSTED_ERROR": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "DOWN_IRRADIANCE412_ADJUSTED_QC": {
+      "dtype": "Int8",
+      "n_null": 375
+    },
+    "DOWN_IRRADIANCE412_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "DOWN_IRRADIANCE412_QC": {
+      "dtype": "Int8",
+      "n_null": 375
+    },
+    "DOWN_IRRADIANCE412_dPRES": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "DOWN_IRRADIANCE443": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "DOWN_IRRADIANCE443_ADJUSTED": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "DOWN_IRRADIANCE443_ADJUSTED_ERROR": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "DOWN_IRRADIANCE443_ADJUSTED_QC": {
+      "dtype": "Int8",
+      "n_null": 375
+    },
+    "DOWN_IRRADIANCE443_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "DOWN_IRRADIANCE443_QC": {
+      "dtype": "Int8",
+      "n_null": 375
+    },
+    "DOWN_IRRADIANCE443_dPRES": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "DOWN_IRRADIANCE490": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "DOWN_IRRADIANCE490_ADJUSTED": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "DOWN_IRRADIANCE490_ADJUSTED_ERROR": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "DOWN_IRRADIANCE490_ADJUSTED_QC": {
+      "dtype": "Int8",
+      "n_null": 375
+    },
+    "DOWN_IRRADIANCE490_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "DOWN_IRRADIANCE490_QC": {
+      "dtype": "Int8",
+      "n_null": 375
+    },
+    "DOWN_IRRADIANCE490_dPRES": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "DOWN_IRRADIANCE555": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "DOWN_IRRADIANCE555_ADJUSTED": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "DOWN_IRRADIANCE555_ADJUSTED_ERROR": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "DOWN_IRRADIANCE555_ADJUSTED_QC": {
+      "dtype": "Int8",
+      "n_null": 375
+    },
+    "DOWN_IRRADIANCE555_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "DOWN_IRRADIANCE555_QC": {
+      "dtype": "Int8",
+      "n_null": 375
+    },
+    "DOWN_IRRADIANCE555_dPRES": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "DOWN_IRRADIANCE_ADJUSTED": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "DOWN_IRRADIANCE_ADJUSTED_ERROR": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "DOWN_IRRADIANCE_ADJUSTED_QC": {
+      "dtype": "Int8",
+      "n_null": 375
+    },
+    "DOWN_IRRADIANCE_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "DOWN_IRRADIANCE_QC": {
+      "dtype": "Int8",
+      "n_null": 375
+    },
+    "DOWN_IRRADIANCE_dPRES": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "DOXY": {
+      "dtype": "float32",
+      "max": 338.5663757324219,
+      "min": 188.3795928955078,
+      "n_null": 147
+    },
+    "DOXY_ADJUSTED": {
+      "dtype": "float32",
+      "max": 363.4761047363281,
+      "min": 203.56886291503906,
+      "n_null": 223
+    },
+    "DOXY_ADJUSTED_ERROR": {
+      "dtype": "float32",
+      "max": 16.56407928466797,
+      "min": 4.900999069213867,
+      "n_null": 223
+    },
+    "DOXY_ADJUSTED_QC": {
+      "dtype": "Int8",
+      "max": 3.0,
+      "min": 0.0,
+      "n_null": 0
+    },
+    "DOXY_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "DOXY_QC": {
+      "dtype": "Int8",
+      "max": 4.0,
+      "min": 0.0,
+      "n_null": 0
+    },
+    "DOXY_dPRES": {
+      "dtype": "float32",
+      "max": 0.03999999910593033,
+      "min": -0.25999999046325684,
+      "n_null": 147
+    },
+    "JULD": {
+      "dtype": "datetime64[ns]",
+      "n_null": 0
+    },
+    "JULD_QC": {
+      "dtype": "Int8",
+      "max": 1.0,
+      "min": 1.0,
+      "n_null": 0
+    },
+    "LATITUDE": {
+      "dtype": "float64",
+      "max": 56.48614,
+      "min": 16.645,
+      "n_null": 0
+    },
+    "LONGITUDE": {
+      "dtype": "float64",
+      "max": -30.248,
+      "min": -62.71612548828125,
+      "n_null": 0
+    },
+    "NITRATE": {
+      "dtype": "float32",
+      "max": 1.040772795677185,
+      "min": 0.24695825576782227,
+      "n_null": 350
+    },
+    "NITRATE_ADJUSTED": {
+      "dtype": "float32",
+      "max": 0.5235706567764282,
+      "min": -0.026792466640472412,
+      "n_null": 350
+    },
+    "NITRATE_ADJUSTED_ERROR": {
+      "dtype": "float32",
+      "max": 10001.2568359375,
+      "min": 10000.900390625,
+      "n_null": 350
+    },
+    "NITRATE_ADJUSTED_QC": {
+      "dtype": "Int8",
+      "max": 1.0,
+      "min": 0.0,
+      "n_null": 300
+    },
+    "NITRATE_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "NITRATE_QC": {
+      "dtype": "Int8",
+      "max": 3.0,
+      "min": 0.0,
+      "n_null": 300
+    },
+    "NITRATE_dPRES": {
+      "dtype": "float32",
+      "max": 0.8500000238418579,
+      "min": -0.8399999737739563,
+      "n_null": 350
+    },
+    "N_LEVELS": {
+      "dtype": "Int64",
+      "max": 14.0,
+      "min": 0.0,
+      "n_null": 0
+    },
+    "N_PROF": {
+      "dtype": "Int64",
+      "max": 4.0,
+      "min": 0.0,
+      "n_null": 0
+    },
+    "PH_IN_SITU_TOTAL": {
+      "dtype": "float32",
+      "max": 29.92915153503418,
+      "min": 7.783846855163574,
+      "n_null": 255
+    },
+    "PH_IN_SITU_TOTAL_ADJUSTED": {
+      "dtype": "float32",
+      "max": 29.90065574645996,
+      "min": 29.696569442749023,
+      "n_null": 345
+    },
+    "PH_IN_SITU_TOTAL_ADJUSTED_ERROR": {
+      "dtype": "float32",
+      "max": 0.039451126009225845,
+      "min": 0.028708016499876976,
+      "n_null": 345
+    },
+    "PH_IN_SITU_TOTAL_ADJUSTED_QC": {
+      "dtype": "Int8",
+      "max": 4.0,
+      "min": 0.0,
+      "n_null": 225
+    },
+    "PH_IN_SITU_TOTAL_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "PH_IN_SITU_TOTAL_QC": {
+      "dtype": "Int8",
+      "max": 4.0,
+      "min": 0.0,
+      "n_null": 225
+    },
+    "PH_IN_SITU_TOTAL_dPRES": {
+      "dtype": "float32",
+      "max": 0.9599999785423279,
+      "min": -0.8399999737739563,
+      "n_null": 255
+    },
+    "PLATFORM_NUMBER": {
+      "dtype": "Int64",
+      "max": 5907190.0,
+      "min": 1902382.0,
+      "n_null": 0
+    },
+    "POSITION_QC": {
+      "dtype": "Int8",
+      "max": 8.0,
+      "min": 1.0,
+      "n_null": 0
+    },
+    "PRES": {
+      "dtype": "float32",
+      "max": 31.799999237060547,
+      "min": -0.30000001192092896,
+      "n_null": 0
+    },
+    "PRES_ADJUSTED": {
+      "dtype": "float32",
+      "max": 31.799999237060547,
+      "min": -0.20000000298023224,
+      "n_null": 150
+    },
+    "PRES_ADJUSTED_ERROR": {
+      "dtype": "float32",
+      "max": 2.4000000953674316,
+      "min": 2.0015416145324707,
+      "n_null": 225
+    },
+    "PRES_ADJUSTED_QC": {
+      "dtype": "Int8",
+      "max": 1.0,
+      "min": 0.0,
+      "n_null": 0
+    },
+    "PRES_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "PRES_QC": {
+      "dtype": "Int8",
+      "max": 1.0,
+      "min": 1.0,
+      "n_null": 0
+    },
+    "PSAL": {
+      "dtype": "float32",
+      "max": 36.9739990234375,
+      "min": 0.7960000038146973,
+      "n_null": 0
+    },
+    "PSAL_ADJUSTED": {
+      "dtype": "float32",
+      "max": 36.9739990234375,
+      "min": 31.901010513305664,
+      "n_null": 173
+    },
+    "PSAL_ADJUSTED_ERROR": {
+      "dtype": "float32",
+      "max": 0.010272380895912647,
+      "min": 0.004000000189989805,
+      "n_null": 248
+    },
+    "PSAL_ADJUSTED_QC": {
+      "dtype": "Int8",
+      "max": 8.0,
+      "min": 0.0,
+      "n_null": 0
+    },
+    "PSAL_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "PSAL_QC": {
+      "dtype": "Int8",
+      "max": 8.0,
+      "min": 1.0,
+      "n_null": 0
+    },
+    "PSAL_dPRES": {
+      "dtype": "float32",
+      "max": 0.699999988079071,
+      "min": -0.9399999976158142,
+      "n_null": 0
+    },
+    "TEMP": {
+      "dtype": "float32",
+      "max": 25.902000427246094,
+      "min": 2.697000026702881,
+      "n_null": 0
+    },
+    "TEMP_ADJUSTED": {
+      "dtype": "float32",
+      "max": 25.902000427246094,
+      "min": 2.697000026702881,
+      "n_null": 164
+    },
+    "TEMP_ADJUSTED_ERROR": {
+      "dtype": "float32",
+      "max": 0.0020000000949949026,
+      "min": 0.0020000000949949026,
+      "n_null": 239
+    },
+    "TEMP_ADJUSTED_QC": {
+      "dtype": "Int8",
+      "max": 8.0,
+      "min": 0.0,
+      "n_null": 0
+    },
+    "TEMP_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "TEMP_QC": {
+      "dtype": "Int8",
+      "max": 8.0,
+      "min": 1.0,
+      "n_null": 0
+    },
+    "TEMP_dPRES": {
+      "dtype": "float32",
+      "max": 0.699999988079071,
+      "min": -0.9399999976158142,
+      "n_null": 0
+    },
+    "TURBIDITY": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "TURBIDITY_ADJUSTED": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "TURBIDITY_ADJUSTED_ERROR": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "TURBIDITY_ADJUSTED_QC": {
+      "dtype": "Int8",
+      "n_null": 375
+    },
+    "TURBIDITY_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "TURBIDITY_QC": {
+      "dtype": "Int8",
+      "n_null": 375
+    },
+    "TURBIDITY_dPRES": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "UP_IRRADIANCE": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "UP_IRRADIANCE380": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "UP_IRRADIANCE380_ADJUSTED": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "UP_IRRADIANCE380_ADJUSTED_ERROR": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "UP_IRRADIANCE380_ADJUSTED_QC": {
+      "dtype": "Int8",
+      "n_null": 375
+    },
+    "UP_IRRADIANCE380_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "UP_IRRADIANCE380_QC": {
+      "dtype": "Int8",
+      "n_null": 375
+    },
+    "UP_IRRADIANCE380_dPRES": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "UP_IRRADIANCE412": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "UP_IRRADIANCE412_ADJUSTED": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "UP_IRRADIANCE412_ADJUSTED_ERROR": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "UP_IRRADIANCE412_ADJUSTED_QC": {
+      "dtype": "Int8",
+      "n_null": 375
+    },
+    "UP_IRRADIANCE412_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "UP_IRRADIANCE412_QC": {
+      "dtype": "Int8",
+      "n_null": 375
+    },
+    "UP_IRRADIANCE412_dPRES": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "UP_IRRADIANCE443": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "UP_IRRADIANCE443_ADJUSTED": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "UP_IRRADIANCE443_ADJUSTED_ERROR": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "UP_IRRADIANCE443_ADJUSTED_QC": {
+      "dtype": "Int8",
+      "n_null": 375
+    },
+    "UP_IRRADIANCE443_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "UP_IRRADIANCE443_QC": {
+      "dtype": "Int8",
+      "n_null": 375
+    },
+    "UP_IRRADIANCE443_dPRES": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "UP_IRRADIANCE490": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "UP_IRRADIANCE490_ADJUSTED": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "UP_IRRADIANCE490_ADJUSTED_ERROR": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "UP_IRRADIANCE490_ADJUSTED_QC": {
+      "dtype": "Int8",
+      "n_null": 375
+    },
+    "UP_IRRADIANCE490_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "UP_IRRADIANCE490_QC": {
+      "dtype": "Int8",
+      "n_null": 375
+    },
+    "UP_IRRADIANCE490_dPRES": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "UP_IRRADIANCE555": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "UP_IRRADIANCE555_ADJUSTED": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "UP_IRRADIANCE555_ADJUSTED_ERROR": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "UP_IRRADIANCE555_ADJUSTED_QC": {
+      "dtype": "Int8",
+      "n_null": 375
+    },
+    "UP_IRRADIANCE555_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "UP_IRRADIANCE555_QC": {
+      "dtype": "Int8",
+      "n_null": 375
+    },
+    "UP_IRRADIANCE555_dPRES": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "UP_IRRADIANCE_ADJUSTED": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "UP_IRRADIANCE_ADJUSTED_ERROR": {
+      "dtype": "float32",
+      "n_null": 375
+    },
+    "UP_IRRADIANCE_ADJUSTED_QC": {
+      "dtype": "Int8",
+      "n_null": 375
+    },
+    "UP_IRRADIANCE_DATA_MODE": {
+      "dtype": "string",
+      "n_null": 0
+    },
+    "UP_IRRADIANCE_QC": {
+      "dtype": "Int8",
+      "n_null": 375
+    },
+    "UP_IRRADIANCE_dPRES": {
+      "dtype": "float32",
+      "n_null": 375
+    }
+  },
+  "n_rows": 375
+}
