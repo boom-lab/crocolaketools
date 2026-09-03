@@ -57,16 +57,18 @@ When developing new converter modules, please follow these guidelines:
 - **Module Placement**: Each new converter should be placed in the `converter` modules folder.
 - **Usage Scripts**: Each new converter should be accompanied by a script in the `scripts` folder demonstrating how to use it.
 - **Starting Point**: To develop a new converter module, refer to the existing converters in the `converter` folder as a starting point (e.g., `converterGLODAP` for .csv files, `converterSprayGlider` for netCDF files).
-- **Shared Utilities**: Shared utilities like dictionaries used to map and rename variables should be added to the `params.py` module of the `crocoloader` submodule.
+- **Shared Utilities**: Shared utilities like dictionaries used to map and rename variables should be added to `crocolaketools/db_names.py` and `crocolaketools/db_params.py`.
 - **Discussion**: Before developing a new converter, it is recommended to discuss its necessity and implementation with a member of the CrocoLake team.
 
 ## Testing
 
-CrocoLakeTools deals with converting files from one format to Parquet. Each new format should be testable on a small sample file. Ensure that your code includes tests for any new functionality or bug fixes. See the `test` folder for examples of testing modules.
+CrocoLakeTools deals with converting files from one format to Parquet. Each new format should be testable on a small sample file. Ensure that your code includes tests for any new functionality or bug fixes. See the `tests` folder for examples of testing modules.
+
+Set up the environment as described in the README's [Installation](README.md#installation) section, then run `pytest tests/test_golden.py`. Tests use the small fixtures committed under `tests/fixtures/`, so no data download is needed. If a change alters converter logic, and thus converter output, `tests/test_golden.py` will fail: regenerate with `pytest tests/test_golden.py --update-golden` and explain the resulting JSON diff in your pull request.
 
 ## Communication
 
-For any questions or discussions, please use the [GitHub Discussions page](https://github.com/yourusername/CrocoLakeTools/discussions) or the issue tracker.
+For any questions or discussions, please use the [GitHub Discussions page](https://github.com/boom-lab/crocolaketools/discussions) or the issue tracker.
 
 ## Databases of Interest
 
