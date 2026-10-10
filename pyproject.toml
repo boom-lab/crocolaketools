@@ -5,3 +5,7 @@ build-backend = "setuptools.build_meta"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra --durations=10"
+markers = [
+    "unit: fast, offline tests that run on the committed golden data",
+    "integration: tests that need a full CrocoLake on disk (set CROCOLAKE_ROOTPATH)",
+]
