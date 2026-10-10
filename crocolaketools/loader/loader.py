@@ -16,7 +16,7 @@ import dask.dataframe as dd
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
-from crocolakeloader import params
+from crocolaketools import db_names, db_units
 ##########################################################################
 
 class Loader:
@@ -45,15 +45,15 @@ class Loader:
 
         # set list of databases to read
         if db_list is None:
-            self.db_list = params.databases
+            self.db_list = db_names.databases
         elif isinstance(db_list,list):
             self.db_list = db_list
         elif isinstance(db_list,str):
             self.db_list = [db_list]
         else:
             raise ValueError("Database list db_list must be a list or a string")
-        if not all(name in params.databases for name in self.db_list):
-            raise ValueError("Database list db_list can only take values in: " + str(params.databases))
+        if not all(name in db_names.databases for name in self.db_list):
+            raise ValueError("Database list db_list can only take values in: " + str(db_names.databases))
         print(f"Reading data from {self.db_list} .")
 
         # set database type
@@ -127,7 +127,7 @@ class Loader:
         """
 
         self.db_paths = {}
-        db_codenames = params.databases_codenames
+        db_codenames = db_names.databases_codenames
 
         for db in self.db_list:
             search_pattern = os.path.join(self.db_rootpath,"*"+db_codenames[db]+"*")
@@ -472,7 +472,7 @@ class Loader:
 
         schema = self.global_schema
 
-        reference_units = params.units["CROCOLAKE_UNITS"]
+        reference_units = db_units.units["CROCOLAKE_UNITS"]
 
         fields_with_units = []
 
