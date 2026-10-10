@@ -3,7 +3,9 @@
 ## @file Converter.py
 #
 #
-## @author Enrico Milanese <enrico.milanese@whoi.edu>
+## original @author Enrico Milanese <enrico.milanese@whoi.edu> 
+#
+## Adapted by Mahi Sarwar Anol <anol.mahi@gmail.com> (during incorporation of crocolakeloader into crocolaketools)
 #
 ## @date Fri 04 Oct 2024
 
