@@ -1,4 +1,0 @@
-[submodule "crocolakeloader"]
-	path = crocolakeloader
-	url = git@github.com:boom-lab/crocolakeloader.git
-	branch = crocolaketools-integration
