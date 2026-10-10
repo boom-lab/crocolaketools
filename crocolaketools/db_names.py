@@ -25,3 +25,15 @@ databases = [
     "IOOS_GLIDERS",
     "SPOTS"
 ]
+
+# List of databases and their folder names
+databases_codenames = {
+    "ARGO": "ARGO",
+    "GLODAP": "GLODAP",
+    "SprayGliders": "SPRAY",
+    "CPR": "CPR",
+    "Saildrones": "SAILDRONES",
+    "OleanderXBT": "OLEANDER",
+    "IOOS_GLIDERS": "IOOS_GLIDERS",
+    "SPOTS": "SPOTS",
+}
