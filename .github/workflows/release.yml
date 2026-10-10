@@ -17,8 +17,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          # environment.yml pip-installs ./crocolakeloader/
-          submodules: true
           fetch-depth: 0
 
       # written by hand, one file per tag
