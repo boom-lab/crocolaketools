@@ -15,7 +15,7 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 
-from crocolakeloader.loader import Loader
+from crocolaketools.loader.loader import Loader
 from dask.distributed import Client
 
 from crocolaketools.config import config_paths as cfgp

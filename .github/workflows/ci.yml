@@ -212,9 +212,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          # environment.yml pip-installs ./crocolakeloader/
-          submodules: true
 
       - name: Set up micromamba
         uses: mamba-org/setup-micromamba@v2
