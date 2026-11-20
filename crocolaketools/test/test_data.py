@@ -410,14 +410,30 @@ class TestData:
             "spots.csv",
         ))
         source = pd.read_csv(csv_path)
+        # SPOTS fill value
+        source = source.mask(source.eq(-999), np.nan)
         source["CTDPRS"] = source["CTDPRS"].astype("float32")
-        source["TIME"] = source["TIME"].fillna(0)
-        source["JULD"] = pd.to_datetime(
-            source["DATE"].astype("Int64").astype(str)
-            + source["TIME"].astype("Int64").astype(str).str.zfill(4),
-            format="%Y%m%d%H%M",
-            errors="coerce",
-        )
+
+        # datetime: missing TIME means midnight; invalid DATE or TIME means
+        # the measurement is discarded
+        def to_juld(row):
+            date, time = row["DATE"], row["TIME"]
+            if pd.isna(date) or date != int(date):
+                return pd.NaT
+            if pd.isna(time):
+                time = 0
+            if time != int(time) or not (0 <= time // 100 <= 23 and 0 <= time % 100 <= 59):
+                return pd.NaT
+            return pd.to_datetime(
+                f"{int(date)}{int(time):04d}", format="%Y%m%d%H%M", errors="coerce"
+            )
+        source["JULD"] = source.apply(to_juld, axis=1)
+
+        # bottle salinity when available, CTD salinity otherwise
+        use_salnty = source["SALNTY"].notna()
+        source["PSAL"] = source["SALNTY"].where(use_salnty, source["CTDSAL"])
+        source["PSAL_QC"] = source["SALNTY_FLAG_W"].where(use_salnty, source["CTDSAL_FLAG_W"])
+
         profile_columns = ["TimeSeriesSite", "CRUISE", "STNNBR", "CASTNO"]
         source["_profile_key"] = (
             source[profile_columns]
@@ -436,7 +452,22 @@ class TestData:
         source["profile_nb"] = source["_profile_key"].map(
             profiles.set_index("_profile_key")["profile_nb"]
         )
-        source = source[source["SALNTY_FLAG_W"].eq(2)].head(20)
+        # rows kept by the converter: valid datetime and a salinity or
+        # temperature value
+        source = source[
+            source["JULD"].notna()
+            & (source["PSAL"].notna() | source["CTDTMP"].notna())
+        ]
+        # sample regular rows, rows without TIME, rows where PSAL comes from
+        # CTDSAL, and rows with temperature only
+        has_psal = source["PSAL"].notna()
+        source = pd.concat([
+            source[source["SALNTY_FLAG_W"].eq(2)].head(20),
+            source[source["TIME"].isna() & has_psal].head(10),
+            source[~use_salnty.loc[source.index] & has_psal].head(10),
+            source[~has_psal].head(10),
+        ])
+        source = source[~source.index.duplicated()]
         source = source.drop(columns="_profile_key")
 
         rename = db_params.params["SPOTS2CROCOLAKE"]
@@ -446,6 +477,8 @@ class TestData:
                 config["outdir_pq"],
             ))
         ).compute()
+        # measurements without a valid datetime are discarded
+        assert parquet["JULD"].notna().all()
         for source_name, parquet_name in rename.items():
             if source_name not in source or parquet_name not in parquet:
                 continue

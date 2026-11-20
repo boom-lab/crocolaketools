@@ -30,6 +30,7 @@ from crocolaketools.converter.converterArgoQC import ConverterArgoQC
 from crocolaketools.converter.converterGLODAP import ConverterGLODAP
 from crocolaketools.converter.converterCPR import ConverterCPR
 from crocolaketools.converter.converterSaildrones import ConverterSaildrones
+from crocolaketools.converter.converterSPOTS import ConverterSPOTS
 from crocolaketools import db_names,db_params
 
 ##########################################################################
@@ -1059,3 +1060,134 @@ class TestConverter:
             print(ddf["LONGITUDE"])
             pd.testing.assert_frame_equal(pdf, sol_df)
             pd.testing.assert_frame_equal(ddf, sol_df)
+#------------------------------------------------------------------------------#
+## SPOTS: datetime from DATE and TIME columns
+    def _spots_converter(self, tmp_path, db_type):
+        (tmp_path / "spots.csv").touch()
+        return ConverterSPOTS({
+            "db": "SPOTS", "db_type": db_type, "input_path": str(tmp_path),
+            "outdir_pq": str(tmp_path / "out"), "outdir_schema": str(tmp_path / "schemas"),
+            "fname_pq": "test_SPOTS", "add_derived_vars": True, "overwrite": True,
+            "tmp_path": None,
+        })
+
+    def test_converter_spots_add_datetime(self, tmp_path):
+        converter = self._spots_converter(tmp_path, "PHY")
+
+        df = pd.DataFrame({
+            "DATE": [20030711, 20030711, float("nan"), 20030231, 20030711, 20030711, 20030711, 20030711.5],
+            "TIME": [1230,     float("nan"), 1230,     1230,     2400,     8140,     1260,     1230],
+        })
+        expected = pd.Series(
+            pd.to_datetime([
+                "2003-07-11 12:30",  # valid DATE and TIME
+                "2003-07-11 00:00",  # missing TIME: midnight
+                None,                # missing DATE
+                None,                # impossible DATE
+                None,                # TIME out of range
+                None,                # TIME out of range
+                None,                # minutes out of range
+                None,                # non-integer DATE
+            ]),
+            name="JULD",
+        )
+
+        out = converter.add_datetime(df)
+        pd.testing.assert_series_equal(out["JULD"], expected)
+        # input is not modified
+        assert "JULD" not in df.columns
+
+#------------------------------------------------------------------------------#
+## SPOTS: fill values (-999) are replaced before datetime and salinity are built
+    def _spots_fixture(self):
+        """Columns, a valid SPOTS row, and the overrides that make every
+        value except CTDTMP missing"""
+        cols = db_params.params["SPOTS"] + ["CRUISE", "STNNBR", "CASTNO"]
+        base = {c: 1.0 for c in cols}
+        base.update({
+            "TimeSeriesSite": "TEST", "CRUISE": "C1", "STNNBR": 1, "CASTNO": 1,
+            "DATE": 20030711, "TIME": 1230, "LATITUDE": 30.0, "LONGITUDE": -60.0,
+            "CTDPRS": 10.0, "CTDTMP": 20.0, "CTDSAL": 35.5, "SALNTY": 36.0,
+            "SALNTY_FLAG_W": 2, "CTDSAL_FLAG_W": 2,
+            "OXYGEN_FLAG_W": 2, "NITRAT_FLAG_W": 2, "PHSPHT_FLAG_W": 2,
+            "SILCAT_FLAG_W": 2, "ALKALI_FLAG_W": 2, "PH_TOT_FLAG_W": 2,
+            "SALNTY_P": 0.01, "SALNTY_A": 0.02,
+        })
+        no_values = {
+            c: -999 for c in cols
+            if c not in ("TimeSeriesSite", "CRUISE", "STNNBR", "CASTNO", "DATE",
+                         "TIME", "LATITUDE", "LONGITUDE", "CTDPRS", "CTDTMP")
+            and not c.endswith("_FLAG_W")
+        }
+        no_values.update({c: 9 for c in cols if c.endswith("_FLAG_W")})
+        return base, no_values
+
+    def _spots_standardize(self, converter, tmp_path, rows):
+        csv = tmp_path / "spots.csv"
+        pd.DataFrame(rows).to_csv(csv, index=False)
+        ddf = dd.read_csv(
+            str(csv), assume_missing=True, delimiter=",", header=0,
+            low_memory=False, dtype_backend="pyarrow",
+        )
+        df = converter.standardize_data(ddf)
+        if isinstance(df, dd.DataFrame):
+            df = df.compute()
+        return df.sort_values("PRES").reset_index(drop=True)
+
+    def test_converter_spots_standardize_fill_values(self, tmp_path):
+        converter = self._spots_converter(tmp_path, "BGC")
+        base, no_values = self._spots_fixture()
+        rows = [
+            dict(base, CTDPRS=10.0),                              # regular
+            dict(base, CTDPRS=20.0, TIME=-999),                   # no TIME -> midnight
+            dict(base, CTDPRS=30.0, SALNTY=-999, SALNTY_A=-999),  # no SALNTY -> CTDSAL, PSAL_ERROR from SALNTY_P
+            dict(base, CTDPRS=40.0, DATE=-999),                   # no DATE -> discarded
+            dict(base, CTDPRS=50.0, TIME=2400),                   # invalid TIME -> discarded
+            dict(base, CTDPRS=60.0, TIME=8140),                   # invalid TIME -> discarded
+            dict(base, CTDPRS=70.0, **no_values),                  # only CTDTMP valid -> kept
+            dict(base, CTDPRS=80.0, **no_values, CTDTMP=-999),     # no valid value -> discarded
+            dict(base, CTDPRS=90.0, CASTNO=2, DATE=-999),         # profile 2 entirely discarded
+            dict(base, CTDPRS=100.0, CASTNO=3),                   # profile 3 keeps its ID
+        ]
+        df = self._spots_standardize(converter, tmp_path, rows)
+
+        assert df["PRES"].astype(float).tolist() == [10.0, 20.0, 30.0, 70.0, 100.0]
+        # profile IDs are assigned before discarding measurements: profile 2
+        # is discarded entirely, profile 3 keeps its ID
+        assert df["CYCLE_NUMBER"].astype(int).tolist() == [1, 1, 1, 1, 3]
+        assert df["JULD"].tolist() == [
+            pd.Timestamp("2003-07-11 12:30"),
+            pd.Timestamp("2003-07-11 00:00"),
+            pd.Timestamp("2003-07-11 12:30"),
+            pd.Timestamp("2003-07-11 12:30"),
+            pd.Timestamp("2003-07-11 12:30"),
+        ]
+        assert df["TEMP"].astype(float).round(4).tolist() == [20.0] * 5
+        psal = df["PSAL"].astype(float).round(4)
+        assert psal.iloc[[0, 1, 2, 4]].tolist() == [36.0, 36.0, 35.5, 36.0]
+        assert psal.iloc[3] != psal.iloc[3]  # NaN for the temperature-only row
+        assert df["PSAL_QC"].astype(int).tolist() == [2, 2, 2, 9, 2]
+        psal_error = df["PSAL_ERROR"].astype(float).round(4)
+        assert psal_error.iloc[[0, 1, 2, 4]].tolist() == [0.02, 0.02, 0.01, 0.02]
+        assert psal_error.iloc[3] != psal_error.iloc[3]
+        # no fill value survives
+        num = df.select_dtypes("number")
+        assert not (num == -999).any().any()
+
+#------------------------------------------------------------------------------#
+## SPOTS: rows are kept only if they have a valid value for the db_type
+    @pytest.mark.parametrize("db_type,expected_pres", [
+        ("PHY", [10.0, 30.0]),
+        ("BGC", [10.0, 20.0, 30.0]),
+    ])
+    def test_converter_spots_remove_all_NAs_by_db_type(self, tmp_path, db_type, expected_pres):
+        converter = self._spots_converter(tmp_path, db_type)
+        base, no_values = self._spots_fixture()
+        rows = [
+            dict(base, CTDPRS=10.0),                                       # PHY and BGC values
+            {**base, **no_values, "CTDPRS": 20.0, "CTDTMP": -999,
+             "OXYGEN": 200.0, "OXYGEN_FLAG_W": 2},                         # only OXYGEN
+            dict(base, CTDPRS=30.0, **no_values),                          # only CTDTMP
+        ]
+        df = self._spots_standardize(converter, tmp_path, rows)
+        assert df["PRES"].astype(float).tolist() == expected_pres

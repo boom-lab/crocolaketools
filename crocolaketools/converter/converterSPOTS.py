@@ -1,5 +1,6 @@
 import os
 import warnings
+import dask
 import dask.dataframe as dd
 import gsw
 import numpy as np
@@ -96,14 +97,29 @@ class ConverterSPOTS(Converter):
         ddf -- homogenized (dask) dataframe
         """
 
+        # Replace SPOTS fill values (-999) with missing values first: every
+        # step below (profile ID, datetime, SALNTY/CTDSAL fallback, error
+        # columns) relies on missing values being NaN
+        ddf = ddf.map_partitions(self.replace_fill_values)
+
+        # Profile IDs are built from all the measurements in the source file,
+        # before any measurement is discarded (invalid datetime, bad QC, all
+        # NAs), so that changes to those processing steps do not change the
+        # profile IDs of this SPOTS version
         ddf = self.add_profile_id(ddf)
 
-
-        ### convert SPOTS multiple time columns to one datetime
-        # add time as midnight for rows missing a time
-        ddf["TIME"] = ddf["TIME"].fillna(0)
-   
+        ### convert SPOTS DATE and TIME columns to one datetime, and discard
+        ### measurements without a valid datetime
         ddf = ddf.map_partitions(self.add_datetime)
+        ddf = ddf.persist()
+
+        n_midnight, n_invalid = dask.compute(
+            (ddf["TIME"].isna() & ~ddf["JULD"].isna()).sum(),
+            ddf["JULD"].isna().sum(),
+        )
+        print(f"SPOTS: {n_midnight} measurements have no TIME; their time is set to midnight.")
+        print(f"SPOTS: discarding {n_invalid} measurements without a valid DATE or with an invalid TIME.")
+        ddf = ddf[~ddf["JULD"].isna()]
         ddf = ddf.persist()
 
         # keep only good QC values
@@ -132,7 +148,19 @@ class ConverterSPOTS(Converter):
             )
             
         params_to_check.append("PSAL")
-        
+        # CTD temperature has no QC flag in SPOTS, but measurements with only
+        # a valid temperature must be kept too
+        params_to_check.append("CTDTMP")
+
+        # check only parameters that end up in this db_type (e.g. not BGC
+        # parameters for PHY), otherwise a row with only BGC values would be
+        # kept and become empty once BGC columns are dropped
+        rename_map = db_params.params["SPOTS2CROCOLAKE"]
+        output_params = db_params.params["CROCOLAKE_" + self.db_type + "_QC"]
+        params_to_check = [
+            p for p in params_to_check if rename_map.get(p) in output_params
+        ]
+
         ddf = ddf.map_partitions(
             self.add_error_column,
             "SALNTY",
@@ -165,10 +193,6 @@ class ConverterSPOTS(Converter):
                 value_name
             )
 
-        
-        # Replace SPOTS fill values with missing values
-        ddf = ddf.map_partitions(self.replace_fill_values)
-        
         # return standardized dataframe
         return super().standardize_data(ddf)
 
@@ -182,15 +206,52 @@ class ConverterSPOTS(Converter):
 #-------------------------------------------------------------------------------------------------------------#
 ## Add datetime
     def add_datetime(self, df):
-        """Add a single datetime column from SPOTS date and time columns."""
+        """Add a single datetime column JULD from SPOTS DATE (YYYYMMDD) and
+        TIME (HHMM) columns. Fill values must already be replaced with NaN.
 
-        date_str = df["DATE"].astype("Int64").astype(str)
-        time_str = df["TIME"].astype("Int64").astype(str).str.zfill(4)
-        df["JULD"] = pd.to_datetime(
+        - DATE missing or not a valid calendar date  -> JULD is NaT
+        - DATE valid, TIME missing                   -> JULD is DATE at midnight
+        - DATE valid, TIME not a valid HHMM in [0000, 2359] (e.g. 2400, 8140)
+                                                     -> JULD is NaT
+
+        Rows with NaT JULD are meant to be discarded by the caller.
+
+        Argument:
+        df -- pandas dataframe
+
+        Returns:
+        df -- pandas dataframe with JULD column
+        """
+
+        df = df.copy()
+
+        date = df["DATE"].astype("float64")
+        time = df["TIME"].astype("float64")
+
+        time_missing = time.isna()
+        time = time.fillna(0)
+        hours = time // 100
+        minutes = time % 100
+        time_valid = (
+            (time == np.floor(time))
+            & (hours >= 0) & (hours <= 23)
+            & (minutes >= 0) & (minutes <= 59)
+        ) | time_missing
+
+        date_valid = date.notna() & (date == np.floor(date))
+
+        # invalid entries are replaced by placeholders so that the string
+        # conversion does not fail; they are set to NaT below
+        date_str = date.where(date_valid, 0).astype("int64").astype(str)
+        time_str = time.where(time_valid, 0).astype("int64").astype(str).str.zfill(4)
+
+        juld = pd.to_datetime(
             date_str + time_str,
             format="%Y%m%d%H%M",
-            errors="coerce",
+            errors="coerce",  # catches impossible dates, e.g. 20030231
         )
+        df["JULD"] = juld.where(date_valid & time_valid)
+
         return df
 
 #-------------------------------------------------------------------------------------------------------------#
