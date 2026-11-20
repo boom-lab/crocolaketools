@@ -24,24 +24,29 @@ if [ $# -gt 0 ]; then
 fi
 
 
+# Print the value of ARGO-GDAC_<variant>.<field> as a normalised absolute path.
+# Relative values resolve against CONFIG_DIR, absolute ones are used as they
+# are, matching crocolaketools/config/config_paths.py. A missing or empty value
+# is an error, rather than resolving to "${CONFIG_DIR}/null".
+resolve_field() {
+    local key="ARGO-GDAC_$1" field="$2" value
+    value=$("$YQ" -r ".\"${key}\".${field} // \"\"" "$yaml_file")
+    if [ -z "$value" ]; then
+        echo "${key}.${field} is not set in ${yaml_file}." >&2
+        return 1
+    fi
+    if [[ "$value" != /* ]]; then
+        value="${CONFIG_DIR}/${value}"
+    fi
+    # -m tolerates paths that do not exist yet; -s keeps `current` symlinks.
+    realpath -m -s "$value"
+}
+
 # Loop through each variant of target CrocoLake directories
 for var in "${argo_variants[@]}"; do
 
-    IN_PATH=$("$YQ" ".\"ARGO-GDAC_${var}\".input_path" "$yaml_file")
-    IN_PATH=$(echo "$IN_PATH" | sed 's/^"//;s/"$//')
-    if resolved_path=$(realpath -m -s "${CONFIG_DIR}/${IN_PATH}" 2>/dev/null); then
-        IN_PATH="$resolved_path"
-    else
-        IN_PATH="${IN_PATH}"
-    fi
-
-    OUT_PATH=$("$YQ" ".\"ARGO-GDAC_${var}\".outdir_pq" "$yaml_file")
-    OUT_PATH=$(echo "$OUT_PATH" | sed 's/^"//;s/"$//')
-    if resolved_path=$(realpath -m -s "${CONFIG_DIR}/${OUT_PATH}" 2>/dev/null); then
-        OUT_PATH="$resolved_path"
-    else
-        OUT_PATH="${OUT_PATH}"
-    fi
+    IN_PATH=$(resolve_field "$var" input_path)
+    OUT_PATH=$(resolve_field "$var" outdir_pq)
 
     echo "${var}|${IN_PATH}|${OUT_PATH}"
 
