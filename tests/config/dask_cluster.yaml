@@ -79,3 +79,9 @@ SPOTS:
     n_workers: 1
     memory_limit: '2GB'
     processes: True
+
+CROCOLAKE:
+    threads_per_worker: 1
+    n_workers: 1
+    memory_limit: '2GB'
+    processes: True

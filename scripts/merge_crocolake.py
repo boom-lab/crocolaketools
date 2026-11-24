@@ -51,6 +51,39 @@ def configure_logging(log_file, debug=False):
     logging.info("Starting execution.")
 
 #------------------------------------------------------------------------------#
+#: dask_cluster.yaml key for the merge, shared by PHY and BGC
+CLUSTER_KEY = "CROCOLAKE"
+#: cluster used when dask_cluster.yaml has no CROCOLAKE entry
+FALLBACK_CLUSTER = {"n_workers": 1, "threads_per_worker": 1}
+
+def get_cluster_config():
+    """Dask cluster settings for merging CrocoLake.
+
+    Reads CROCOLAKE from dask_cluster.yaml. Config directories without it get
+    one worker with one thread, with a warning.
+    """
+    try:
+        return cfgp.get_config_cluster_db_dict(CLUSTER_KEY)
+    except KeyError:
+        logging.warning(
+            "%s not found in %s; using %s. Add a %s entry sized for the merge.",
+            CLUSTER_KEY, cfgp.get_config_cluster_file(), FALLBACK_CLUSTER,
+            CLUSTER_KEY,
+        )
+        return dict(FALLBACK_CLUSTER)
+
+#------------------------------------------------------------------------------#
+def get_log_file(outdir, croco_name):
+    """Path of the log file: next to outdir, not inside it.
+
+    to_parquet(overwrite=True) empties outdir, so a log inside it would be
+    deleted at the start of the write.
+    """
+    log_dir = Path(outdir).resolve().parent
+    log_dir.mkdir(parents=True, exist_ok=True)
+    return str(log_dir / (croco_name + ".log"))
+
+#------------------------------------------------------------------------------#
 def merge_crocolake(db_type,croco_path,outdir,croco_name):
     """Read existing CrocoLake made of individual sub databases and merge into unique database
 
@@ -61,14 +94,16 @@ def merge_crocolake(db_type,croco_path,outdir,croco_name):
     croco_name  --  name of merged CrocoLake
     """
 
-    client = Client(**cfgp.get_config_cluster_db_dict("SPRAY_GLIDERS"))
+    client = Client(**get_cluster_config())
 
     logging.info("Client dashboard address: %s", client.dashboard_link)
     logging.info("Client scheduler address: %s", client.scheduler.address)
 
+    # the loader concatenates db_rootpath with strings, so it must not be a
+    # pathlib.Path (get_config_paths_field returns one)
     crocoloader = Loader(
         db_type = db_type,
-        db_rootpath=croco_path
+        db_rootpath=str(croco_path)
     )
     print("getting dataframe")
     ddf = crocoloader.get_dataframe()
@@ -96,8 +131,8 @@ def merge_crocolake(db_type,croco_path,outdir,croco_name):
 def main():
     parser = argparse.ArgumentParser(description='Script to merge CrocoLake into one parquet database')
     parser.add_argument('-d', help="CrocoLake type (PHY or BGC)", required=True)
-    parser.add_argument('-i', help="Path to CrocoLake", required=False)
-    parser.add_argument('-o', help="Destination for merged CrocoLake", required=False)
+    parser.add_argument('-i', help="Path to CrocoLake (required without --config)", required=False)
+    parser.add_argument('-o', help="Destination for merged CrocoLake (required without --config)", required=False)
     parser.add_argument('-f', help="Basename for output files", required=False, default="merge_crocolake_out")
     parser.add_argument('--config', action='store_true', help="Use config files instead of parsing arguments", required=False, default=None)
 
@@ -106,6 +141,9 @@ def main():
     args = parser.parse_args()
 
     cfgp.apply_config_dir_argument(args)
+
+    if not args.config and (args.i is None or args.o is None):
+        parser.error("-i and -o are required unless --config is given")
 
     if not (args.d.upper() == "PHY" or args.d.upper() == "BGC"):
         raise ValueError("CrocoLake type must be PHY or BGC.")
@@ -130,7 +168,7 @@ def main():
         args.f = cfgp.get_config_paths_db_dict(db_key)["fname_pq"]
 
     # Configure logging
-    configure_logging(args.f+".log")
+    configure_logging(get_log_file(args.o, args.f))
 
     logging.info("CrocoLake type (PHY or BGC):  %s", args.d)
     logging.info("Path to CrocoLake:            %s", args.i)
