@@ -171,7 +171,7 @@ def test_cluster_falls_back_to_legacy_key(merge_module, monkeypatch, tmp_path, c
     with caplog.at_level(logging.WARNING):
         cluster = merge_module.get_cluster_config()
 
-    assert cluster == cfgp.get_config_cluster_db_dict("SPRAY_GLIDERS")
+    assert cluster == {"n_workers": 1, "threads_per_worker": 1}
     assert "CROCOLAKE not found" in caplog.text
 
 

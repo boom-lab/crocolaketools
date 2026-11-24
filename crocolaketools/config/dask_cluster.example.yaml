@@ -64,7 +64,7 @@ SPOTS:
     processes: True
 
 # CrocoLake merge (merge_crocolake), PHY and BGC; size for the full
-# CrocoLake. Without this key the merge falls back to SPRAY_GLIDERS.
+# CrocoLake. Without this key the merge runs on one worker with one thread.
 CROCOLAKE:
     threads_per_worker: 1
     n_workers: 9

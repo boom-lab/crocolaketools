@@ -53,27 +53,24 @@ def configure_logging(log_file, debug=False):
 #------------------------------------------------------------------------------#
 #: dask_cluster.yaml key for the merge, shared by PHY and BGC
 CLUSTER_KEY = "CROCOLAKE"
-#: key the merge used up to v1.1.1; kept as a fallback so that config
-#: directories without CROCOLAKE still work
-LEGACY_CLUSTER_KEY = "SPRAY_GLIDERS"
+#: cluster used when dask_cluster.yaml has no CROCOLAKE entry
+FALLBACK_CLUSTER = {"n_workers": 1, "threads_per_worker": 1}
 
 def get_cluster_config():
     """Dask cluster settings for merging CrocoLake.
 
-    Reads CROCOLAKE from dask_cluster.yaml. Config directories without it fall
-    back to SPRAY_GLIDERS, with a warning.
+    Reads CROCOLAKE from dask_cluster.yaml. Config directories without it get
+    one worker with one thread, with a warning.
     """
-    cluster_key = CLUSTER_KEY
     try:
-        return cfgp.get_config_cluster_db_dict(cluster_key)
+        return cfgp.get_config_cluster_db_dict(CLUSTER_KEY)
     except KeyError:
         logging.warning(
-            "%s not found in %s; using the %s cluster settings. Add a %s entry "
-            "sized for the merge.",
-            cluster_key, cfgp.get_config_cluster_file(), LEGACY_CLUSTER_KEY,
-            cluster_key,
+            "%s not found in %s; using %s. Add a %s entry sized for the merge.",
+            CLUSTER_KEY, cfgp.get_config_cluster_file(), FALLBACK_CLUSTER,
+            CLUSTER_KEY,
         )
-        return cfgp.get_config_cluster_db_dict(LEGACY_CLUSTER_KEY)
+        return dict(FALLBACK_CLUSTER)
 
 #------------------------------------------------------------------------------#
 def get_log_file(outdir, croco_name):
