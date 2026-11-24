@@ -66,9 +66,11 @@ def merge_crocolake(db_type,croco_path,outdir,croco_name):
     logging.info("Client dashboard address: %s", client.dashboard_link)
     logging.info("Client scheduler address: %s", client.scheduler.address)
 
+    # the loader concatenates db_rootpath with strings, so it must not be a
+    # pathlib.Path (get_config_paths_field returns one)
     crocoloader = Loader(
         db_type = db_type,
-        db_rootpath=croco_path
+        db_rootpath=str(croco_path)
     )
     print("getting dataframe")
     ddf = crocoloader.get_dataframe()

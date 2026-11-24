@@ -38,7 +38,7 @@ jobs:
 
       - name: Run downloader and config-path tests
         run: |
-          pytest -ra --maxfail=1 --tb=short tests/test_downloader{ArgoTools,GLODAP,IOOSGliders,OleanderXBT,SprayGliders,Saildrones}.py tests/test_config_paths.py
+          pytest -ra --maxfail=1 --tb=short tests/test_downloader{ArgoTools,GLODAP,IOOSGliders,OleanderXBT,SprayGliders,Saildrones}.py tests/test_config_paths.py tests/test_merge_crocolake.py
 
   tests-pip-converter:
     name: converter tests (pip, py=${{ matrix.python-version }})
@@ -147,7 +147,7 @@ jobs:
       - name: Run downloader and config-path tests
         shell: bash -l {0}
         run: |
-          pytest -ra --maxfail=1 --tb=short tests/test_downloader{ArgoTools,GLODAP,IOOSGliders,OleanderXBT,SprayGliders,Saildrones}.py tests/test_config_paths.py
+          pytest -ra --maxfail=1 --tb=short tests/test_downloader{ArgoTools,GLODAP,IOOSGliders,OleanderXBT,SprayGliders,Saildrones}.py tests/test_config_paths.py tests/test_merge_crocolake.py
 
   tests-conda-converter:
     name: converter tests (conda, from environment.yml)
