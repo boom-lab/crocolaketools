@@ -82,20 +82,14 @@ def spray2parquet(spray_path=None, outdir_pqt=None, fname_pq=None, use_config_fi
 
     db_types = ["PHY", "BGC"] if db_type is None else [db_type.upper()]
 
-    client = Client(**cfgp.get_config_cluster_db_dict("SPRAY_GLIDERS"))
-
-    for j, dbt in enumerate(db_types):
-        if j > 0:
-            print("Working on " + dbt + " files...")
-            # Restarting the server forces dask to free the memory
-            client.shutdown()
-            client = Client(**cfgp.get_config_cluster_db_dict("SPRAY_GLIDERS"))
-
+    for dbt in db_types:
+        print("Working on " + dbt + " files...")
+        # A new client per type forces dask to free the memory
+        client = Client(**cfgp.get_config_cluster_db_dict("SPRAY_GLIDERS"))
         client = _convert_db_type(
             dbt, client, spray_path, outdir_pqt, fname_pq, use_config_file
         )
-
-    client.shutdown()
+        client.shutdown()
 
     return
 
