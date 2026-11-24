@@ -51,17 +51,19 @@ def configure_logging(log_file, debug=False):
     logging.info("Starting execution.")
 
 #------------------------------------------------------------------------------#
-#: dask_cluster.yaml key used before CROCOLAKE_<db_type> existed; kept as a
-#: fallback so that config directories written for v1.1.1 still work
+#: dask_cluster.yaml key for the merge, shared by PHY and BGC
+CLUSTER_KEY = "CROCOLAKE"
+#: key the merge used up to v1.1.1; kept as a fallback so that config
+#: directories without CROCOLAKE still work
 LEGACY_CLUSTER_KEY = "SPRAY_GLIDERS"
 
-def get_cluster_config(db_type):
-    """Dask cluster settings for merging CrocoLake of type db_type.
+def get_cluster_config():
+    """Dask cluster settings for merging CrocoLake.
 
-    Reads CROCOLAKE_<db_type> from dask_cluster.yaml. Config directories that
-    predate that key fall back to SPRAY_GLIDERS, with a warning.
+    Reads CROCOLAKE from dask_cluster.yaml. Config directories without it fall
+    back to SPRAY_GLIDERS, with a warning.
     """
-    cluster_key = "CROCOLAKE_" + db_type
+    cluster_key = CLUSTER_KEY
     try:
         return cfgp.get_config_cluster_db_dict(cluster_key)
     except KeyError:
@@ -95,7 +97,7 @@ def merge_crocolake(db_type,croco_path,outdir,croco_name):
     croco_name  --  name of merged CrocoLake
     """
 
-    client = Client(**get_cluster_config(db_type))
+    client = Client(**get_cluster_config())
 
     logging.info("Client dashboard address: %s", client.dashboard_link)
     logging.info("Client scheduler address: %s", client.scheduler.address)

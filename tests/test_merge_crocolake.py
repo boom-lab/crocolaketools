@@ -84,8 +84,8 @@ def _write_config_dir(path, cluster_keys=True):
     )
     cluster = (TEST_CONFIG_DIR / "dask_cluster.yaml").read_text()
     if not cluster_keys:
-        cluster = cluster.split("\nCROCOLAKE_PHY:")[0] + "\n"
-        assert "CROCOLAKE_" not in cluster
+        cluster = cluster.split("\nCROCOLAKE:")[0] + "\n"
+        assert "\nCROCOLAKE:" not in cluster
     (path / "dask_cluster.yaml").write_text(cluster)
     return path
 
@@ -103,7 +103,7 @@ def test_merge_passes_string_rootpath_to_loader(merge_module, tmp_path, db_type)
     assert loader.db_rootpath == str(croco_path)
     assert loader.db_type == db_type
     merge_module.Client.assert_called_once_with(
-        **cfgp.get_config_cluster_db_dict("CROCOLAKE_" + db_type)
+        **cfgp.get_config_cluster_db_dict("CROCOLAKE")
     )
 
 
@@ -141,7 +141,7 @@ def test_main_config_reaches_loader_with_configured_paths(
         str(config_dir / "lake" / f"{db_type}_CROCOLAKE.log")
     )
     merge_module.Client.assert_called_once_with(
-        **cfgp.get_config_cluster_db_dict("CROCOLAKE_" + db_type)
+        **cfgp.get_config_cluster_db_dict("CROCOLAKE")
     )
 
 
@@ -164,15 +164,15 @@ def test_main_without_config_requires_input_and_output(
 
 
 def test_cluster_falls_back_to_legacy_key(merge_module, monkeypatch, tmp_path, caplog):
-    """Config dirs written for v1.1.1 have no CROCOLAKE_* cluster keys."""
+    """Config dirs without a CROCOLAKE cluster key keep working."""
     config_dir = _write_config_dir(tmp_path / "cfg", cluster_keys=False)
     monkeypatch.setenv(cfgp.CONFIG_DIR_ENV_VAR, str(config_dir))
 
     with caplog.at_level(logging.WARNING):
-        cluster = merge_module.get_cluster_config("PHY")
+        cluster = merge_module.get_cluster_config()
 
     assert cluster == cfgp.get_config_cluster_db_dict("SPRAY_GLIDERS")
-    assert "CROCOLAKE_PHY not found" in caplog.text
+    assert "CROCOLAKE not found" in caplog.text
 
 
 def test_log_file_is_next_to_outdir(merge_module, tmp_path):
