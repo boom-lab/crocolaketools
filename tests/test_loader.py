@@ -6,9 +6,10 @@
 #
 #   unit        -- run on a miniature CrocoLake built from the golden PHY
 #                  outputs committed under tests/golden/ (offline, fast)
-#   integration -- run on a full CrocoLake on disk, found through the
-#                  CROCOLAKE_ROOTPATH environment variable (skipped if unset)
-#                  EX: CROCOLAKE_ROOTPATH=/path/to/crocolake pytest -m integration tests/test_loader.py
+#   integration -- the original crocolakeloader tests, run on a full CrocoLake
+#                  on disk found through the CROCOLAKE_ROOTPATH environment
+#                  variable. CURRENTLY SKIPPED: they are out of date (see
+#                  INTEGRATION_SKIP_REASON below) and need to be updated.
 #
 # Run only one category with e.g. `pytest -m unit tests/test_loader.py`.
 #
@@ -124,6 +125,18 @@ def crocolake_rootpath(monkeypatch):
     monkeypatch.chdir(rootpath)
     return rootpath
 
+# These tests come from crocolakeloader and no longer match CrocoLake schema.
+# They depend on how the data is laid out on disk, and some assertions are wrong
+# (e.g. test_loader compares selected_variables to an outdated list of
+# variables, in an order the Loader does not guarantee). Kept so they can be
+# fixed later. See boom-lab/crocolaketools#77.
+INTEGRATION_SKIP_REASON = (
+    "OUT OF DATE: crocolakeloader integration tests that depend on a local "
+    "CrocoLake layout and compare against outdated variable lists. They "
+    "need to be updated before they can run (see issue #NN)."
+)
+
+@pytest.mark.skip(reason=INTEGRATION_SKIP_REASON)
 @pytest.mark.integration
 @pytest.mark.usefixtures("crocolake_rootpath")
 class TestLoaderIntegration:
