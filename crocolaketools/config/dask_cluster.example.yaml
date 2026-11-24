@@ -62,3 +62,17 @@ SPOTS:
     n_workers: 1
     memory_limit: '4GB'
     processes: True
+
+# CrocoLake merge (merge_crocolake --config); size for the full PHY/BGC
+# CrocoLake. Without these keys the merge falls back to SPRAY_GLIDERS.
+CROCOLAKE_PHY:
+    threads_per_worker: 4
+    n_workers: 1
+    memory_limit: '12GB'
+    processes: True
+
+CROCOLAKE_BGC:
+    threads_per_worker: 4
+    n_workers: 1
+    memory_limit: '12GB'
+    processes: True
