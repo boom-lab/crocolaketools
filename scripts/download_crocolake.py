@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 
-## @file download_db.py
+## @file download_crocolake.py
 #
 #
 ## @author Enrico Milanese <enrico.milanese@whoi.edu>
+#
+## Moved from crocolakeloader (scripts/download_db.py) and renamed during the
+## incorporation of crocolakeloader into crocolaketools (Issue #72).
 #
 ## @date Thu 27 Feb 2025
 
