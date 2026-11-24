@@ -2,19 +2,20 @@
 
 CrocoLakeTools is a Python package containing modules to interface with CrocoLake -- a database of oceanographic observations that is developed and maintained in the framework of the NSF-sponsored project CROCODILE (CESM Regional Ocean and Carbon cOnfigurator with Data assimilation and Embedding).
 
-It is composed of two submodules, `downloader` and `converter`, which retrieve the most recent version of some ocean observations datasets and convert them to CrocoLake's format. It share some utilities with [CrocoLakeLoader](https://github.com/boom-lab/crocolakeloader/tree/9758ba72f1d6fc968a5cfabf8740a49eef9022ea), the package to load and manipulate CrocoLake's data, and it is included as a submodule.
+It is composed of two submodules, `downloader` and `converter`, which retrieve the most recent version of some ocean observations datasets and convert them to CrocoLake's format. It also includes the `loader` module, which loads CrocoLake's data into a dask dataframe. The loader used to be the separate [CrocoLakeLoader](https://github.com/boom-lab/crocolakeloader) package and is now part of CrocoLakeTools.
+.
 
 ### Table of Contents
 1. [Installation](#installation)
 2. [Converting datasets and building CrocoLake](#converting-datasets-and-building-crocolake)
-3. [converter](#converter)
-4. [downloader](#downloader)
-5. [Available sources](#available-sources)
+3. [Loading data from CrocoLake](#loading-data-from-crocolake)
+4. [converter](#converter)
+5. [downloader](#downloader)
+6. [Available sources](#available-sources)
 
 ### Installation
-Clone the repository locally with its submodules:
 ```
-git clone --recursive git@github.com:boom-lab/crocolaketools.git
+git clone git@github.com:boom-lab/crocolaketools.git
 cd crocolaketools
 ```
 
@@ -30,15 +31,15 @@ and activate with `conda activate crocolaketools`.
 
 Install with:
 ```
-pip install ./crocolakeloader/
 pip install .
 ```
 
 If you encounter some dependency issues, try running
 ```
-pip install ./crocolakeloader/
 pip install . -c constraints.txt
 ```
+
+If you previously installed CrocoLakeLoader as a separate package, uninstall it first with `pip uninstall crocolakeloader`, as it is now part of this package.
 
 ### Converting datasets and building CrocoLake
 To test that the code executes succesfully and to have an idea of how the converters work, use the small dataset committed to this repository under `tests/fixtures/`, together with the ready-made configuration in `tests/config/` that points at it -- see "Configuration is required" below.
@@ -142,6 +143,62 @@ Once you have two or more dataset in the parquet version, you can build CrocoLak
 merge_crocolake -d <var> --config
 ```
 where you replace `<var>` with `PHY` for the physical version, and with `BGC` for the biogeochemical version. The `datasets.yaml` identifies all the paths where the script will look for the parquet datasets. The script merges them into a unified dataset.
+
+### Loading data from CrocoLake
+
+The `Loader` class reads the parquet databases that make up CrocoLake and returns them as one dask dataframe.
+
+##### Download CrocoLake
+
+If you don't want to build CrocoLake yourself, you can download a ready-made copy:
+```
+download_crocolake -d CrocoLake -t PHY
+```
+Use `-t BGC` for the biogeochemical version, `-d Argo` to download only the Argo database, and `--destination` to choose where to save it (default `./CrocoLake`). Run `download_crocolake --help` for all the options.
+
+##### Load the data
+
+Point `db_rootpath` at the folder that holds one subfolder per source (for example the folder of links made by `generate_crocolake_symlinks.sh`, or the folder `download_crocolake` unzips the data into):
+```python
+from crocolaketools.loader.loader import Loader
+
+loader = Loader(
+    db_type="PHY",  # "PHY" or "BGC"
+    db_rootpath="/path/to/my/CrocoLake"
+)
+ddf = loader.get_dataframe()
+```
+`get_dataframe()` returns a dask dataframe, which behaves almost like a pandas one but does not load the data into memory until you ask for it. `ddf.compute()` gives you a pandas dataframe, but it loads everything `ddf` refers to, which is usually far more than fits in memory, so filter first.
+
+##### Filter variables and sources
+
+Pass a list of variables and/or a list of sources to keep only those (variable names are in `crocolaketools/db_params.py`, source names in `crocolaketools/db_names.py`):
+```python
+loader = Loader(
+    selected_variables=["LATITUDE", "LONGITUDE", "PRES", "PSAL", "TEMP"],
+    db_list=["ARGO", "GLODAP"],
+    db_type="PHY",
+    db_rootpath="/path/to/my/CrocoLake"
+)
+ddf = loader.get_dataframe()
+```
+
+##### Filter by values
+
+To keep only some rows (for example a region or a time period), set filters before calling `get_dataframe()`:
+```python
+filters = [
+    ("LATITUDE", ">", 5),
+    ("LATITUDE", "<", 30),
+    ("LONGITUDE", ">", -90),
+    ("LONGITUDE", "<", -30),
+    ("TEMP", ">=", -1e30),
+    ("TEMP", "<=", +1e30),
+]
+loader.set_filters(filters)
+ddf = loader.get_dataframe()
+```
+The conditions in one list are combined with AND. To combine groups of conditions with OR, pass a list of lists (see the `filters` option of [dask's `read_parquet`](https://docs.dask.org/en/stable/generated/dask.dataframe.read_parquet.html)). Asking for a variable to be between `-1e30` and `+1e30`, as above, drops the rows where it is missing.
 
 ### `converter`
 
