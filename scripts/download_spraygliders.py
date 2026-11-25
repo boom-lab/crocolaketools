@@ -28,24 +28,8 @@ def download_spraygliders(
     base_url: str = SPRAY_BASE_URL,
     overwrite: bool = False,
 ) -> tuple:
-    """Download Spray Gliders Level-3 NetCDF files.
-
-    Parameters
-    ----------
-    config   : configuration dict passed to DownloaderSprayGliders.
-               Must contain at least 'db' and 'db_type'.
-               Defaults to {'db': 'SprayGliders', 'db_type': 'PHY'}.
-    fnames   : dict mapping ERDDAP dataset ID to local filename.
-               Defaults to SPRAY_FILES.
-    base_url : base URL of the ERDDAP files/ service.
-    overwrite: re-download even if the local file is unchanged.
-
-    Returns
-    -------
-    tuple
-        (paths of the up-to-date local files, dict of failed dataset ID ->
-        reason).
-    """
+    """Download Spray Gliders Level-3 files; see DownloaderSprayGliders.
+    Returns (up-to-date paths, {failed dataset ID: reason})."""
     downloader = DownloaderSprayGliders(
         config=config,
         fnames=fnames,
@@ -57,8 +41,8 @@ def download_spraygliders(
 
 
 def select_files(names: list) -> tuple:
-    """Return the subset of SPRAY_FILES matching names, and the names that
-    match nothing. A name matches a dataset ID or a local filename."""
+    """Return (SPRAY_FILES subset matching names by dataset ID or local
+    filename, unmatched names)."""
     by_fname = {fname: dataset_id for dataset_id, fname in SPRAY_FILES.items()}
     selected = {}
     unknown = []

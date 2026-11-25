@@ -115,11 +115,8 @@ class ConverterSprayGliders(Converter):
             "trajectory":chunk_trajectory
         }
 
-        # decode_times=False keeps time and time_uv as raw numbers with their
-        # units/calendar attributes, so to_netcdf writes them back unchanged.
-        # Decoded, a chunk whose times are all NaT fails to encode on
-        # xarray >= 2025.1.2 (np.nanmin on all-NaT in
-        # _eagerly_encode_cf_datetime). read_to_df decodes the chunks.
+        # decode_times=False: xarray >= 2025.1.2 fails to encode all-NaT
+        # chunks; read_to_df decodes the times
         ds = xr.open_dataset(
             input_fname,
             cache=False,
@@ -368,8 +365,7 @@ class ConverterSprayGliders(Converter):
             print(tmp_to_remove)
             for f in tmp_to_remove:
                 f.unlink()
-            # rmdir, not os.removedirs: removedirs would also remove every
-            # parent directory left empty
+            # not os.removedirs: it also removes empty parents
             self.tmp_path.rmdir()
 
 

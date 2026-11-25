@@ -20,21 +20,17 @@ import requests
 from crocolaketools.downloader.downloader import Downloader
 ##########################################################################
 
-# Base URL for Spray Gliders Level-3 files hosted on spraydata.ucsd.edu.
-# The file listing of dataset <id> is at f"{SPRAY_BASE_URL}/<id>/.csv".
+# ERDDAP files/ service; dataset listings are at <id>/.csv
 SPRAY_BASE_URL = "https://spraydata.ucsd.edu/erddap/files"
 
-# ERDDAP query listing every binned (Level-3) dataset on the server. Used
-# only to warn about datasets missing from SPRAY_FILES.
+# all binned datasets on the server
 SPRAY_DATASETS_URL = (
     "https://spraydata.ucsd.edu/erddap/tabledap/allDatasets.csv"
     "?datasetID,title&datasetID=~%22binned.*%22"
 )
 
-# Mapping from ERDDAP dataset ID to local filename. The remote filename is
-# read from the dataset's file listing at download time, because the server
-# renames files (e.g. binnedFLEAT serves fleat_v1.1.nc). The local filenames
-# are fixed: ConverterSprayGliders depends on them.
+# ERDDAP dataset ID -> local filename (fixed; ConverterSprayGliders uses it).
+# The remote filename is read from the listing.
 SPRAY_FILES = {
     "binnedCalypso":     "Calypso.nc",
     "binnedCORC":        "CORC.nc",
@@ -63,32 +59,11 @@ _HEADERS = {"User-Agent": "Mozilla/5.0"}
 
 class DownloaderSprayGliders(Downloader):
     """class DownloaderSprayGliders: download Spray Gliders Level-3 NetCDF
-    files from spraydata.ucsd.edu and store them locally in their original,
-    unmodified form.
+    files, unmodified, for ConverterSprayGliders.
 
-    No schema mapping or data manipulation is performed here. The raw
-    NetCDF files are saved exactly as served by the remote host, ready
-    for subsequent conversion by ConverterSprayGliders.
-
-    For each ERDDAP dataset ID in self.fnames, the dataset's file listing
-    is read to find its single .nc file. The file is saved under the fixed
-    local name from self.fnames, whatever the server calls it.
-
-    A file is downloaded only if the local copy is missing, its size differs
-    from the server's, or its mtime is older than the server's Last
-    modified time. After a download, the local mtime is set to the server's
-    Last modified time. overwrite=True forces a re-download.
-
-    Datasets whose listing or download fails are collected in self.failed
-    (dataset ID -> reason); the other datasets are still processed.
-
-    Typical usage
-    -------------
-    >>> config = {'db': 'SprayGliders', 'db_type': 'PHY'}
-    >>> d = DownloaderSprayGliders(config=config)
-    >>> d.spray_download()
-    >>> d.failed
-    {}
+    Each dataset's single .nc file is saved under its local name in
+    self.fnames. Files with the server's size and mtime are skipped.
+    Failures are collected in self.failed (dataset ID -> reason).
     """
 
     # ------------------------------------------------------------------ #
@@ -107,16 +82,12 @@ class DownloaderSprayGliders(Downloader):
 
         Arguments
         ---------
-        config      : configuration dictionary. Must contain at least
-                      'db' (='SprayGliders') and 'db_type' ('PHY' or 'BGC').
-                      Any key not supplied is read from datasets.yaml.
-                      The resolved 'input_path' is used as the download
-                      destination (set by the base Downloader).
-        fnames      : dict mapping ERDDAP dataset ID to local filename.
-                      Defaults to SPRAY_FILES.
-        base_url    : base URL of the ERDDAP files/ service.
-        overwrite   : if True, re-download files even if they are unchanged.
-        datasets_url: URL of the allDatasets query listing binned datasets.
+        config      : must contain 'db' and 'db_type'; other keys from
+                      datasets.yaml. 'input_path' is the destination.
+        fnames      : {dataset ID: local filename}; default SPRAY_FILES
+        base_url    : ERDDAP files/ URL
+        overwrite   : re-download unchanged files
+        datasets_url: allDatasets query for binned datasets
         """
         if config is None:
             config = {
@@ -124,8 +95,6 @@ class DownloaderSprayGliders(Downloader):
                 'db_type': 'PHY',
             }
 
-        # base class resolves input_path from config + datasets.yaml and
-        # creates the directory if needed
         super().__init__(config)
 
         self.fnames = fnames if fnames is not None else SPRAY_FILES
@@ -139,19 +108,8 @@ class DownloaderSprayGliders(Downloader):
     # ------------------------------------------------------------------ #
 
     def spray_download(self) -> list:
-        """Download the Spray Gliders Level-3 files in self.fnames to
-        self.input_path.
-
-        A listing or download error for one dataset is recorded in
-        self.failed and does not stop the others. A summary of failures is
-        printed at the end.
-
-        Returns
-        -------
-        list
-            Paths of the local files that are up to date after this call
-            (downloaded now or already unchanged).
-        """
+        """Download the files in self.fnames; return the up-to-date paths.
+        Failures go to self.failed and do not stop the other datasets."""
         self.failed = {}
         self.check_new_datasets()
 
@@ -183,8 +141,7 @@ class DownloaderSprayGliders(Downloader):
 
             local_size = local_path.stat().st_size
             if local_size != entry['size']:
-                # leave the file and its mtime as they are: the size
-                # mismatch makes the next run download it again
+                # mtime not set: the next run re-downloads it
                 self._fail(
                     dataset_id,
                     f"downloaded {local_size} bytes, listing says {entry['size']}",
@@ -204,27 +161,13 @@ class DownloaderSprayGliders(Downloader):
         return up_to_date
 
     def get_url(self, dataset_id: str) -> str:
-        """Return the download URL of the single .nc file of dataset_id.
-
-        Raises
-        ------
-        RuntimeError
-            If the listing cannot be read or does not hold exactly one
-            .nc file.
-        """
+        """Return the URL of the single .nc file of dataset_id."""
         entry = self._remote_nc_entry(dataset_id)
         return f"{self.base_url}/{dataset_id}/{entry['name']}"
 
     def list_remote_files(self, dataset_id: str) -> list:
-        """Return the file listing of dataset_id from ERDDAP files/.
-
-        Returns
-        -------
-        list
-            One dict per entry, with keys 'name' (str), 'mtime_ms' (int,
-            epoch milliseconds) and 'size' (int, bytes). Subdirectories
-            (names ending in '/') are included.
-        """
+        """Return the listing of dataset_id as dicts with 'name',
+        'mtime_ms' (epoch ms) and 'size' (bytes)."""
         url = f"{self.base_url}/{dataset_id}/.csv"
         response = requests.get(url, timeout=30, headers=_HEADERS)
         response.raise_for_status()
@@ -254,19 +197,11 @@ class DownloaderSprayGliders(Downloader):
         response = requests.get(self.datasets_url, timeout=30, headers=_HEADERS)
         response.raise_for_status()
         rows = list(csv.reader(io.StringIO(response.text)))
-        # rows[0] is the header; ERDDAP returns an empty first data row
+        # skip header and ERDDAP's empty first row
         return [r[0] for r in rows[1:] if r and r[0]]
 
     def check_new_datasets(self) -> list:
-        """Warn about binned datasets on the server that are missing from
-        SPRAY_FILES. They are not downloaded.
-
-        Returns
-        -------
-        list
-            The dataset IDs missing from SPRAY_FILES. Empty if the
-            server's dataset list could not be read.
-        """
+        """Warn about, and return, server datasets not in SPRAY_FILES."""
         try:
             remote_ids = self.list_binned_datasets()
         except Exception as e:
@@ -285,13 +220,8 @@ class DownloaderSprayGliders(Downloader):
     # ------------------------------------------------------------------ #
 
     def _remote_nc_entry(self, dataset_id: str) -> dict:
-        """Return the listing entry of the single .nc file of dataset_id.
-
-        Raises
-        ------
-        RuntimeError
-            If the listing has zero or several .nc files.
-        """
+        """Return the listing entry of the single .nc file; raise
+        RuntimeError on zero or several."""
         entries = [
             e for e in self.list_remote_files(dataset_id)
             if not e["name"].endswith("/") and e["name"].endswith(".nc")

@@ -48,10 +48,7 @@ def _convert_db_type(db_type, client, spray_path, outdir_pqt, fname_pq, use_conf
         print("Using configuration from datasets.yaml")
         converter = ConverterSprayGliders(db_type=db_type.lower())
 
-    # prepare_data refuses to start if tmp_path exists, to keep two runs from
-    # sharing it. If that is why it fails, the directory belongs to another
-    # run and is left alone; otherwise this run created it and removes it on
-    # failure, so the next run can start.
+    # on failure, remove tmp_path only if this run created it
     tmp_existed = converter.tmp_path.exists()
     try:
         print("Creating temporary files...")
@@ -70,12 +67,11 @@ def _convert_db_type(db_type, client, spray_path, outdir_pqt, fname_pq, use_conf
             filepath=converter.tmp_path,
         )
     except BaseException as e:
-        # FileExistsError: another run created tmp_path between the check
-        # above and prepare_data's mkdir
+        # FileExistsError: another run created tmp_path meanwhile
         created_here = not tmp_existed and not isinstance(e, FileExistsError)
         if created_here and converter.tmp_path.exists():
             print(f"{db_type} conversion failed, removing temporary files...")
-            # a cleanup error must not replace the original exception
+            # keep the original exception
             try:
                 converter.cleanup()
             except Exception as cleanup_error:
