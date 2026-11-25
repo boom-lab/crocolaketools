@@ -48,21 +48,35 @@ def _convert_db_type(db_type, client, spray_path, outdir_pqt, fname_pq, use_conf
         print("Using configuration from datasets.yaml")
         converter = ConverterSprayGliders(db_type=db_type.lower())
 
-    print("Creating temporary files...")
-    converter.prepare_data(
-        lock=Lock()
-    )
+    # prepare_data refuses to start if tmp_path exists, to keep two runs from
+    # sharing it. If that is why it fails, the directory belongs to another
+    # run and is left alone; otherwise this run created it and removes it on
+    # failure, so the next run can start.
+    tmp_existed = converter.tmp_path.exists()
+    try:
+        print("Creating temporary files...")
+        converter.prepare_data(
+            lock=Lock()
+        )
 
-    print("Temporary files created.")
+        print("Temporary files created.")
 
-    # Restarting the server forces dask to free the memory
-    client.shutdown()
-    client = Client(**cfgp.get_config_cluster_db_dict("SPRAY_GLIDERS"))
+        # Restarting the server forces dask to free the memory
+        client.shutdown()
+        client = Client(**cfgp.get_config_cluster_db_dict("SPRAY_GLIDERS"))
 
-    print("Converting temporary files to parquet...")
-    converter.convert(
-        filepath=converter.tmp_path,
-    )
+        print("Converting temporary files to parquet...")
+        converter.convert(
+            filepath=converter.tmp_path,
+        )
+    except BaseException as e:
+        # FileExistsError: another run created tmp_path between the check
+        # above and prepare_data's mkdir
+        created_here = not tmp_existed and not isinstance(e, FileExistsError)
+        if created_here and converter.tmp_path.exists():
+            print(f"{db_type} conversion failed, removing temporary files...")
+            converter.cleanup()
+        raise
 
     print("Temporary files converted to parquet.")
     print(db_type + " files converted to parquet.")

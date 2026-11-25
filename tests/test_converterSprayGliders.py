@@ -3,16 +3,18 @@
 ## @file test_converterSprayGliders.py
 #
 # Tests for ConverterSprayGliders.prepare_data on a synthetic file with an
-# all-NaT chunk.
+# all-NaT chunk, and for the tmp_path cleanup in scripts/spray2parquet.py.
 #
 ##########################################################################
 import threading
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
 import xarray as xr
 
 from crocolaketools.converter.converterSprayGliders import ConverterSprayGliders
+import scripts.spray2parquet as s2p
 ##########################################################################
 
 TIME_ATTRS = {
@@ -108,6 +110,69 @@ class TestPrepareDataAllNaT:
                     for v in ("time", "time_uv"):
                         assert np.issubdtype(got[v].dtype, np.datetime64)
                         assert got[v].encoding["units"] == TIME_ATTRS["units"]
+
+
+##########################################################################
+
+
+class TestConvertDbTypeCleanup:
+    """scripts/spray2parquet.py _convert_db_type removes the tmp_path it
+    created when a step fails."""
+
+    def run(self, converter):
+        with patch.object(s2p, "ConverterSprayGliders", return_value=converter), \
+                patch.object(s2p, "Client"), \
+                patch.object(s2p, "Lock", side_effect=threading.Lock):
+            return s2p._convert_db_type(
+                "PHY", MagicMock(), None, None, None, use_config_file=True
+            )
+
+    def test_convert_failure_removes_tmp_path(self, spray_dirs):
+        input_dir, tmp_dir = spray_dirs
+        converter = make_converter(input_dir, tmp_dir)
+        converter.chunk_profile = CHUNK_PROFILE
+        converter.convert = MagicMock(side_effect=RuntimeError("convert broke"))
+
+        with pytest.raises(RuntimeError, match="convert broke"):
+            self.run(converter)
+
+        assert not tmp_dir.exists()
+        assert input_dir.is_dir()
+
+    def test_prepare_data_failure_removes_tmp_path(self, spray_dirs):
+        input_dir, tmp_dir = spray_dirs
+        converter = make_converter(input_dir, tmp_dir)
+        converter.store_chunks = MagicMock(side_effect=OSError("disk full"))
+
+        with pytest.raises(OSError, match="disk full"):
+            self.run(converter)
+
+        assert not tmp_dir.exists()
+
+    def test_existing_tmp_path_kept(self, spray_dirs):
+        input_dir, tmp_dir = spray_dirs
+        tmp_dir.mkdir()
+        other_run_file = tmp_dir / "CORC_chunk_0.nc"
+        other_run_file.write_bytes(b"another run")
+        converter = make_converter(input_dir, tmp_dir)
+        converter.cleanup = MagicMock()
+
+        with pytest.raises(ValueError, match="already exists"):
+            self.run(converter)
+
+        converter.cleanup.assert_not_called()
+        assert other_run_file.read_bytes() == b"another run"
+
+    def test_success_still_cleans_up(self, spray_dirs):
+        input_dir, tmp_dir = spray_dirs
+        converter = make_converter(input_dir, tmp_dir)
+        converter.chunk_profile = CHUNK_PROFILE
+        converter.convert = MagicMock()
+
+        self.run(converter)
+
+        converter.convert.assert_called_once()
+        assert not tmp_dir.exists()
 
 
 ##########################################################################
