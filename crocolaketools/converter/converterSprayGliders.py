@@ -115,11 +115,17 @@ class ConverterSprayGliders(Converter):
             "trajectory":chunk_trajectory
         }
 
+        # decode_times=False keeps time and time_uv as raw numbers with their
+        # units/calendar attributes, so to_netcdf writes them back unchanged.
+        # Decoded, a chunk whose times are all NaT fails to encode on
+        # xarray >= 2025.1.2 (np.nanmin on all-NaT in
+        # _eagerly_encode_cf_datetime). read_to_df decodes the chunks.
         ds = xr.open_dataset(
             input_fname,
             cache=False,
             chunks=chunk_dict,
             engine="h5netcdf",
+            decode_times=False,
         )
 
         tmp_path = self.tmp_path
