@@ -10,6 +10,7 @@
 
 ##########################################################################
 import argparse
+import sys
 from datetime import datetime
 
 from crocolaketools.config import config_paths as cfgp
@@ -23,33 +24,35 @@ from crocolaketools.downloader.downloaderSprayGliders import (
 
 def download_spraygliders(
     config: dict = None,
-    fnames: list = None,
+    fnames: dict = None,
     base_url: str = SPRAY_BASE_URL,
     overwrite: bool = False,
-) -> list:
-    """Download Spray Gliders Level-3 NetCDF files.
-
-    Parameters
-    ----------
-    config   : configuration dict passed to DownloaderSprayGliders.
-               Must contain at least 'db' and 'db_type'.
-               Defaults to {'db': 'SprayGliders', 'db_type': 'PHY'}.
-    fnames   : list of filenames to download. Defaults to SPRAY_FILES.
-    base_url : base URL for the Level-3 files.
-    overwrite: re-download even if file already exists.
-
-    Returns
-    -------
-    list
-        Paths to all downloaded files.
-    """
+) -> tuple:
+    """Download Spray Gliders Level-3 files; see DownloaderSprayGliders.
+    Returns (up-to-date paths, {failed dataset ID: reason})."""
     downloader = DownloaderSprayGliders(
         config=config,
         fnames=fnames,
         base_url=base_url,
         overwrite=overwrite,
     )
-    return downloader.spray_download()
+    paths = downloader.spray_download()
+    return paths, downloader.failed
+
+
+def select_files(names: list) -> tuple:
+    """Return (SPRAY_FILES subset matching names by dataset ID or local
+    filename, unmatched names)."""
+    by_fname = {fname: dataset_id for dataset_id, fname in SPRAY_FILES.items()}
+    selected = {}
+    unknown = []
+    for name in names:
+        dataset_id = name if name in SPRAY_FILES else by_fname.get(name)
+        if dataset_id is None:
+            unknown.append(name)
+        else:
+            selected[dataset_id] = SPRAY_FILES[dataset_id]
+    return selected, unknown
 
 
 #------------------------------------------------------------------------------#
@@ -75,8 +78,8 @@ def main():
         nargs="+",
         default=None,
         help=(
-            "Subset of filenames to download (e.g. --files CORC.nc GulfStream.nc). "
-            "Must match keys in SPRAY_FILES. Defaults to all files."
+            "Subset to download, as local filenames or ERDDAP dataset IDs "
+            "(e.g. --files CORC.nc binnedGS). Defaults to all files."
         ),
     )
 
@@ -91,16 +94,17 @@ def main():
     # if --files provided, build a subset dict from SPRAY_FILES
     fnames = None
     if args.files:
-        fnames = {f: SPRAY_FILES[f] for f in args.files if f in SPRAY_FILES}
-        missing = [f for f in args.files if f not in SPRAY_FILES]
-        if missing:
-            print(f"Warning: unknown filenames ignored: {missing}")
+        fnames, unknown = select_files(args.files)
+        if unknown:
+            print(f"Warning: unknown filenames or dataset IDs ignored: {unknown}")
 
-    download_spraygliders(
+    _, failed = download_spraygliders(
         config=config,
         fnames=fnames,
         overwrite=args.overwrite,
     )
+    if failed:
+        sys.exit(1)
 
 
 ##########################################################################

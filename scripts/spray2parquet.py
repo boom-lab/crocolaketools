@@ -48,21 +48,39 @@ def _convert_db_type(db_type, client, spray_path, outdir_pqt, fname_pq, use_conf
         print("Using configuration from datasets.yaml")
         converter = ConverterSprayGliders(db_type=db_type.lower())
 
-    print("Creating temporary files...")
-    converter.prepare_data(
-        lock=Lock()
-    )
+    # on failure, remove tmp_path only if this run created it
+    tmp_existed = converter.tmp_path.exists()
+    try:
+        print("Creating temporary files...")
+        converter.prepare_data(
+            lock=Lock()
+        )
 
-    print("Temporary files created.")
+        print("Temporary files created.")
 
-    # Restarting the server forces dask to free the memory
-    client.shutdown()
-    client = Client(**cfgp.get_config_cluster_db_dict("SPRAY_GLIDERS"))
+        # Restarting the server forces dask to free the memory
+        client.shutdown()
+        client = Client(**cfgp.get_config_cluster_db_dict("SPRAY_GLIDERS"))
 
-    print("Converting temporary files to parquet...")
-    converter.convert(
-        filepath=converter.tmp_path,
-    )
+        print("Converting temporary files to parquet...")
+        converter.convert(
+            filepath=converter.tmp_path,
+        )
+    except BaseException as e:
+        # FileExistsError: another run created tmp_path meanwhile
+        created_here = not tmp_existed and not isinstance(e, FileExistsError)
+        if created_here and converter.tmp_path.exists():
+            print(f"{db_type} conversion failed, removing temporary files...")
+            # keep the original exception
+            try:
+                converter.cleanup()
+            except Exception as cleanup_error:
+                print(
+                    f"Warning: could not remove temporary path "
+                    f"{converter.tmp_path}: {cleanup_error}. Remove it by "
+                    "hand before the next run."
+                )
+        raise
 
     print("Temporary files converted to parquet.")
     print(db_type + " files converted to parquet.")

@@ -9,7 +9,7 @@ def parse_requirements(filename):
 
 setup(
     name='crocolaketools',
-    version='1.1.3',
+    version='1.1.4',
     description='Package to generate and load CrocoLake',
     license="GNU GPLv3",
     long_description=long_description,

@@ -115,11 +115,14 @@ class ConverterSprayGliders(Converter):
             "trajectory":chunk_trajectory
         }
 
+        # decode_times=False: xarray >= 2025.1.2 fails to encode all-NaT
+        # chunks; read_to_df decodes the times
         ds = xr.open_dataset(
             input_fname,
             cache=False,
             chunks=chunk_dict,
             engine="h5netcdf",
+            decode_times=False,
         )
 
         tmp_path = self.tmp_path
@@ -362,7 +365,8 @@ class ConverterSprayGliders(Converter):
             print(tmp_to_remove)
             for f in tmp_to_remove:
                 f.unlink()
-            os.removedirs(self.tmp_path)
+            # not os.removedirs: it also removes empty parents
+            self.tmp_path.rmdir()
 
 
 ##########################################################################
