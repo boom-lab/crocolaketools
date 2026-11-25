@@ -175,6 +175,42 @@ class TestConvertDbTypeCleanup:
         assert not tmp_dir.exists()
 
 
+class TestCleanup:
+
+    def test_cleanup_keeps_empty_parent(self, spray_dirs, tmp_path):
+        """cleanup() removes tmp_path only, not a parent left empty."""
+        input_dir, _ = spray_dirs
+        parent = tmp_path / "only_tmp_here"
+        tmp_dir = parent / "tmp_spray"
+        converter = make_converter(input_dir, tmp_dir)
+        converter.prepare_data(
+            flist=["Synth.nc"], lock=threading.Lock(), chunk_profile=CHUNK_PROFILE
+        )
+
+        converter.cleanup()
+
+        assert not tmp_dir.exists()
+        assert parent.is_dir()
+
+    def test_cleanup_error_keeps_original_exception(self, spray_dirs, capsys):
+        """If cleanup() fails after a failed step, the step's exception is
+        raised and the cleanup error is printed as a warning."""
+        input_dir, tmp_dir = spray_dirs
+        converter = make_converter(input_dir, tmp_dir)
+        converter.chunk_profile = CHUNK_PROFILE
+        converter.convert = MagicMock(side_effect=RuntimeError("convert broke"))
+        converter.cleanup = MagicMock(side_effect=OSError("cannot remove"))
+
+        with pytest.raises(RuntimeError, match="convert broke") as exc:
+            TestConvertDbTypeCleanup().run(converter)
+
+        assert exc.value.__context__ is None
+        converter.cleanup.assert_called_once()
+        out = capsys.readouterr().out
+        assert "could not remove temporary path" in out
+        assert "cannot remove" in out
+
+
 ##########################################################################
 
 if __name__ == "__main__":

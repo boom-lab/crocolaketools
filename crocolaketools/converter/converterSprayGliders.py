@@ -368,7 +368,9 @@ class ConverterSprayGliders(Converter):
             print(tmp_to_remove)
             for f in tmp_to_remove:
                 f.unlink()
-            os.removedirs(self.tmp_path)
+            # rmdir, not os.removedirs: removedirs would also remove every
+            # parent directory left empty
+            self.tmp_path.rmdir()
 
 
 ##########################################################################

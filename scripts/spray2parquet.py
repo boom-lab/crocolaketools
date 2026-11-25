@@ -75,7 +75,15 @@ def _convert_db_type(db_type, client, spray_path, outdir_pqt, fname_pq, use_conf
         created_here = not tmp_existed and not isinstance(e, FileExistsError)
         if created_here and converter.tmp_path.exists():
             print(f"{db_type} conversion failed, removing temporary files...")
-            converter.cleanup()
+            # a cleanup error must not replace the original exception
+            try:
+                converter.cleanup()
+            except Exception as cleanup_error:
+                print(
+                    f"Warning: could not remove temporary path "
+                    f"{converter.tmp_path}: {cleanup_error}. Remove it by "
+                    "hand before the next run."
+                )
         raise
 
     print("Temporary files converted to parquet.")
