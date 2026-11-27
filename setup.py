@@ -23,6 +23,7 @@ setup(
             'argo2argoqc_phy = scripts.argo2argoqc_phy:main',
             'argogdac2parquet = scripts.argogdac2parquet:argogdac2parquet',
             'crocolaketools = scripts.main:main',
+            'download_crocolake = scripts.download_crocolake:main',
             'download_demo_data = scripts.download_demo_data:main',
             'download_glodap = scripts.download_glodap:main',
             'download_oleanderXBT = scripts.download_oleanderXBT:main',
